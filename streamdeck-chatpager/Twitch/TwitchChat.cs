@@ -16,11 +16,15 @@ namespace ChatPager.Twitch
         private static TwitchChat instance = null;
         private static readonly object objLock = new object();
 
-        private TwitchClient client = new TwitchClient();
+        private const string PAGE_COMMAND = "page";
+
+        private TwitchClient client;
         private TwitchToken token = null;
         private int pageCooldown;
         private DateTime lastPage;
         private List<string> allowedPagers;
+        private DateTime lastConnectAttempt;
+        private object initLock = new object();
 
         #endregion
 
@@ -50,7 +54,7 @@ namespace ChatPager.Twitch
 
         #region Public Members
 
-        public event EventHandler PageRaised;
+        public event EventHandler<PageRaisedEventArgs> PageRaised;
 
         public bool IsConnected
         {
@@ -65,47 +69,80 @@ namespace ChatPager.Twitch
 
         private TwitchChat()
         {
-            client.OnConnected += Client_OnConnected;
-            client.OnMessageReceived += Client_OnMessageReceived;
-            client.OnDisconnected += Client_OnDisconnected;
+            ResetClient();
             TwitchTokenManager.Instance.TokensChanged += Instance_TokensChanged;
             token = TwitchTokenManager.Instance.GetToken();
         }
 
         public void Initalize(int pageCooldown, List<string> allowedPagers)
         {
-            if (allowedPagers != null)
+            lock (initLock)
             {
-                this.allowedPagers = allowedPagers.Select(x => x.ToLowerInvariant()).ToList();
+                try
+                {
+                    Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchChat: Initalizing");
+                    if (allowedPagers != null)
+                    {
+                        this.allowedPagers = allowedPagers.Select(x => x.ToLowerInvariant()).ToList();
+                    }
+                    this.pageCooldown = pageCooldown;
+
+                    if (!client.IsConnected)
+                    {
+                        Connect(DateTime.Now);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"TwitchChat: Initalize exception {ex}");
+                }
             }
-            this.pageCooldown = pageCooldown;
         }
 
-       
-        public void Connect()
+        private void Connect(DateTime connectRequestTime)
         {
-            Disconnect(); // Disconnect if already conected with previous credentials
-
-            if (token == null || String.IsNullOrWhiteSpace(token.Token))
+            lock (objLock)
             {
-                Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchChat: Cannot connect, invalid token");
-                return;
-            }
+                try
+                {
+                    if ((lastConnectAttempt > connectRequestTime) || ((connectRequestTime - lastConnectAttempt).TotalSeconds < 2)) // Prevent spamming Twitch
+                    {
+                        Logger.Instance.LogMessage(TracingLevel.INFO, $"TwitchChat: Connected recently");
+                        return;
+                    }
+                    Logger.Instance.LogMessage(TracingLevel.INFO, $"TwitchChat: Connect called");
+                    Disconnect(); // Disconnect if already conected with previous credentials
 
-            if (TwitchTokenManager.Instance.User == null || String.IsNullOrWhiteSpace(TwitchTokenManager.Instance.User.UserName))
-            {
-                Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchChat: Cannot connect, invalid user object");
-                return;
-            }
+                    if (token == null || String.IsNullOrWhiteSpace(token.Token))
+                    {
+                        Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchChat: Cannot connect, invalid token");
+                        return;
+                    }
 
-            Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchChat: Attempting to connect");
-            string username = TwitchTokenManager.Instance.User.UserName;
-            ConnectionCredentials credentials = new ConnectionCredentials(username, $"oauth:{token.Token}");
-            client.Initialize(credentials, username);
-            client.Connect();
+                    if (TwitchTokenManager.Instance.User == null || String.IsNullOrWhiteSpace(TwitchTokenManager.Instance.User.UserName))
+                    {
+                        Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchChat: Cannot connect, invalid user object");
+                        return;
+                    }
+
+                    Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchChat: Attempting to connect");
+                    string username = TwitchTokenManager.Instance.User.UserName;
+                    ConnectionCredentials credentials = new ConnectionCredentials(username, $"oauth:{token.Token}");
+                    ResetClient();
+                    client.Initialize(credentials, username);
+                    client.Connect();
+                    lastConnectAttempt = DateTime.Now;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"TwitchChat: Connect exception {ex}");
+                }
+            }
         }
 
-        public void Disconnect()
+        #region Private Members
+
+        private void Disconnect()
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchChat: Attempting to disconnect");
             if (client != null && client.IsConnected)
@@ -114,17 +151,10 @@ namespace ChatPager.Twitch
             }
         }
 
-        #region Private Members
-
-        private void Client_OnMessageReceived(object sender, TwitchLib.Client.Events.OnMessageReceivedArgs e)
+        private void ParseCommand(ChatCommand cmd)
         {
-            ParseCommand(e.ChatMessage);
-        }
-
-        private void ParseCommand(ChatMessage msg)
-        {
-            var words = msg.Message.ToLowerInvariant().Split(' ');
-            if (words[0] == "!page")
+            var msg = cmd.ChatMessage;
+            if (cmd.CommandText.ToLowerInvariant() == PAGE_COMMAND)
             {
                 Logger.Instance.LogMessage(TracingLevel.INFO, $"{msg.DisplayName} requested a page");
                 if (PageRaised != null)
@@ -134,7 +164,7 @@ namespace ChatPager.Twitch
                         if (allowedPagers == null || allowedPagers.Count == 0 || allowedPagers.Contains(msg.DisplayName.ToLowerInvariant()))
                         {
                             lastPage = DateTime.Now;
-                            PageRaised?.Invoke(this, EventArgs.Empty);
+                            PageRaised?.Invoke(this, new PageRaisedEventArgs(cmd.ArgumentsAsString));
                             client.SendMessage(msg.Channel, $"Hey, @{msg.DisplayName}, I am now getting paged...!  \r\n(Get a pager for your Elgato Stream Deck at https://barraider.github.io )");
                         }
                         else
@@ -146,6 +176,10 @@ namespace ChatPager.Twitch
                     {
                         Logger.Instance.LogMessage(TracingLevel.INFO, $"Cannot page, cooldown enabled");
                     }
+                }
+                else
+                {
+                    Logger.Instance.LogMessage(TracingLevel.INFO, $"Cannot page, no plugin is currently enabled");
                 }
             }
         }
@@ -163,8 +197,42 @@ namespace ChatPager.Twitch
         private void Instance_TokensChanged(object sender, TwitchTokenEventArgs e)
         {
             token = e.Token;
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"Tokens changed, reconnecting");
+            Connect(DateTime.Now);
+        }
 
-            Connect();
+        private void ResetClient()
+        {
+            if (client != null)
+            {
+                client.OnConnected -= Client_OnConnected;
+                client.OnDisconnected -= Client_OnDisconnected;
+                client.OnChatCommandReceived -= Client_OnChatCommandReceived;
+                client.OnConnectionError -= Client_OnConnectionError;
+                client.OnError -= Client_OnError;
+            }
+            client = null;
+            client = new TwitchClient();
+            client.OnConnected += Client_OnConnected;
+            client.OnDisconnected += Client_OnDisconnected;
+            client.OnChatCommandReceived += Client_OnChatCommandReceived;
+            client.OnConnectionError += Client_OnConnectionError;
+            client.OnError += Client_OnError;
+        }
+
+        private void Client_OnError(object sender, TwitchLib.Communication.Events.OnErrorEventArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchChat Error: {e.Exception}");
+        }
+
+        private void Client_OnConnectionError(object sender, TwitchLib.Client.Events.OnConnectionErrorArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchChat Connection Error: {e.Error.Message}");
+        }
+
+        private void Client_OnChatCommandReceived(object sender, TwitchLib.Client.Events.OnChatCommandReceivedArgs e)
+        {
+            ParseCommand(e.Command);
         }
 
         #endregion

@@ -46,6 +46,7 @@ namespace ChatPager
         private readonly string[] pageArr = { Properties.Settings.Default.TwitchPage1, Properties.Settings.Default.TwitchPage2, Properties.Settings.Default.TwitchPage3, Properties.Settings.Default.TwitchPage2 };
         private int pageIdx = 0;
         private TwitchStreamInfo streamInfo;
+        private string pageMessage = null;
 
         #endregion
 
@@ -62,9 +63,9 @@ namespace ChatPager
             TwitchStreamInfoManager.Instance.TwitchStreamInfoChanged += Instance_TwitchStreamInfoChanged;
             TwitchTokenManager.Instance.TokenStatusChanged += Instance_TokenStatusChanged;
             Connection.StreamDeckConnection.OnSendToPlugin += StreamDeckConnection_OnSendToPlugin;
+            TwitchChat.Instance.PageRaised += Chat_PageRaised;
 
             settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
-            TwitchChat.Instance.PageRaised += Chat_PageRaised;
             ResetChat();
             
             tmrPage.Interval = 200;
@@ -79,6 +80,7 @@ namespace ChatPager
             TwitchStreamInfoManager.Instance.TwitchStreamInfoChanged -= Instance_TwitchStreamInfoChanged;
             TwitchTokenManager.Instance.TokenStatusChanged -= Instance_TokenStatusChanged;
             Connection.StreamDeckConnection.OnSendToPlugin -= StreamDeckConnection_OnSendToPlugin;
+            TwitchChat.Instance.PageRaised -= Chat_PageRaised;
             Logger.Instance.LogMessage(TracingLevel.INFO, "Destructor Called");
         }
 
@@ -87,6 +89,7 @@ namespace ChatPager
             if (isPaging)
             {
                 isPaging = false;
+                pageMessage = null;
             }
             else
             {
@@ -131,7 +134,25 @@ namespace ChatPager
 
         private void TmrPage_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            Connection.SetImageAsync(pageArr[pageIdx]);
+            if (String.IsNullOrEmpty(pageMessage))
+            {
+                Connection.SetImageAsync(pageArr[pageIdx]);
+            }
+            else
+            {
+                Image img = Tools.Base64StringToImage(pageArr[pageIdx]);
+                Graphics graphics = Graphics.FromImage(img);
+                var font = new Font("Verdana", 12, FontStyle.Bold);
+                var fgBrush = Brushes.White;
+                SizeF stringSize = graphics.MeasureString(pageMessage, font);
+                float stringPos = 0;
+                if (stringSize.Width < Tools.KEY_DEFAULT_WIDTH)
+                {
+                    stringPos = Math.Abs((Tools.KEY_DEFAULT_WIDTH - stringSize.Width)) / 2;
+                }
+                graphics.DrawString(pageMessage, font, fgBrush, new PointF(stringPos, 54));
+                Connection.SetImageAsync(img);
+            }
             pageIdx = (pageIdx + 1) % pageArr.Length;
         }
 
@@ -180,8 +201,10 @@ namespace ChatPager
             await SaveSettings();
         }
 
-        private void Chat_PageRaised(object sender, EventArgs e)
+        private void Chat_PageRaised(object sender, PageRaisedEventArgs e)
         {
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"Received a page! Message: {e.Message?? String.Empty}");
+            pageMessage = e.Message;
             isPaging = true;
         }
 
@@ -232,7 +255,6 @@ namespace ChatPager
                 allowedPagers = settings.AllowedPagers?.Replace("\r\n", "\n").Split('\n').ToList();
             }
             TwitchChat.Instance.Initalize(settings.PageCooldown, allowedPagers);
-            TwitchChat.Instance.Connect();
         }
         #endregion
     }
