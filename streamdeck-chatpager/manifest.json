@@ -1,0 +1,38 @@
+{
+  "Actions": [
+    {
+      "Icon": "Images/icon",
+      "Name": "Twitch Pager",
+      "States": [
+        {
+          "Image": "Images/bg",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Listens to your twitch chat and starts flashing if someone uses the !page command.",
+      "UUID": "com.barraider.twitchpager",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/Twitch.html"
+    }
+  ],
+  "Author": "BarRaider",
+  "Description": "Listens to your twitch chat and starts flashing if someone uses the !page command.\r\n*** PRE-RELEASE BETA VERSION***",
+  "Name": "ChatPager",
+  "Icon": "Images/pluginIcon",
+  "URL": "https://barraider.github.io/",
+  "Version": "0.2",
+  "CodePath": "com.barraider.chatpager",
+  "Category": "BarRaider",
+  "CategoryIcon": "Images/categoryIcon",
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "4.1"
+  }
+}
