@@ -81,6 +81,7 @@ namespace ChatPager
             TwitchTokenManager.Instance.TokenStatusChanged -= Instance_TokenStatusChanged;
             Connection.StreamDeckConnection.OnSendToPlugin -= StreamDeckConnection_OnSendToPlugin;
             TwitchChat.Instance.PageRaised -= Chat_PageRaised;
+            tmrPage.Stop();
             Logger.Instance.LogMessage(TracingLevel.INFO, "Destructor Called");
         }
 
