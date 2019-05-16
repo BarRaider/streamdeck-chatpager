@@ -22,7 +22,8 @@ namespace ChatPager
                 instance.TokenExists = false;
                 instance.PageCooldown = 30;
                 instance.AllowedPagers = String.Empty;
-
+                instance.ChatMessage = TwitchChat.Instance.ChatMessage;
+                instance.DashboardOnClick = true;
                 return instance;
             }
 
@@ -34,6 +35,12 @@ namespace ChatPager
 
             [JsonProperty(PropertyName = "allowedPagers")]
             public string AllowedPagers { get; set; }
+
+            [JsonProperty(PropertyName = "chatMessage")]
+            public string ChatMessage { get; set; }
+
+            [JsonProperty(PropertyName = "dashboardOnClick")]
+            public bool DashboardOnClick { get; set; }
         }
 
         #region Private members
@@ -60,6 +67,7 @@ namespace ChatPager
             {
                 this.settings = payload.Settings.ToObject<PluginSettings>();
             }
+            this.settings.ChatMessage = TwitchChat.Instance.ChatMessage;
             TwitchStreamInfoManager.Instance.TwitchStreamInfoChanged += Instance_TwitchStreamInfoChanged;
             TwitchTokenManager.Instance.TokenStatusChanged += Instance_TokenStatusChanged;
             Connection.StreamDeckConnection.OnSendToPlugin += StreamDeckConnection_OnSendToPlugin;
@@ -71,6 +79,7 @@ namespace ChatPager
             tmrPage.Interval = 200;
             tmrPage.Elapsed += TmrPage_Elapsed;
             SaveSettings();
+            Connection.GetGlobalSettingsAsync();
         }
 
         #region PluginBase Implementation
@@ -98,7 +107,7 @@ namespace ChatPager
                 {
                     TwitchStreamInfoManager.Instance.ForceStreamInfoRefresh();
                 }
-                else if (TwitchTokenManager.Instance.User != null)
+                else if (TwitchTokenManager.Instance.User != null && settings.DashboardOnClick)
                 {
                     System.Diagnostics.Process.Start(String.Format("https://www.twitch.tv/{0}/dashboard/live", TwitchTokenManager.Instance.User.UserName));
                 }
@@ -121,12 +130,35 @@ namespace ChatPager
             }
         }
 
-        public override void ReceivedGlobalSettings(ReceivedGlobalSettingsPayload payload) { }
+        public override void ReceivedGlobalSettings(ReceivedGlobalSettingsPayload payload)
+        {
+            // Global Settings exist
+            if (payload?.Settings != null)
+            {
+                TwitchGlobalSettings global = payload.Settings.ToObject<TwitchGlobalSettings>();
+                TwitchChat.Instance.ChatMessage = global.ChatMessage;
+                settings.ChatMessage = global.ChatMessage;
+                SaveSettings();
+            }
+            else // Global settings do not exist
+            {
+                TwitchGlobalSettings global = new TwitchGlobalSettings();
+                global.ChatMessage = TwitchChat.Instance.ChatMessage;
+                Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
+            }
+        }
 
         public override void ReceivedSettings(ReceivedSettingsPayload payload)
         {
+            string oldChatMessage = settings.ChatMessage;
             Tools.AutoPopulateSettings(settings, payload.Settings);
             ResetChat();
+            if (oldChatMessage != settings.ChatMessage)
+            {
+                TwitchGlobalSettings global = new TwitchGlobalSettings();
+                global.ChatMessage = settings.ChatMessage;
+                Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
+            }
         }
 
         #endregion

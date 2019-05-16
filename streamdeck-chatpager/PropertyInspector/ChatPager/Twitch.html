@@ -20,6 +20,10 @@
                 <div class="sdpi-item-label">Page Cooldown (seconds)</div>
                 <input class="sdpi-item-value sdProperty" id="pageCooldown" inputmode="numeric" pattern="[0-9]*" type="number" oninput="setSettings()">
             </div>
+            <div class="sdpi-item" id="dvChatMessage">
+                <div class="sdpi-item-label">Chat Page Message</div>
+                <input class="sdpi-item-value sdProperty" placeholder="Hey, {USERNAME}, I am now getting paged...! (Get a pager for your Elgato Stream Deck at https://barraider.github.io )" id="chatMessage" oninput="setSettings()">
+            </div>
             <div type="range" class="sdpi-item">
                 <details class="message">
                     <summary>Leave Allowed Pagers blank to allow anyone in chat to page</summary>
@@ -30,6 +34,13 @@
                 <span class="sdpi-item-value textarea">
                     <textarea type="textarea" oninput="setSettings()" class="sdProperty" id="allowedPagers" placeholder="One username per line"></textarea>
                 </span>
+            </div>
+            <div type="checkbox" class="sdpi-item" id="dvDashboardOnClick">
+                <div class="sdpi-item-label">Button Click</div>
+                <div class="sdpi-item-value">
+                    <input id="dashboardOnClick" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
+                    <label for="dashboardOnClick" class="sdpi-item-label"><span></span>Goto Twitch dashboard on click</label>
+                </div>
             </div>
             <hr />
             <div class="sdpi-item" id="dvReset">
@@ -42,5 +53,6 @@
                 <input value="" type="hidden" id="tokenExists" class="sdProperty" oninput="setSettings()">
             </div>
         </div>
+    </div>
 </body>
 </html>

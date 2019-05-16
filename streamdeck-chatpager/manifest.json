@@ -21,7 +21,7 @@
   "Name": "ChatPager",
   "Icon": "Images/pluginIcon",
   "URL": "https://barraider.github.io/",
-  "Version": "1.0",
+  "Version": "1.1",
   "CodePath": "com.barraider.chatpager",
   "Category": "BarRaider",
   "CategoryIcon": "Images/categoryIcon",
@@ -33,6 +33,6 @@
   ],
   "SDKVersion": 2,
   "Software": {
-    "MinimumVersion": "4.1"
+    "MinimumVersion": "4.2"
   }
 }

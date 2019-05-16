@@ -12,6 +12,7 @@ namespace ChatPager.Twitch
     {
 
         #region Private Members
+        private const string DEFAULT_CHAT_MESSAGE = "Hey, {USERNAME}, I am now getting paged...! (Get a pager for your Elgato Stream Deck at https://barraider.github.io )";
 
         private static TwitchChat instance = null;
         private static readonly object objLock = new object();
@@ -64,11 +65,14 @@ namespace ChatPager.Twitch
             }
         }
 
+        public string ChatMessage { get; set; }
+
         #endregion
 
 
         private TwitchChat()
         {
+            ChatMessage = DEFAULT_CHAT_MESSAGE;
             ResetClient();
             TwitchTokenManager.Instance.TokensChanged += Instance_TokensChanged;
             token = TwitchTokenManager.Instance.GetToken();
@@ -165,7 +169,8 @@ namespace ChatPager.Twitch
                         {
                             lastPage = DateTime.Now;
                             PageRaised?.Invoke(this, new PageRaisedEventArgs(cmd.ArgumentsAsString));
-                            client.SendMessage(msg.Channel, $"Hey, @{msg.DisplayName}, I am now getting paged...!  \r\n(Get a pager for your Elgato Stream Deck at https://barraider.github.io )");
+                            string chatMessage = ChatMessage.Replace("{USERNAME}", $"@{msg.DisplayName}");
+                            client.SendMessage(msg.Channel, chatMessage);
                         }
                         else
                         {
