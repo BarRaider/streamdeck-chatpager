@@ -1,4 +1,5 @@
-<img src="/_images/twitchpage.png" height="120" width="120"/> 
+<img src="https://github.com/BarRaider/streamdeck-chatpager/blob/master/_images/chatpage.png" height="120" width="120"/> 
+
 ## Twitch Chat Pager plugin for the Elgato Stream Deck
 
 The Twitch Chat Pager plugin listens to your Twitch chat and gives you a visual alert if someone uses the !page command.  
