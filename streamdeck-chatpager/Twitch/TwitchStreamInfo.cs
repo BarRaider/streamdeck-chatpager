@@ -21,5 +21,8 @@ namespace ChatPager.Twitch
 
         [JsonProperty(PropertyName = "average_fps")]
         public int FPS { get; private set; }
+
+        [JsonProperty(PropertyName = "channel")]
+        public TwitchStreamChannelInfo Channel { get; private set; }
     }
 }

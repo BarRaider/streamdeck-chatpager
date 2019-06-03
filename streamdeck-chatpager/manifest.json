@@ -14,6 +14,21 @@
       "Tooltip": "Listens to your twitch chat and gives you a visual alert if someone uses the !page command.",
       "UUID": "com.barraider.twitchpager",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/Twitch.html"
+    },
+    {
+      "Icon": "Images/icon",
+      "Name": "Alert Flasher",
+      "States": [
+        {
+          "Image": "Images/noicon",
+          "TitleAlignment": "middle",
+          "FontSize": "32"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "VisibleInActionsList": false,
+      "Tooltip": "",
+      "UUID": "com.barraider.alertflasher"
     }
   ],
   "Author": "BarRaider",
@@ -21,7 +36,7 @@
   "Name": "ChatPager",
   "Icon": "Images/pluginIcon",
   "URL": "https://barraider.github.io/",
-  "Version": "1.1",
+  "Version": "1.5",
   "CodePath": "com.barraider.chatpager",
   "Category": "BarRaider",
   "CategoryIcon": "Images/categoryIcon",
@@ -29,6 +44,13 @@
     {
       "Platform": "windows",
       "MinimumVersion": "10"
+    }
+  ],
+  "Profiles": [
+    {
+      "Name": "FullScreenAlert",
+      "ReadOnly": true,
+      "DeviceType": 0
     }
   ],
   "SDKVersion": 2,

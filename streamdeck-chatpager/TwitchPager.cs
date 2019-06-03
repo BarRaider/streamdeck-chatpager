@@ -24,6 +24,7 @@ namespace ChatPager
                 instance.AllowedPagers = String.Empty;
                 instance.ChatMessage = TwitchChat.Instance.ChatMessage;
                 instance.DashboardOnClick = true;
+                instance.FullScreenAlert = true;
                 return instance;
             }
 
@@ -41,6 +42,9 @@ namespace ChatPager
 
             [JsonProperty(PropertyName = "dashboardOnClick")]
             public bool DashboardOnClick { get; set; }
+
+            [JsonProperty(PropertyName = "fullScreenAlert")]
+            public bool FullScreenAlert { get; set; }
         }
 
         #region Private members
@@ -50,10 +54,11 @@ namespace ChatPager
         private PluginSettings settings;
         private bool isPaging = false;
         private System.Timers.Timer tmrPage = new System.Timers.Timer();
-        private readonly string[] pageArr = { Properties.Settings.Default.TwitchPage1, Properties.Settings.Default.TwitchPage2, Properties.Settings.Default.TwitchPage3, Properties.Settings.Default.TwitchPage2 };
+        private static readonly string[] pageArr = { Properties.Settings.Default.TwitchPage1, Properties.Settings.Default.TwitchPage2, Properties.Settings.Default.TwitchPage3, Properties.Settings.Default.TwitchPage2 };
         private int pageIdx = 0;
         private TwitchStreamInfo streamInfo;
         private string pageMessage = null;
+        private bool fullScreenAlertTriggered = false;
 
         #endregion
 
@@ -116,12 +121,16 @@ namespace ChatPager
 
         public override void KeyReleased(KeyPayload payload) { }
 
-        public async override void OnTick()
+        public override void OnTick()
         {
-            if (isPaging && !tmrPage.Enabled)
+            if (isPaging && !tmrPage.Enabled && !settings.FullScreenAlert)
             {
                 pageIdx = 0;
                 tmrPage.Start();
+            }
+            else if (isPaging && settings.FullScreenAlert && !fullScreenAlertTriggered)
+            {
+                RaiseFullScreenAlert();
             }
             else if (!isPaging)
             {
@@ -136,8 +145,8 @@ namespace ChatPager
             if (payload?.Settings != null)
             {
                 TwitchGlobalSettings global = payload.Settings.ToObject<TwitchGlobalSettings>();
-                TwitchChat.Instance.ChatMessage = global.ChatMessage;
-                settings.ChatMessage = global.ChatMessage;
+                TwitchChat.Instance.SetChatMessage(global.ChatMessage);
+                settings.ChatMessage = TwitchChat.Instance.ChatMessage;
                 SaveSettings();
             }
             else // Global settings do not exist
@@ -193,6 +202,12 @@ namespace ChatPager
         {
             try
             {
+                if (!settings.TokenExists)
+                {
+                    await Connection.SetImageAsync(Properties.Settings.Default.TwitchNoToken).ConfigureAwait(false);
+                    return;
+                }
+
                 if (!TwitchStreamInfoManager.Instance.IsLive || streamInfo == null)
                 {
                     await Connection.SetImageAsync(Properties.Settings.Default.TwitchNotLive).ConfigureAwait(false);
@@ -239,6 +254,16 @@ namespace ChatPager
             Logger.Instance.LogMessage(TracingLevel.INFO, $"Received a page! Message: {e.Message?? String.Empty}");
             pageMessage = e.Message;
             isPaging = true;
+            fullScreenAlertTriggered = false;
+        }
+
+        private void RaiseFullScreenAlert()
+        {
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"Full screen alert: {pageMessage ?? String.Empty}");
+            fullScreenAlertTriggered = true;
+            AlertManager.Instance.PageMessage = pageMessage;
+            AlertManager.Instance.InitFlash();
+            Connection.SwitchProfileAsync("FullScreenAlert");
         }
 
         private void Instance_TwitchStreamInfoChanged(object sender, TwitchStreamInfoEventArgs e)

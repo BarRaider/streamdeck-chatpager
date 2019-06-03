@@ -65,7 +65,7 @@ namespace ChatPager.Twitch
             }
         }
 
-        public string ChatMessage { get; set; }
+        public string ChatMessage { get; private set; }
 
         #endregion
 
@@ -77,6 +77,8 @@ namespace ChatPager.Twitch
             TwitchTokenManager.Instance.TokensChanged += Instance_TokensChanged;
             token = TwitchTokenManager.Instance.GetToken();
         }
+
+        #region Public Methods
 
         public void Initalize(int pageCooldown, List<string> allowedPagers)
         {
@@ -102,6 +104,22 @@ namespace ChatPager.Twitch
                 }
             }
         }
+
+        public void SetChatMessage(string message)
+        {
+            if (String.IsNullOrWhiteSpace(message))
+            {
+                ChatMessage = DEFAULT_CHAT_MESSAGE;
+            }
+            else
+            {
+                ChatMessage = message;
+            }
+        }
+
+        #endregion
+
+        #region Private Methods
 
         private void Connect(DateTime connectRequestTime)
         {
@@ -143,8 +161,6 @@ namespace ChatPager.Twitch
                 }
             }
         }
-
-        #region Private Members
 
         private void Disconnect()
         {
