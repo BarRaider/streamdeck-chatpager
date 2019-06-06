@@ -11,5 +11,8 @@ namespace ChatPager.Twitch
     {
         [JsonProperty(PropertyName = "chatMessage")]
         public string ChatMessage { get; set; }
+
+        [JsonProperty(PropertyName = "twoLettersPerKey")]
+        public bool TwoLettersPerKey { get; set; }
     }
 }

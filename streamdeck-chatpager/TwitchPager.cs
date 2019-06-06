@@ -25,6 +25,7 @@ namespace ChatPager
                 instance.ChatMessage = TwitchChat.Instance.ChatMessage;
                 instance.DashboardOnClick = true;
                 instance.FullScreenAlert = true;
+                instance.TwoLettersPerKey = false;
                 return instance;
             }
 
@@ -45,6 +46,9 @@ namespace ChatPager
 
             [JsonProperty(PropertyName = "fullScreenAlert")]
             public bool FullScreenAlert { get; set; }
+
+            [JsonProperty(PropertyName = "twoLettersPerKey")]
+            public bool TwoLettersPerKey { get; set; }
         }
 
         #region Private members
@@ -147,25 +151,32 @@ namespace ChatPager
                 TwitchGlobalSettings global = payload.Settings.ToObject<TwitchGlobalSettings>();
                 TwitchChat.Instance.SetChatMessage(global.ChatMessage);
                 settings.ChatMessage = TwitchChat.Instance.ChatMessage;
+                settings.TwoLettersPerKey = global.TwoLettersPerKey;
                 SaveSettings();
             }
             else // Global settings do not exist
             {
                 TwitchGlobalSettings global = new TwitchGlobalSettings();
                 global.ChatMessage = TwitchChat.Instance.ChatMessage;
+                global.TwoLettersPerKey = settings.TwoLettersPerKey;
                 Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
             }
         }
 
         public override void ReceivedSettings(ReceivedSettingsPayload payload)
         {
+            // Save original values
             string oldChatMessage = settings.ChatMessage;
+            bool twoLettersPerKey = settings.TwoLettersPerKey;
+
+            // Populate new values
             Tools.AutoPopulateSettings(settings, payload.Settings);
             ResetChat();
-            if (oldChatMessage != settings.ChatMessage)
+            if (oldChatMessage != settings.ChatMessage || twoLettersPerKey != settings.TwoLettersPerKey)
             {
                 TwitchGlobalSettings global = new TwitchGlobalSettings();
                 global.ChatMessage = settings.ChatMessage;
+                global.TwoLettersPerKey = settings.TwoLettersPerKey;
                 Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
             }
         }

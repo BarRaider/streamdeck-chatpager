@@ -16,6 +16,7 @@ namespace ChatPager.Twitch
         private static readonly object objLock = new object();
 
         private const string TWITCH_URI_STREAM_INFO = "/streams/{0}";
+        private const int MINIMAL_FORCE_REFRESH_MS = 5000; // 5 seconds
         private const int DEFAULT_REFRESH_MS = 60000; // 60 seconds
         private const int MAX_REFRESH_MS     = 300000; // 300 seconds = 5 min
 
@@ -98,7 +99,7 @@ namespace ChatPager.Twitch
             await refreshLock.WaitAsync();
             try
             {
-                if ((DateTime.Now - lastStreamInfoRefresh).TotalMilliseconds > DEFAULT_REFRESH_MS)
+                if ((DateTime.Now - lastStreamInfoRefresh).TotalMilliseconds > MINIMAL_FORCE_REFRESH_MS)
                 {
                     Logger.Instance.LogMessage(TracingLevel.INFO, "Force Stream Info");
                     GetStreamInfo();
