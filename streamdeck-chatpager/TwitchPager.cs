@@ -104,7 +104,9 @@ namespace ChatPager
         }
 
         public override void KeyPressed(KeyPayload payload)
-        {         
+        {
+            //Chat_PageRaised(this, new PageRaisedEventArgs("This is a test"));
+            //RaiseFullScreenAlert();
             if (isPaging)
             {
                 isPaging = false;

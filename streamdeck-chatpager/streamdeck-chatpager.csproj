@@ -46,6 +46,9 @@
     <None Update="FullScreenAlert.streamDeckProfile">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="FullScreenAlertXL.streamDeckProfile">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Images\bg%402x.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
