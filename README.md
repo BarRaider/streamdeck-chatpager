@@ -7,9 +7,14 @@ The Twitch Chat Pager plugin listens to your Twitch chat and gives you a visual 
 
 **Author's website and contact information:** [https://barraider.github.io](https://barraider.github.io)
 
+### New in v1.6
+New Features:
+- Full screen flashing alert on Stream Deck Classic and XL
+- Multiple full-screen modes include choosing 1 letter or 2 letters per key during an alert
+
 ### Current features
-- NEW! Configure your own personal chat message to show in chat when you're paged
-- NEW! Added option to disable going to the Twitch Dashboard on button click
+- Configure your own personal chat message to show in chat when you're paged
+- Added option to disable going to the Twitch Dashboard on button click
 - Shows you live information on your stream, including number of viewers and streaming time
 - Starts flashing when someone writes the !page command in the chatroom
 - Supports adding a short text after the command, such as *"!page Behind You!"*
