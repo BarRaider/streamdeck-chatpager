@@ -13,12 +13,12 @@ New Features:
 - Multiple full-screen modes include choosing 1 letter or 2 letters per key during an alert
 
 ### Current features
-- Configure your own personal chat message to show in chat when you're paged
-- Added option to disable going to the Twitch Dashboard on button click
 - Shows you live information on your stream, including number of viewers and streaming time
 - Starts flashing when someone writes the !page command in the chatroom
-- Supports adding a short text after the command, such as *"!page Behind You!"*
 - !page command can be limited to only work for specific people in the chat
+- Supports adding a short text after the command, such as *"!page Behind You!"*
+- Configure your own personal chat message to show in chat when you're paged
+- Added option to disable going to the Twitch Dashboard on button click
 
 ### Download
 
