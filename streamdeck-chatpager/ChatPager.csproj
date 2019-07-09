@@ -25,7 +25,7 @@
     <OutputPath>bin\debug\com.barraider.chatpager.sdplugin</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="StreamDeck-Tools" Version="2.2.0" />
+    <PackageReference Include="StreamDeck-Tools" Version="2.3.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0" />
     <PackageReference Include="TwitchLib" Version="3.0.1" />
   </ItemGroup>

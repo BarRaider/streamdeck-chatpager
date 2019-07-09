@@ -63,6 +63,7 @@ namespace ChatPager
         private TwitchStreamInfo streamInfo;
         private string pageMessage = null;
         private bool fullScreenAlertTriggered = false;
+        private StreamDeckDeviceType deviceType;
 
         #endregion
 
@@ -84,6 +85,7 @@ namespace ChatPager
 
             settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
             ResetChat();
+            deviceType = Connection.DeviceInfo().Type;
             
             tmrPage.Interval = 200;
             tmrPage.Elapsed += TmrPage_Elapsed;
@@ -195,17 +197,21 @@ namespace ChatPager
             }
             else
             {
+                int height = Tools.GetKeyDefaultHeight(deviceType);
+                int width = Tools.GetKeyDefaultWidth(deviceType);
                 Image img = Tools.Base64StringToImage(pageArr[pageIdx]);
                 Graphics graphics = Graphics.FromImage(img);
                 var font = new Font("Verdana", 12, FontStyle.Bold);
                 var fgBrush = Brushes.White;
                 SizeF stringSize = graphics.MeasureString(pageMessage, font);
                 float stringPos = 0;
-                if (stringSize.Width < Tools.KEY_DEFAULT_WIDTH)
+                float stringHeight = 54;
+                if (stringSize.Width < width)
                 {
-                    stringPos = Math.Abs((Tools.KEY_DEFAULT_WIDTH - stringSize.Width)) / 2;
+                    stringPos = Math.Abs((width - stringSize.Width)) / 2;
+                    stringHeight = Math.Abs((height - stringSize.Height)) / 2;
                 }
-                graphics.DrawString(pageMessage, font, fgBrush, new PointF(stringPos, 54));
+                graphics.DrawString(pageMessage, font, fgBrush, new PointF(stringPos, stringHeight));
                 Connection.SetImageAsync(img);
             }
             pageIdx = (pageIdx + 1) % pageArr.Length;
@@ -228,7 +234,9 @@ namespace ChatPager
                 }
 
                 Graphics graphics;
-                Bitmap bmp = Tools.GenerateKeyImage(out graphics);
+                Bitmap bmp = Tools.GenerateKeyImage(deviceType, out graphics);
+                int height = Tools.GetKeyDefaultHeight(deviceType);
+                int width = Tools.GetKeyDefaultWidth(deviceType);
 
                 var fontTitle = new Font("Verdana", 8, FontStyle.Bold);
                 var fontSecond = new Font("Verdana", 10, FontStyle.Bold);
@@ -236,7 +244,7 @@ namespace ChatPager
                 // Background
                 var bgBrush = new SolidBrush(ColorTranslator.FromHtml(BACKGROUND_COLOR));
                 var fgBrush = Brushes.White;
-                graphics.FillRectangle(bgBrush, 0, 0, Tools.KEY_DEFAULT_WIDTH, Tools.KEY_DEFAULT_HEIGHT);
+                graphics.FillRectangle(bgBrush, 0, 0, width, height);
 
                 // Top title
                 string title = $"⚫ {streamInfo.Game}";
@@ -276,7 +284,15 @@ namespace ChatPager
             fullScreenAlertTriggered = true;
             AlertManager.Instance.PageMessage = pageMessage;
             AlertManager.Instance.InitFlash();
-            Connection.SwitchProfileAsync("FullScreenAlert");
+
+            if (deviceType == StreamDeckDeviceType.StreamDeckClassic)
+            {
+                Connection.SwitchProfileAsync("FullScreenAlert");
+            }
+            else
+            {
+                Connection.SwitchProfileAsync("FullScreenAlertXL");
+            }           
         }
 
         private void Instance_TwitchStreamInfoChanged(object sender, TwitchStreamInfoEventArgs e)

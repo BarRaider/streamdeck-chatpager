@@ -185,8 +185,12 @@ namespace ChatPager.Twitch
                         {
                             lastPage = DateTime.Now;
                             PageRaised?.Invoke(this, new PageRaisedEventArgs(cmd.ArgumentsAsString));
-                            string chatMessage = ChatMessage.Replace("{USERNAME}", $"@{msg.DisplayName}");
-                            client.SendMessage(msg.Channel, chatMessage);
+
+                            if (!String.IsNullOrWhiteSpace(ChatMessage))
+                            {
+                                string chatMessage = ChatMessage.Replace("{USERNAME}", $"@{msg.DisplayName}");
+                                client.SendMessage(msg.Channel, chatMessage);
+                            }
                         }
                         else
                         {
