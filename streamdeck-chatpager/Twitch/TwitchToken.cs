@@ -5,13 +5,12 @@ using System.Text;
 
 namespace ChatPager.Twitch
 {
-    [Serializable]
-    public class TwitchToken
+        public class TwitchToken
     {
         [JsonProperty(PropertyName = "token")]
         public string Token { get; set; }
 
-        [JsonIgnore]
+        [JsonProperty(PropertyName = "lastRefresh")]
         public DateTime TokenLastRefresh { get; set; }
     }
 }

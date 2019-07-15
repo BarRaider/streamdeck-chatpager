@@ -22,10 +22,11 @@ namespace ChatPager
                 instance.TokenExists = false;
                 instance.PageCooldown = 30;
                 instance.AllowedPagers = String.Empty;
-                instance.ChatMessage = TwitchChat.Instance.ChatMessage;
+                instance.ChatMessage = String.Empty;
                 instance.DashboardOnClick = true;
                 instance.FullScreenAlert = true;
                 instance.TwoLettersPerKey = false;
+                instance.AlertColor = "#FF0000";
                 return instance;
             }
 
@@ -49,6 +50,9 @@ namespace ChatPager
 
             [JsonProperty(PropertyName = "twoLettersPerKey")]
             public bool TwoLettersPerKey { get; set; }
+
+            [JsonProperty(PropertyName = "alertColor")] 
+            public string AlertColor { get; set; }
         }
 
         #region Private members
@@ -58,12 +62,12 @@ namespace ChatPager
         private PluginSettings settings;
         private bool isPaging = false;
         private System.Timers.Timer tmrPage = new System.Timers.Timer();
-        private static readonly string[] pageArr = { Properties.Settings.Default.TwitchPage1, Properties.Settings.Default.TwitchPage2, Properties.Settings.Default.TwitchPage3, Properties.Settings.Default.TwitchPage2 };
-        private int pageIdx = 0;
+        private int alertStage = 0;
         private TwitchStreamInfo streamInfo;
         private string pageMessage = null;
         private bool fullScreenAlertTriggered = false;
         private StreamDeckDeviceType deviceType;
+        private TwitchGlobalSettings global = null;
 
         #endregion
 
@@ -77,12 +81,12 @@ namespace ChatPager
             {
                 this.settings = payload.Settings.ToObject<PluginSettings>();
             }
-            this.settings.ChatMessage = TwitchChat.Instance.ChatMessage;
             TwitchStreamInfoManager.Instance.TwitchStreamInfoChanged += Instance_TwitchStreamInfoChanged;
             TwitchTokenManager.Instance.TokenStatusChanged += Instance_TokenStatusChanged;
             Connection.StreamDeckConnection.OnSendToPlugin += StreamDeckConnection_OnSendToPlugin;
             TwitchChat.Instance.PageRaised += Chat_PageRaised;
 
+            this.settings.ChatMessage = TwitchChat.Instance.ChatMessage;
             settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
             ResetChat();
             deviceType = Connection.DeviceInfo().Type;
@@ -116,7 +120,7 @@ namespace ChatPager
             }
             else
             {
-                if (!TwitchStreamInfoManager.Instance.IsLive)
+                if (!TwitchStreamInfoManager.Instance.IsLive || streamInfo == null)
                 {
                     TwitchStreamInfoManager.Instance.ForceStreamInfoRefresh();
                 }
@@ -133,7 +137,7 @@ namespace ChatPager
         {
             if (isPaging && !tmrPage.Enabled && !settings.FullScreenAlert)
             {
-                pageIdx = 0;
+                alertStage = 0;
                 tmrPage.Start();
             }
             else if (isPaging && settings.FullScreenAlert && !fullScreenAlertTriggered)
@@ -150,19 +154,21 @@ namespace ChatPager
         public override void ReceivedGlobalSettings(ReceivedGlobalSettingsPayload payload)
         {
             // Global Settings exist
-            if (payload?.Settings != null)
+            if (payload?.Settings != null && payload.Settings.Count > 0)
             {
-                TwitchGlobalSettings global = payload.Settings.ToObject<TwitchGlobalSettings>();
+                global = payload.Settings.ToObject<TwitchGlobalSettings>();
                 TwitchChat.Instance.SetChatMessage(global.ChatMessage);
                 settings.ChatMessage = TwitchChat.Instance.ChatMessage;
                 settings.TwoLettersPerKey = global.TwoLettersPerKey;
+                settings.AlertColor = global.InitialAlertColor;
                 SaveSettings();
             }
             else // Global settings do not exist
             {
-                TwitchGlobalSettings global = new TwitchGlobalSettings();
+                global = new TwitchGlobalSettings();
                 global.ChatMessage = TwitchChat.Instance.ChatMessage;
                 global.TwoLettersPerKey = settings.TwoLettersPerKey;
+                global.InitialAlertColor = settings.AlertColor;
                 Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
             }
         }
@@ -172,16 +178,14 @@ namespace ChatPager
             // Save original values
             string oldChatMessage = settings.ChatMessage;
             bool twoLettersPerKey = settings.TwoLettersPerKey;
+            string alertColor = settings.AlertColor;
 
             // Populate new values
             Tools.AutoPopulateSettings(settings, payload.Settings);
             ResetChat();
-            if (oldChatMessage != settings.ChatMessage || twoLettersPerKey != settings.TwoLettersPerKey)
+            if (oldChatMessage != settings.ChatMessage || twoLettersPerKey != settings.TwoLettersPerKey || alertColor != settings.AlertColor)
             {
-                TwitchGlobalSettings global = new TwitchGlobalSettings();
-                global.ChatMessage = settings.ChatMessage;
-                global.TwoLettersPerKey = settings.TwoLettersPerKey;
-                Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
+                SetGlobalSettings();
             }
         }
 
@@ -189,32 +193,55 @@ namespace ChatPager
 
         #region Private Members
 
+        private void SetGlobalSettings()
+        {
+            if (global == null)
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, "SetGlobalSettings called while Global Settings are null");
+                global = new TwitchGlobalSettings();
+            }
+
+            global.ChatMessage = settings.ChatMessage;
+            global.TwoLettersPerKey = settings.TwoLettersPerKey;
+            global.InitialAlertColor = settings.AlertColor;
+            Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
+        }
+
         private void TmrPage_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
+            Bitmap img = Tools.GenerateKeyImage(deviceType, out Graphics graphics);
+            int height = Tools.GetKeyDefaultHeight(deviceType);
+            int width = Tools.GetKeyDefaultWidth(deviceType);
+
+            // Background
+            
+            var bgBrush = new SolidBrush(Helpers.GenerateStageColor(settings.AlertColor, alertStage, Helpers.TOTAL_ALERT_STAGES));
+            graphics.FillRectangle(bgBrush, 0, 0, width, height);
+
             if (String.IsNullOrEmpty(pageMessage))
             {
-                Connection.SetImageAsync(pageArr[pageIdx]);
+                Connection.SetImageAsync(img);
             }
             else
             {
-                int height = Tools.GetKeyDefaultHeight(deviceType);
-                int width = Tools.GetKeyDefaultWidth(deviceType);
-                Image img = Tools.Base64StringToImage(pageArr[pageIdx]);
-                Graphics graphics = Graphics.FromImage(img);
-                var font = new Font("Verdana", 12, FontStyle.Bold);
+                var font = new Font("Verdana", 11, FontStyle.Bold);
                 var fgBrush = Brushes.White;
                 SizeF stringSize = graphics.MeasureString(pageMessage, font);
                 float stringPos = 0;
-                float stringHeight = 54;
+                float stringHeight = Math.Abs((height - stringSize.Height)) / 2;
                 if (stringSize.Width < width)
                 {
                     stringPos = Math.Abs((width - stringSize.Width)) / 2;
-                    stringHeight = Math.Abs((height - stringSize.Height)) / 2;
+                }
+                else // Move to multi line
+                {
+                    stringHeight = 0;
+                    pageMessage = pageMessage.Replace(" ", "\n");
                 }
                 graphics.DrawString(pageMessage, font, fgBrush, new PointF(stringPos, stringHeight));
                 Connection.SetImageAsync(img);
             }
-            pageIdx = (pageIdx + 1) % pageArr.Length;
+            alertStage = (alertStage + 1) % Helpers.TOTAL_ALERT_STAGES;
         }
 
         private async void DrawStreamData()
@@ -238,8 +265,17 @@ namespace ChatPager
                 int height = Tools.GetKeyDefaultHeight(deviceType);
                 int width = Tools.GetKeyDefaultWidth(deviceType);
 
-                var fontTitle = new Font("Verdana", 8, FontStyle.Bold);
-                var fontSecond = new Font("Verdana", 10, FontStyle.Bold);
+                int fontTitleSize = 8;
+                int fontSecondSize = 10;
+
+                if (deviceType == StreamDeckDeviceType.StreamDeckXL)
+                {
+                    fontTitleSize = 12;
+                    fontSecondSize = 14;
+                }
+
+                var fontTitle = new Font("Verdana", fontTitleSize, FontStyle.Bold);
+                var fontSecond = new Font("Verdana", fontSecondSize, FontStyle.Bold);
 
                 // Background
                 var bgBrush = new SolidBrush(ColorTranslator.FromHtml(BACKGROUND_COLOR));

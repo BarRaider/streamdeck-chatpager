@@ -24,6 +24,10 @@
                 <div class="sdpi-item-label">Chat Page Message</div>
                 <input class="sdpi-item-value sdProperty" placeholder="Hey, {USERNAME}, I am now getting paged...! (Get a pager for your Elgato Stream Deck at https://barraider.github.io )" id="chatMessage" oninput="setSettings()">
             </div>
+            <div type="color" class="sdpi-item" id="dvAlert">
+                <div class="sdpi-item-label">Alert Color</div>
+                <input type="color" class="sdpi-item-value sdProperty" value="#FF0000" id="alertColor" oninput="setSettings()">
+            </div>
             <div type="range" class="sdpi-item">
                 <details class="message">
                     <summary>Leave Allowed Pagers blank to allow anyone in chat to page</summary>

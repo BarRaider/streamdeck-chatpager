@@ -76,6 +76,14 @@ namespace ChatPager.Twitch
             ResetClient();
             TwitchTokenManager.Instance.TokensChanged += Instance_TokensChanged;
             token = TwitchTokenManager.Instance.GetToken();
+
+            GlobalSettingsManager.Instance.OnReceivedGlobalSettings += Instance_OnReceivedGlobalSettings;
+            GlobalSettingsManager.Instance.RequestGlobalSettings();
+        }
+
+        private void Instance_OnReceivedGlobalSettings(object sender, ReceivedGlobalSettingsPayload e)
+        {
+            
         }
 
         #region Public Methods
@@ -107,14 +115,7 @@ namespace ChatPager.Twitch
 
         public void SetChatMessage(string message)
         {
-            if (String.IsNullOrWhiteSpace(message))
-            {
-                ChatMessage = DEFAULT_CHAT_MESSAGE;
-            }
-            else
-            {
-                ChatMessage = message;
-            }
+            ChatMessage = message;
         }
 
         #endregion

@@ -1,4 +1,5 @@
 ﻿using BarRaider.SdTools;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,6 +21,7 @@ namespace ChatPager.Twitch
         private TwitchToken token;
         private TwitchUserDetails userDetails;
         private object lockObj = new object();
+        private TwitchGlobalSettings global = null;
 
         #endregion
 
@@ -47,7 +49,8 @@ namespace ChatPager.Twitch
 
         private TwitchTokenManager()
         {
-            LoadToken();
+            GlobalSettingsManager.Instance.OnReceivedGlobalSettings += Instance_OnReceivedGlobalSettings;
+            GlobalSettingsManager.Instance.RequestGlobalSettings();
         }
 
         #endregion
@@ -89,7 +92,6 @@ namespace ChatPager.Twitch
 
         #region Public Methods
 
-
         public void SetToken(TwitchToken token)
         {
             if (token != null && (this.token == null || token.TokenLastRefresh > this.token.TokenLastRefresh))
@@ -122,6 +124,7 @@ namespace ChatPager.Twitch
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, "RevokeToken Called");
             this.token = null;
+            SaveToken();
             RaiseTokenChanged();
         }
 
@@ -129,29 +132,29 @@ namespace ChatPager.Twitch
 
         #region Private Methods
 
-        private void LoadToken()
+        private void LoadToken(TwitchToken globalToken)
         {
             try
             {
-                string fileName = Path.Combine(System.AppContext.BaseDirectory, TOKEN_FILE);
-                if (File.Exists(fileName))
+                if (globalToken == null)
                 {
-                    using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Read))
-                    {
-                        var formatter = new BinaryFormatter();
-                        token = (TwitchToken)formatter.Deserialize(stream);
-                        if (token == null)
-                        {
-                            Logger.Instance.LogMessage(TracingLevel.ERROR, "Failed to load tokens, deserialized token is null");
-                            return;
-                        }
-                        Logger.Instance.LogMessage(TracingLevel.INFO, $"Token initialized. Last refresh date was: {token.TokenLastRefresh}");
-                    }
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, "Failed to load tokens, deserialized globalToken is null");
+                    return;
                 }
-                else
+
+                if (token != null && token.Token == globalToken.Token && token.TokenLastRefresh == globalToken.TokenLastRefresh)
                 {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"Failed to load tokens, token file does not exist: {fileName}");
+                    return;
                 }
+
+                token = new TwitchToken()
+                {
+                    Token = globalToken.Token,
+                    TokenLastRefresh = globalToken.TokenLastRefresh
+                };
+
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"Token initialized. Last refresh date was: {token.TokenLastRefresh}");
+                RaiseTokenChanged();
             }
             catch (Exception ex)
             {
@@ -163,14 +166,29 @@ namespace ChatPager.Twitch
         {
             try
             {
-                var formatter = new BinaryFormatter();
-                using (var stream = new FileStream(Path.Combine(System.AppContext.BaseDirectory, TOKEN_FILE), FileMode.Create, FileAccess.Write))
+                if (global == null)
                 {
-
-                    formatter.Serialize(stream, token);
-                    stream.Close();
-                    Logger.Instance.LogMessage(TracingLevel.INFO, $"New token saved. Last refresh date was: {token.TokenLastRefresh}");
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, "Failed to save token, Global Settings is null");
+                    return;
                 }
+
+                // Set token in Global Settings
+                if (token == null)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, "Saving null token to Global Settings");
+                    global.Token = null;
+                }
+                else
+                {
+                    global.Token = new TwitchToken()
+                    {
+                        Token = token.Token,
+                        TokenLastRefresh = token.TokenLastRefresh
+                    };
+                }
+
+                GlobalSettingsManager.Instance.SetGlobalSettings(JObject.FromObject(global));
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"New token saved. Last refresh date was: {token.TokenLastRefresh}");
             }
             catch (Exception ex)
             {
@@ -202,6 +220,15 @@ namespace ChatPager.Twitch
         {
             LoadUserDetails();
             return userDetails != null && !String.IsNullOrWhiteSpace(userDetails.UserName);
+        }
+
+        private void Instance_OnReceivedGlobalSettings(object sender, ReceivedGlobalSettingsPayload payload)
+        {
+            if (payload?.Settings != null && payload.Settings.Count > 0)
+            {
+                global = payload.Settings.ToObject<TwitchGlobalSettings>();
+                LoadToken(global.Token);
+            }
         }
 
         #endregion

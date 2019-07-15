@@ -14,5 +14,11 @@ namespace ChatPager.Twitch
 
         [JsonProperty(PropertyName = "twoLettersPerKey")]
         public bool TwoLettersPerKey { get; set; }
+
+        [JsonProperty(PropertyName = "initialAlertColor")]
+        public string InitialAlertColor { get; set; }
+
+        [JsonProperty(PropertyName = "token")]
+        public TwitchToken Token { get; set; }
     }
 }
