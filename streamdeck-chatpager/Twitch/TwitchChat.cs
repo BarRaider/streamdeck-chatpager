@@ -12,7 +12,7 @@ namespace ChatPager.Twitch
     {
 
         #region Private Members
-        private const string DEFAULT_CHAT_MESSAGE = "Hey, {USERNAME}, I am now getting paged...! (Get a pager for your Elgato Stream Deck at https://barraider.github.io )";
+        private const string DEFAULT_CHAT_MESSAGE = "Hey, {USERNAME}, I am now getting paged...! (Get a pager for your Elgato Stream Deck at https://BarRaider.com )";
 
         private static TwitchChat instance = null;
         private static readonly object objLock = new object();
@@ -24,6 +24,7 @@ namespace ChatPager.Twitch
         private int pageCooldown;
         private DateTime lastPage;
         private List<string> allowedPagers;
+        private List<string> monitoredStreamers;
         private DateTime lastConnectAttempt;
         private object initLock = new object();
 
@@ -76,28 +77,25 @@ namespace ChatPager.Twitch
             ResetClient();
             TwitchTokenManager.Instance.TokensChanged += Instance_TokensChanged;
             token = TwitchTokenManager.Instance.GetToken();
-
-            GlobalSettingsManager.Instance.OnReceivedGlobalSettings += Instance_OnReceivedGlobalSettings;
-            GlobalSettingsManager.Instance.RequestGlobalSettings();
-        }
-
-        private void Instance_OnReceivedGlobalSettings(object sender, ReceivedGlobalSettingsPayload e)
-        {
-            
         }
 
         #region Public Methods
 
-        public void Initalize(int pageCooldown, List<string> allowedPagers)
+        public void Initialize(int pageCooldown, List<string> allowedPagers, List<string> monitoredStreamers)
         {
             lock (initLock)
             {
                 try
                 {
+                    this.monitoredStreamers = null;
                     Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchChat: Initalizing");
                     if (allowedPagers != null)
                     {
                         this.allowedPagers = allowedPagers.Select(x => x.ToLowerInvariant()).ToList();
+                    }
+                    if (monitoredStreamers != null)
+                    {
+                        this.monitoredStreamers = monitoredStreamers.Select(x => x.ToLowerInvariant()).ToList();
                     }
                     this.pageCooldown = pageCooldown;
 
@@ -108,7 +106,7 @@ namespace ChatPager.Twitch
                 }
                 catch (Exception ex)
                 {
-                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"TwitchChat: Initalize exception {ex}");
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"TwitchChat: Initialize exception {ex}");
                 }
             }
         }
@@ -213,6 +211,15 @@ namespace ChatPager.Twitch
         private void Client_OnConnected(object sender, TwitchLib.Client.Events.OnConnectedArgs e)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"Connected to chat room: {e.AutoJoinChannel}");
+
+            if (monitoredStreamers != null)
+            {
+                foreach (var streamer in monitoredStreamers)
+                {
+                    client.JoinChannel(streamer);
+                    Logger.Instance.LogMessage(TracingLevel.INFO, $"Connecting to chat room: {streamer}");
+                }
+            }
         }
 
         private void Client_OnDisconnected(object sender, TwitchLib.Communication.Events.OnDisconnectedEventArgs e)
@@ -234,16 +241,60 @@ namespace ChatPager.Twitch
                 client.OnConnected -= Client_OnConnected;
                 client.OnDisconnected -= Client_OnDisconnected;
                 client.OnChatCommandReceived -= Client_OnChatCommandReceived;
+                client.OnUserJoined -= Client_OnUserJoined;
+                client.OnUserLeft -= Client_OnUserLeft;
                 client.OnConnectionError -= Client_OnConnectionError;
                 client.OnError -= Client_OnError;
+                
             }
             client = null;
             client = new TwitchClient();
             client.OnConnected += Client_OnConnected;
             client.OnDisconnected += Client_OnDisconnected;
             client.OnChatCommandReceived += Client_OnChatCommandReceived;
+            client.OnUserJoined += Client_OnUserJoined;
+            client.OnUserLeft += Client_OnUserLeft;
             client.OnConnectionError += Client_OnConnectionError;
             client.OnError += Client_OnError;
+
+            // TODO -= these
+            client.OnCommunitySubscription += Client_OnCommunitySubscription;
+            client.OnHostingStarted += Client_OnHostingStarted;
+            client.OnNewSubscriber += Client_OnNewSubscriber;
+            client.OnRaidNotification += Client_OnRaidNotification;
+            client.OnUserStateChanged += Client_OnUserStateChanged;
+            client.OnWhisperReceived += Client_OnWhisperReceived;
+
+        }
+
+        private void Client_OnWhisperReceived(object sender, TwitchLib.Client.Events.OnWhisperReceivedArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***Whisper: {e.WhisperMessage.Username}: {e.WhisperMessage.Message}");
+        }
+
+        private void Client_OnUserStateChanged(object sender, TwitchLib.Client.Events.OnUserStateChangedArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***UserState: {e.UserState.DisplayName} {e.UserState.UserType}");
+        }
+
+        private void Client_OnRaidNotification(object sender, TwitchLib.Client.Events.OnRaidNotificationArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***Raid: {e.RaidNotificaiton.DisplayName}");
+        }
+
+        private void Client_OnNewSubscriber(object sender, TwitchLib.Client.Events.OnNewSubscriberArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***NewSubscriber: {e.Subscriber.DisplayName}");
+        }
+
+        private void Client_OnHostingStarted(object sender, TwitchLib.Client.Events.OnHostingStartedArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***Hosting Started: {e.HostingStarted.HostingChannel}");
+        }
+
+        private void Client_OnCommunitySubscription(object sender, TwitchLib.Client.Events.OnCommunitySubscriptionArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***CommunitySubscription: {e.GiftedSubscription.DisplayName}");
         }
 
         private void Client_OnError(object sender, TwitchLib.Communication.Events.OnErrorEventArgs e)
@@ -259,6 +310,18 @@ namespace ChatPager.Twitch
         private void Client_OnChatCommandReceived(object sender, TwitchLib.Client.Events.OnChatCommandReceivedArgs e)
         {
             ParseCommand(e.Command);
+        }
+
+        private void Client_OnUserLeft(object sender, TwitchLib.Client.Events.OnUserLeftArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"User left channel: {e.Username}");
+            client.SendWhisper("BarRaider", $"{e.Username} left channel");
+        }
+
+        private void Client_OnUserJoined(object sender, TwitchLib.Client.Events.OnUserJoinedArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"User joined channel: {e.Username}");
+            client.SendWhisper("BarRaider", $"{e.Username} joined channel");
         }
 
         #endregion

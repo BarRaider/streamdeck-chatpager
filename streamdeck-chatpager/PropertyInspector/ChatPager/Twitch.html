@@ -9,11 +9,12 @@
     <link rel="stylesheet" href="../sdpi.css">
     <script src="../sdtools.common.js"></script>
     <script src="../setup.js"></script>
+    <script src="../Twitch.js"></script>
 </head>
 <body>
     <div class="sdpi-wrapper">
         <details class="message info">
-            <summary>For feedback/suggestions contact me at <span class="linkspan" onclick="openWebsite()">https://BarRaider.github.io</span> </summary>
+            <summary>For feedback/suggestions contact me at <span class="linkspan" onclick="openWebsite()">https://BarRaider.com</span> </summary>
         </details>
         <div id="sdWrapper" style="display:none;">
             <div class="sdpi-item" id="anumber">
@@ -22,7 +23,7 @@
             </div>
             <div class="sdpi-item" id="dvChatMessage">
                 <div class="sdpi-item-label">Chat Page Message</div>
-                <input class="sdpi-item-value sdProperty" placeholder="Hey, {USERNAME}, I am now getting paged...! (Get a pager for your Elgato Stream Deck at https://barraider.github.io )" id="chatMessage" oninput="setSettings()">
+                <input class="sdpi-item-value sdProperty" placeholder="Hey, {USERNAME}, I am now getting paged...! (Get a pager for your Elgato Stream Deck at https://BarRaider.com )" id="chatMessage" oninput="setSettings()">
             </div>
             <div type="color" class="sdpi-item" id="dvAlert">
                 <div class="sdpi-item-label">Alert Color</div>
@@ -58,6 +59,43 @@
                 <div class="sdpi-item-value">
                     <input id="dashboardOnClick" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
                     <label for="dashboardOnClick" class="sdpi-item-label"><span></span>Goto Twitch dashboard on click</label>
+                </div>
+            </div>
+            <div type="checkbox" class="sdpi-item">
+                <div class="sdpi-item-label">File</div>
+                <div class="sdpi-item-value">
+                    <input id="saveToFile" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
+                    <label for="saveToFile" class="sdpi-item-label"><span></span>Save page to file</label>
+                </div>
+            </div>
+            <div id="dvSaveToFile">
+                <div class="sdpi-item" id="dvPageFileName">
+                    <div class="sdpi-item-label">File Name</div>
+                    <input class="sdpi-item-value sdProperty" placeholder="c:\temp\pager.txt" value="" id="pageFileName">
+                    <button class="sdpi-item-value max20 minmargin" onclick="setSettings()">Save</button>
+                </div>
+                <div class="sdpi-item" id="dvFilePrefix">
+                    <div class="sdpi-item-label">File Title Prefix</div>
+                    <input class="sdpi-item-value sdProperty" placeholder="Page: " value="" id="filePrefix" oninput="setSettings()">
+                </div>
+                <div class="sdpi-item" id="anumber">
+                    <div class="sdpi-item-label">Auto clear after (seconds)</div>
+                    <input class="sdpi-item-value sdProperty" id="clearFileSeconds" inputmode="numeric" pattern="[0-9]*" type="number" oninput="setSettings()">
+                </div>
+            </div>
+            <div type="checkbox" class="sdpi-item">
+                <div class="sdpi-item-label">Channels</div>
+                <div class="sdpi-item-value">
+                    <input id="multipleChannels" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
+                    <label for="multipleChannels" class="sdpi-item-label"><span></span>Monitor additional streamers</label>
+                </div>
+            </div>
+            <div id="dvMultipleChannels">
+                <div type="textarea" class="sdpi-item" id="inputText_div">
+                    <div class="sdpi-item-label">Streamers to monitor</div>
+                    <span class="sdpi-item-value textarea">
+                        <textarea type="textarea" oninput="setSettings()" class="sdProperty" id="monitoredStreamers" placeholder="One username per line"></textarea>
+                    </span>
                 </div>
             </div>
             <hr />

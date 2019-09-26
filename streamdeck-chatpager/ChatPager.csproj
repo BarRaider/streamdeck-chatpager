@@ -25,8 +25,8 @@
     <OutputPath>bin\debug\com.barraider.chatpager.sdplugin</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="StreamDeck-Tools" Version="2.4.2" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0" />
+    <PackageReference Include="StreamDeck-Tools" Version="2.5.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.6.0" />
     <PackageReference Include="TwitchLib" Version="3.0.1" />
   </ItemGroup>
   <ItemGroup>
@@ -135,6 +135,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="PropertyInspector\sdpi.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="PropertyInspector\Twitch.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="PropertyInspector\setup.js">

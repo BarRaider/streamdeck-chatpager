@@ -8,6 +8,7 @@ using System.Drawing;
 using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
+using System.IO;
 
 namespace ChatPager
 {
@@ -18,15 +19,24 @@ namespace ChatPager
         {
             public static PluginSettings CreateDefaultSettings()
             {
-                PluginSettings instance = new PluginSettings();
-                instance.TokenExists = false;
-                instance.PageCooldown = 30;
-                instance.AllowedPagers = String.Empty;
-                instance.ChatMessage = String.Empty;
-                instance.DashboardOnClick = true;
-                instance.FullScreenAlert = true;
-                instance.TwoLettersPerKey = false;
-                instance.AlertColor = "#FF0000";
+                PluginSettings instance = new PluginSettings
+                {
+                    TokenExists = false,
+                    PageCooldown = 30,
+                    AllowedPagers = String.Empty,
+                    ChatMessage = String.Empty,
+                    DashboardOnClick = true,
+                    FullScreenAlert = true,
+                    TwoLettersPerKey = false,
+                    SaveToFile = false,
+                    AlertColor = "#FF0000",
+                    PageFileName = String.Empty,
+                    ClearFileSeconds = DEFAULT_CLEAR_FILE_SECONDS.ToString(),
+                    FilePrefix = String.Empty,
+                    MultipleChannels = false,
+                    MonitoredStreamers = String.Empty
+                    
+                };
                 return instance;
             }
 
@@ -53,14 +63,34 @@ namespace ChatPager
 
             [JsonProperty(PropertyName = "alertColor")] 
             public string AlertColor { get; set; }
+
+            [JsonProperty(PropertyName = "saveToFile")]
+            public bool SaveToFile { get; set; }
+
+            [JsonProperty(PropertyName = "pageFileName")]
+            public string PageFileName { get; set; }
+
+            [JsonProperty(PropertyName = "filePrefix")]
+            public string FilePrefix { get; set; }
+
+            [JsonProperty(PropertyName = "clearFileSeconds")]
+            public string ClearFileSeconds { get; set; }
+
+            [JsonProperty(PropertyName = "multipleChannels")]
+            public bool MultipleChannels { get; set; }
+
+            [JsonProperty(PropertyName = "monitoredStreamers")]
+            public string MonitoredStreamers { get; set; }
         }
 
         #region Private members
 
         private const string BACKGROUND_COLOR = "#8560db";
+        protected const int DEFAULT_CLEAR_FILE_SECONDS = 5;
 
         private PluginSettings settings;
         private bool isPaging = false;
+        private bool autoClearFile = false;
         private System.Timers.Timer tmrPage = new System.Timers.Timer();
         private int alertStage = 0;
         private TwitchStreamInfo streamInfo;
@@ -68,6 +98,7 @@ namespace ChatPager
         private bool fullScreenAlertTriggered = false;
         private StreamDeckDeviceType deviceType;
         private TwitchGlobalSettings global = null;
+        private System.Timers.Timer tmrClearFile = new System.Timers.Timer();
 
         #endregion
 
@@ -93,6 +124,7 @@ namespace ChatPager
             
             tmrPage.Interval = 200;
             tmrPage.Elapsed += TmrPage_Elapsed;
+            tmrClearFile.Elapsed += TmrClearFile_Elapsed;
             SaveSettings();
             Connection.GetGlobalSettingsAsync();
         }
@@ -161,32 +193,28 @@ namespace ChatPager
                 settings.ChatMessage = TwitchChat.Instance.ChatMessage;
                 settings.TwoLettersPerKey = global.TwoLettersPerKey;
                 settings.AlertColor = global.InitialAlertColor;
+                settings.SaveToFile = global.SaveToFile;
+                settings.PageFileName = global.PageFileName;
+                settings.FilePrefix = global.FilePrefix;
+                settings.ClearFileSeconds = global.ClearFileSeconds;
+                SetClearTimerInterval();
                 SaveSettings();
             }
             else // Global settings do not exist
             {
                 global = new TwitchGlobalSettings();
-                global.ChatMessage = TwitchChat.Instance.ChatMessage;
-                global.TwoLettersPerKey = settings.TwoLettersPerKey;
-                global.InitialAlertColor = settings.AlertColor;
-                Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
+                settings.ChatMessage = TwitchChat.Instance.ChatMessage;
+                SetGlobalSettings();
             }
         }
 
         public override void ReceivedSettings(ReceivedSettingsPayload payload)
         {
-            // Save original values
-            string oldChatMessage = settings.ChatMessage;
-            bool twoLettersPerKey = settings.TwoLettersPerKey;
-            string alertColor = settings.AlertColor;
-
             // Populate new values
             Tools.AutoPopulateSettings(settings, payload.Settings);
+            SetClearTimerInterval();
             ResetChat();
-            if (oldChatMessage != settings.ChatMessage || twoLettersPerKey != settings.TwoLettersPerKey || alertColor != settings.AlertColor)
-            {
-                SetGlobalSettings();
-            }
+            SetGlobalSettings();
         }
 
         #endregion
@@ -204,6 +232,10 @@ namespace ChatPager
             global.ChatMessage = settings.ChatMessage;
             global.TwoLettersPerKey = settings.TwoLettersPerKey;
             global.InitialAlertColor = settings.AlertColor;
+            global.SaveToFile = settings.SaveToFile;
+            global.PageFileName = settings.PageFileName;
+            global.FilePrefix = settings.FilePrefix;
+            global.ClearFileSeconds = settings.ClearFileSeconds;
             Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
         }
 
@@ -312,6 +344,7 @@ namespace ChatPager
             pageMessage = e.Message;
             isPaging = true;
             fullScreenAlertTriggered = false;
+            SavePageToFile($"{global.FilePrefix}{e.Message}");
         }
 
         private void RaiseFullScreenAlert()
@@ -372,13 +405,72 @@ namespace ChatPager
         private void ResetChat()
         {
             List<string> allowedPagers = null;
+            List<string> monitoredStreamers = null;
 
             if (!String.IsNullOrWhiteSpace(settings.AllowedPagers))
             {
                 allowedPagers = settings.AllowedPagers?.Replace("\r\n", "\n").Split('\n').ToList();
             }
-            TwitchChat.Instance.Initalize(settings.PageCooldown, allowedPagers);
+
+            if (settings.MultipleChannels)
+            {
+                if (string.IsNullOrWhiteSpace(settings.MonitoredStreamers))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, "MultipleChannels is enabled but MonitoredStreamers is empty");
+                }
+                else
+                {
+                    monitoredStreamers = settings.MonitoredStreamers?.Replace("\r\n", "\n").Split('\n').ToList();
+                }
+            }
+
+            TwitchChat.Instance.Initialize(settings.PageCooldown, allowedPagers, monitoredStreamers);
         }
+
+        private void SavePageToFile(string pageMessage, bool autoClear = true)
+        {
+            if (global.SaveToFile)
+            {
+                if (string.IsNullOrEmpty(global.PageFileName))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, "SavePageToFile called but PageFileName is empty");
+                    return;
+                }
+
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"Saving message {pageMessage} to file {global.PageFileName}");
+                File.WriteAllText(global.PageFileName, $"{pageMessage}");
+
+                if (autoClearFile)
+                {
+                    tmrClearFile.Start();
+                }
+            }
+        }
+
+        private void SetClearTimerInterval()
+        {
+            autoClearFile = false;
+            if (int.TryParse(settings.ClearFileSeconds, out int value))
+            {
+                if (value > 0)
+                {
+                    autoClearFile = true;
+                    tmrClearFile.Interval = value * 1000;
+                }
+            }
+            else
+            {
+                settings.ClearFileSeconds = DEFAULT_CLEAR_FILE_SECONDS.ToString();
+                SaveSettings();
+            }
+        }
+
+        private void TmrClearFile_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            tmrClearFile.Stop();
+            SavePageToFile(string.Empty, false);
+        }
+
         #endregion
     }
 }

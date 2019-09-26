@@ -49,6 +49,7 @@ namespace ChatPager
             tmrPage.Interval = 200;
             tmrPage.Elapsed += TmrPage_Elapsed;
             GlobalSettingsManager.Instance.OnReceivedGlobalSettings += Instance_OnReceivedGlobalSettings;
+            GlobalSettingsManager.Instance.RequestGlobalSettings();
             //tmrPage.Start();
         }
 

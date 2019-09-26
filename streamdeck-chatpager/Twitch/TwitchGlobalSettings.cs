@@ -18,6 +18,18 @@ namespace ChatPager.Twitch
         [JsonProperty(PropertyName = "initialAlertColor")]
         public string InitialAlertColor { get; set; }
 
+        [JsonProperty(PropertyName = "saveToFile")]
+        public bool SaveToFile { get; set; }
+
+        [JsonProperty(PropertyName = "pageFileName")]
+        public string PageFileName { get; set; }
+
+        [JsonProperty(PropertyName = "filePrefix")]
+        public string FilePrefix { get; set; }
+
+        [JsonProperty(PropertyName = "clearFileSeconds")]
+        public string ClearFileSeconds { get; set; }
+
         [JsonProperty(PropertyName = "token")]
         public TwitchToken Token { get; set; }
     }
