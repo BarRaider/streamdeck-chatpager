@@ -28,6 +28,7 @@ namespace ChatPager
                     DashboardOnClick = true,
                     FullScreenAlert = true,
                     TwoLettersPerKey = false,
+                    AlwaysAlert = false,
                     SaveToFile = false,
                     AlertColor = "#FF0000",
                     PageFileName = String.Empty,
@@ -35,7 +36,6 @@ namespace ChatPager
                     FilePrefix = String.Empty,
                     MultipleChannels = false,
                     MonitoredStreamers = String.Empty
-                    
                 };
                 return instance;
             }
@@ -81,6 +81,9 @@ namespace ChatPager
 
             [JsonProperty(PropertyName = "monitoredStreamers")]
             public string MonitoredStreamers { get; set; }
+
+            [JsonProperty(PropertyName = "alwaysAlert")]
+            public bool AlwaysAlert { get; set; }
         }
 
         #region Private members
@@ -98,7 +101,6 @@ namespace ChatPager
         private bool fullScreenAlertTriggered = false;
         private StreamDeckDeviceType deviceType;
         private TwitchGlobalSettings global = null;
-        private System.Timers.Timer tmrClearFile = new System.Timers.Timer();
 
         #endregion
 
@@ -115,18 +117,23 @@ namespace ChatPager
             TwitchStreamInfoManager.Instance.TwitchStreamInfoChanged += Instance_TwitchStreamInfoChanged;
             TwitchTokenManager.Instance.TokenStatusChanged += Instance_TokenStatusChanged;
             Connection.StreamDeckConnection.OnSendToPlugin += StreamDeckConnection_OnSendToPlugin;
+            AlertManager.Instance.TwitchPagerShown += Instance_TwitchPagerShown;
             TwitchChat.Instance.PageRaised += Chat_PageRaised;
 
             this.settings.ChatMessage = TwitchChat.Instance.ChatMessage;
             settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
+            AlertManager.Instance.Initialize(Connection);
             ResetChat();
             deviceType = Connection.DeviceInfo().Type;
             
             tmrPage.Interval = 200;
             tmrPage.Elapsed += TmrPage_Elapsed;
-            tmrClearFile.Elapsed += TmrClearFile_Elapsed;
             SaveSettings();
             Connection.GetGlobalSettingsAsync();
+        }
+
+        private void Instance_TwitchPagerShown(object sender, EventArgs e)
+        {
         }
 
         #region PluginBase Implementation
@@ -137,6 +144,7 @@ namespace ChatPager
             TwitchTokenManager.Instance.TokenStatusChanged -= Instance_TokenStatusChanged;
             Connection.StreamDeckConnection.OnSendToPlugin -= StreamDeckConnection_OnSendToPlugin;
             TwitchChat.Instance.PageRaised -= Chat_PageRaised;
+            AlertManager.Instance.TwitchPagerShown -= Instance_TwitchPagerShown;
             tmrPage.Stop();
             Logger.Instance.LogMessage(TracingLevel.INFO, "Destructor Called");
         }
@@ -172,10 +180,6 @@ namespace ChatPager
                 alertStage = 0;
                 tmrPage.Start();
             }
-            else if (isPaging && settings.FullScreenAlert && !fullScreenAlertTriggered)
-            {
-                RaiseFullScreenAlert();
-            }
             else if (!isPaging)
             {
                 tmrPage.Stop();
@@ -191,7 +195,9 @@ namespace ChatPager
                 global = payload.Settings.ToObject<TwitchGlobalSettings>();
                 TwitchChat.Instance.SetChatMessage(global.ChatMessage);
                 settings.ChatMessage = TwitchChat.Instance.ChatMessage;
+                settings.FullScreenAlert = global.FullScreenAlert;
                 settings.TwoLettersPerKey = global.TwoLettersPerKey;
+                settings.AlwaysAlert = global.AlwaysAlert;
                 settings.AlertColor = global.InitialAlertColor;
                 settings.SaveToFile = global.SaveToFile;
                 settings.PageFileName = global.PageFileName;
@@ -230,7 +236,9 @@ namespace ChatPager
             }
 
             global.ChatMessage = settings.ChatMessage;
+            global.FullScreenAlert = settings.FullScreenAlert;
             global.TwoLettersPerKey = settings.TwoLettersPerKey;
+            global.AlwaysAlert = settings.AlwaysAlert;
             global.InitialAlertColor = settings.AlertColor;
             global.SaveToFile = settings.SaveToFile;
             global.PageFileName = settings.PageFileName;
@@ -344,24 +352,6 @@ namespace ChatPager
             pageMessage = e.Message;
             isPaging = true;
             fullScreenAlertTriggered = false;
-            SavePageToFile($"{global.FilePrefix}{e.Message}");
-        }
-
-        private void RaiseFullScreenAlert()
-        {
-            Logger.Instance.LogMessage(TracingLevel.INFO, $"Full screen alert: {pageMessage ?? String.Empty}");
-            fullScreenAlertTriggered = true;
-            AlertManager.Instance.PageMessage = pageMessage;
-            AlertManager.Instance.InitFlash();
-
-            if (deviceType == StreamDeckDeviceType.StreamDeckClassic)
-            {
-                Connection.SwitchProfileAsync("FullScreenAlert");
-            }
-            else
-            {
-                Connection.SwitchProfileAsync("FullScreenAlertXL");
-            }           
         }
 
         private void Instance_TwitchStreamInfoChanged(object sender, TwitchStreamInfoEventArgs e)
@@ -427,50 +417,15 @@ namespace ChatPager
             TwitchChat.Instance.Initialize(settings.PageCooldown, allowedPagers, monitoredStreamers);
         }
 
-        private void SavePageToFile(string pageMessage, bool autoClear = true)
-        {
-            if (global.SaveToFile)
-            {
-                if (string.IsNullOrEmpty(global.PageFileName))
-                {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, "SavePageToFile called but PageFileName is empty");
-                    return;
-                }
-
-                Logger.Instance.LogMessage(TracingLevel.INFO, $"Saving message {pageMessage} to file {global.PageFileName}");
-                File.WriteAllText(global.PageFileName, $"{pageMessage}");
-
-                if (autoClearFile)
-                {
-                    tmrClearFile.Start();
-                }
-            }
-        }
-
         private void SetClearTimerInterval()
         {
-            autoClearFile = false;
-            if (int.TryParse(settings.ClearFileSeconds, out int value))
-            {
-                if (value > 0)
-                {
-                    autoClearFile = true;
-                    tmrClearFile.Interval = value * 1000;
-                }
-            }
-            else
+            if (!int.TryParse(settings.ClearFileSeconds, out int value))
             {
                 settings.ClearFileSeconds = DEFAULT_CLEAR_FILE_SECONDS.ToString();
                 SaveSettings();
             }
         }
-
-        private void TmrClearFile_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            tmrClearFile.Stop();
-            SavePageToFile(string.Empty, false);
-        }
-
+        
         #endregion
     }
 }

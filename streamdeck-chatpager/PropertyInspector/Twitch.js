@@ -39,8 +39,8 @@ function checkSettings(payload) {
 }
 
 function setFullScreenAlert(displayValue) {
-    var dvTwoLettersPerKey = document.getElementById('dvTwoLettersPerKey');
-    dvTwoLettersPerKey.style.display = displayValue;
+    var dvFullScreenAlertSettings = document.getElementById('dvFullScreenAlertSettings');
+    dvFullScreenAlertSettings.style.display = displayValue;
 }
 
 function setSaveToFile(displayValue) {

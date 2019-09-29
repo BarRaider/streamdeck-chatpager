@@ -12,6 +12,9 @@ namespace ChatPager.Twitch
         [JsonProperty(PropertyName = "chatMessage")]
         public string ChatMessage { get; set; }
 
+        [JsonProperty(PropertyName = "fullScreenAlert")]
+        public bool FullScreenAlert { get; set; }
+
         [JsonProperty(PropertyName = "twoLettersPerKey")]
         public bool TwoLettersPerKey { get; set; }
 
@@ -29,6 +32,9 @@ namespace ChatPager.Twitch
 
         [JsonProperty(PropertyName = "clearFileSeconds")]
         public string ClearFileSeconds { get; set; }
+
+        [JsonProperty(PropertyName = "alwaysAlert")]
+        public bool AlwaysAlert { get; set; }
 
         [JsonProperty(PropertyName = "token")]
         public TwitchToken Token { get; set; }
