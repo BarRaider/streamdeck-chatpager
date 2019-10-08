@@ -241,8 +241,8 @@ namespace ChatPager.Twitch
                 client.OnConnected -= Client_OnConnected;
                 client.OnDisconnected -= Client_OnDisconnected;
                 client.OnChatCommandReceived -= Client_OnChatCommandReceived;
-                client.OnUserJoined -= Client_OnUserJoined;
-                client.OnUserLeft -= Client_OnUserLeft;
+                //client.OnUserJoined -= Client_OnUserJoined;
+                //client.OnUserLeft -= Client_OnUserLeft;
                 client.OnConnectionError -= Client_OnConnectionError;
                 client.OnError -= Client_OnError;
                 
@@ -252,19 +252,19 @@ namespace ChatPager.Twitch
             client.OnConnected += Client_OnConnected;
             client.OnDisconnected += Client_OnDisconnected;
             client.OnChatCommandReceived += Client_OnChatCommandReceived;
-            client.OnUserJoined += Client_OnUserJoined;
-            client.OnUserLeft += Client_OnUserLeft;
+            //client.OnUserJoined += Client_OnUserJoined;
+            //client.OnUserLeft += Client_OnUserLeft;
             client.OnConnectionError += Client_OnConnectionError;
             client.OnError += Client_OnError;
 
             // TODO -= these
-            client.OnCommunitySubscription += Client_OnCommunitySubscription;
+            /*client.OnCommunitySubscription += Client_OnCommunitySubscription;
             client.OnHostingStarted += Client_OnHostingStarted;
             client.OnNewSubscriber += Client_OnNewSubscriber;
             client.OnRaidNotification += Client_OnRaidNotification;
             client.OnUserStateChanged += Client_OnUserStateChanged;
             client.OnWhisperReceived += Client_OnWhisperReceived;
-
+            */
         }
 
         private void Client_OnWhisperReceived(object sender, TwitchLib.Client.Events.OnWhisperReceivedArgs e)
@@ -315,13 +315,11 @@ namespace ChatPager.Twitch
         private void Client_OnUserLeft(object sender, TwitchLib.Client.Events.OnUserLeftArgs e)
         {
             Logger.Instance.LogMessage(TracingLevel.DEBUG, $"User left channel: {e.Username}");
-            client.SendWhisper("BarRaider", $"{e.Username} left channel");
         }
 
         private void Client_OnUserJoined(object sender, TwitchLib.Client.Events.OnUserJoinedArgs e)
         {
             Logger.Instance.LogMessage(TracingLevel.DEBUG, $"User joined channel: {e.Username}");
-            client.SendWhisper("BarRaider", $"{e.Username} joined channel");
         }
 
         #endregion

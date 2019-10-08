@@ -123,6 +123,7 @@ namespace ChatPager
             if (payload?.Settings != null)
             {
                 global = payload.Settings.ToObject<TwitchGlobalSettings>();
+                initialAlertColor = global.InitialAlertColor;
                 SetClearTimerInterval();
             }
         }
