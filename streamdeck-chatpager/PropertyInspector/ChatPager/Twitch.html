@@ -21,6 +21,10 @@
                 <div class="sdpi-item-label">Page Cooldown (seconds)</div>
                 <input class="sdpi-item-value sdProperty" id="pageCooldown" inputmode="numeric" pattern="[0-9]*" type="number" oninput="setSettings()">
             </div>
+            <div class="sdpi-item" id="dvPageCommand">
+                <div class="sdpi-item-label">Page Command</div>
+                <input class="sdpi-item-value sdProperty" placeholder="!page" id="pageCommand" oninput="setSettings()">
+            </div>
             <div class="sdpi-item" id="dvChatMessage">
                 <div class="sdpi-item-label">Chat Page Message</div>
                 <input class="sdpi-item-value sdProperty" placeholder="Hey, {USERNAME}, I am now getting paged...! (Get a pager for your Elgato Stream Deck at https://BarRaider.com )" id="chatMessage" oninput="setSettings()">

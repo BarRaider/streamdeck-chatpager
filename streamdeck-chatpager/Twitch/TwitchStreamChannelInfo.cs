@@ -27,5 +27,11 @@ namespace ChatPager.Twitch
         [JsonProperty(PropertyName = "description")]
         public string Description { get; private set; }
 
+        [JsonProperty(PropertyName = "display_name")]
+        public string DisplayName { get; private set; }
+
+        [JsonProperty(PropertyName = "name")]
+        public string Name { get; private set; }
+
     }
 }

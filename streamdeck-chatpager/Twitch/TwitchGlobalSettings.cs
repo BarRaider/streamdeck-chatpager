@@ -12,6 +12,9 @@ namespace ChatPager.Twitch
         [JsonProperty(PropertyName = "chatMessage")]
         public string ChatMessage { get; set; }
 
+        [JsonProperty(PropertyName = "pageCommand")]
+        public string PageCommand { get; set; }
+
         [JsonProperty(PropertyName = "fullScreenAlert")]
         public bool FullScreenAlert { get; set; }
 

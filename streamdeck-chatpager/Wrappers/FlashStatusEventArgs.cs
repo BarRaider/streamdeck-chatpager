@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChatPager
+namespace ChatPager.Wrappers
 {
     public class FlashStatusEventArgs : EventArgs
     {

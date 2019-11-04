@@ -17,7 +17,7 @@ namespace ChatPager.Twitch
         private static TwitchChat instance = null;
         private static readonly object objLock = new object();
 
-        private const string PAGE_COMMAND = "page";
+        private const string DEFAULT_PAGE_COMMAND = "page";
 
         private TwitchClient client;
         private TwitchToken token = null;
@@ -67,6 +67,7 @@ namespace ChatPager.Twitch
         }
 
         public string ChatMessage { get; private set; }
+        public string PageCommand { get; private set; }
 
         #endregion
 
@@ -74,6 +75,7 @@ namespace ChatPager.Twitch
         private TwitchChat()
         {
             ChatMessage = DEFAULT_CHAT_MESSAGE;
+            PageCommand = DEFAULT_PAGE_COMMAND;
             ResetClient();
             TwitchTokenManager.Instance.TokensChanged += Instance_TokensChanged;
             token = TwitchTokenManager.Instance.GetToken();
@@ -114,6 +116,14 @@ namespace ChatPager.Twitch
         public void SetChatMessage(string message)
         {
             ChatMessage = message;
+        }
+
+        public void SetPageCommand(string pageCommand)
+        {
+            if (!String.IsNullOrEmpty(pageCommand))
+            {
+                PageCommand = pageCommand.ToLowerInvariant().Replace("!", "");
+            }
         }
 
         #endregion
@@ -173,7 +183,7 @@ namespace ChatPager.Twitch
         private void ParseCommand(ChatCommand cmd)
         {
             var msg = cmd.ChatMessage;
-            if (cmd.CommandText.ToLowerInvariant() == PAGE_COMMAND)
+            if (cmd.CommandText.ToLowerInvariant() == PageCommand)
             {
                 Logger.Instance.LogMessage(TracingLevel.INFO, $"{msg.DisplayName} requested a page");
                 if (PageRaised != null)

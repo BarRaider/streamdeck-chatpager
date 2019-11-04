@@ -9,13 +9,12 @@ using System.Threading.Tasks;
 
 namespace ChatPager.Twitch
 {
-    public class TwitchStreamInfoManager
+    public class MyTwitchChannelInfo
     {
         #region Private Members
-        private static TwitchStreamInfoManager instance = null;
+        private static MyTwitchChannelInfo instance = null;
         private static readonly object objLock = new object();
 
-        private const string TWITCH_URI_STREAM_INFO = "/streams/{0}";
         private const int MINIMAL_FORCE_REFRESH_MS = 5000; // 5 seconds
         private const int DEFAULT_REFRESH_MS = 60000; // 60 seconds
         private const int MAX_REFRESH_MS     = 300000; // 300 seconds = 5 min
@@ -43,7 +42,7 @@ namespace ChatPager.Twitch
 
         #region Constructors
 
-        public static TwitchStreamInfoManager Instance
+        public static MyTwitchChannelInfo Instance
         {
             get
             {
@@ -56,14 +55,14 @@ namespace ChatPager.Twitch
                 {
                     if (instance == null)
                     {
-                        instance = new TwitchStreamInfoManager();
+                        instance = new MyTwitchChannelInfo();
                     }
                     return instance;
                 }
             }
         }
 
-        private TwitchStreamInfoManager()
+        private MyTwitchChannelInfo()
         {
             comm = new TwitchComm();
             TwitchTokenManager.Instance.TokensChanged += Instance_TokensChanged;
@@ -154,32 +153,19 @@ namespace ChatPager.Twitch
         {
             if (TwitchStreamInfoChanged != null && TwitchTokenManager.Instance.User != null && !string.IsNullOrEmpty(TwitchTokenManager.Instance.User.UserId))
             {
-                string URI = String.Format(TWITCH_URI_STREAM_INFO, TwitchTokenManager.Instance.User.UserId);
-                HttpResponseMessage response = await comm.TwitchQuery(URI, SendMethod.GET, null, null);
-                if (response.IsSuccessStatusCode)
+                lastStreamInfo = await comm.GetMyStreamInfo();
+                if (lastStreamInfo != null)
                 {
-                    try
+
+                    if (tmrFetchStreamInfo.Interval != DEFAULT_REFRESH_MS)
                     {
-                        string body = await response.Content.ReadAsStringAsync();
-                        JObject json = JObject.Parse(body);
-                        lastStreamInfo = json["stream"].ToObject<TwitchStreamInfo>();
-                        if (tmrFetchStreamInfo.Interval != DEFAULT_REFRESH_MS)
-                        {
-                            ResetTimerInterval();
-                        }
-                        lastStreamInfoRefresh = DateTime.Now;
-                        TwitchStreamInfoChanged?.Invoke(this, new TwitchStreamInfoEventArgs(lastStreamInfo));
-                        return;
+                        ResetTimerInterval();
                     }
-                    catch (Exception ex)
-                    {
-                        Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetStreamInfo Exception: {ex}");
-                    }
+                    lastStreamInfoRefresh = DateTime.Now;
+                    TwitchStreamInfoChanged?.Invoke(this, new TwitchStreamInfoEventArgs(lastStreamInfo));
+                    return;
                 }
-                else
-                {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, "GetStreamInfo Fetch Failed");
-                }
+                    
                 IncreaseTimerInterval();
                 TwitchStreamInfoChanged?.Invoke(this, new TwitchStreamInfoEventArgs(null));
             }

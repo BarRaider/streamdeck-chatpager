@@ -1,8 +1,10 @@
 ﻿using BarRaider.SdTools;
 using ChatPager.Twitch;
+using ChatPager.Wrappers;
 using System;
 using System.Drawing;
 using System.IO;
+using System.Threading;
 
 namespace ChatPager
 {
@@ -59,19 +61,47 @@ namespace ChatPager
 
         #endregion
 
-        #region Public Methods
+        #region Public Members
 
         public event EventHandler<FlashStatusEventArgs> FlashStatusChanged;
+        public event EventHandler<ActiveStreamersEventArgs> ActiveStreamersChanged;
         public event EventHandler TwitchPagerShown;
+
+        public bool IsReady
+        {
+            get
+            {
+                bool isReady = ActiveStreamersChanged != null && ActiveStreamersChanged.GetInvocationList().Length >= numberOfKeys;
+                if (!isReady)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.INFO, $"IsReady was called but Subscribers: {ActiveStreamersChanged?.GetInvocationList()?.Length}/{numberOfKeys}");
+                }
+                return isReady;
+            }
+        }
+
+        #endregion
+
+        #region Private Members
 
         private string pageMessage;
         private SDConnection connection;
         private TwitchGlobalSettings global;
         private bool autoClearFile = false;
+        private int numberOfKeys;
 
+
+        #endregion
+
+        #region Public Methods
         public void Initialize(SDConnection connection)
         {
             this.connection = connection;
+            if (connection != null)
+            {
+                var deviceInfo = connection.DeviceInfo();
+                numberOfKeys = deviceInfo.Size.Cols * deviceInfo.Size.Rows;
+            }
         }
 
         public void InitFlash()
@@ -85,6 +115,30 @@ namespace ChatPager
             Logger.Instance.LogMessage(TracingLevel.INFO, $"StopFlash called");
             tmrPage.Stop();
             FlashStatusChanged?.Invoke(this, new FlashStatusEventArgs(Color.Empty, null));
+        }
+
+        public async void ShowActiveStreamers(TwitchActiveStreamer[] streamers)
+        {
+            StopFlash();
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"ShowActiveStreamers called");
+
+            if (connection.DeviceInfo().Type == StreamDeckDeviceType.StreamDeckClassic)
+            {
+                await connection.SwitchProfileAsync("FullScreenAlert");
+            }
+            else
+            {
+                await connection.SwitchProfileAsync("FullScreenAlertXL");
+            }
+
+            // Wait until the GameUI Action keys have subscribed to get events
+            int retries = 0;
+            while (!IsReady && retries < 100)
+            {
+                Thread.Sleep(100);
+                retries++;
+            }
+            ActiveStreamersChanged?.Invoke(this, new ActiveStreamersEventArgs(streamers));
         }
 
         #endregion

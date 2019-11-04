@@ -1,6 +1,36 @@
 {
   "Actions": [
     {
+      "Icon": "Images/channelIcon",
+      "Name": "Live Streamers",
+      "States": [
+        {
+          "Image": "Images/channelAction",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Shows you which of the streamers you follow are currently live.",
+      "UUID": "com.barraider.twitchtools.livestreamers",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/Channel.html"
+    },
+    {
+      "Icon": "Images/channelIcon",
+      "Name": "Channel Monitor",
+      "States": [
+        {
+          "Image": "Images/channelAction",
+          "TitleAlignment": "bottom",
+          "FontSize": "12"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Shows you when your favorite streamer is live.",
+      "UUID": "com.barraider.twitchtools.channel",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/Channel.html"
+    },
+    {
       "Icon": "Images/icon",
       "Name": "Twitch Pager",
       "States": [
@@ -22,7 +52,7 @@
         {
           "Image": "Images/noicon",
           "TitleAlignment": "middle",
-          "FontSize": "32"
+          "FontSize": "28"
         }
       ],
       "SupportedInMultiActions": false,
@@ -32,13 +62,13 @@
     }
   ],
   "Author": "BarRaider",
-  "Description": "Listens to your twitch chat and gives you a visual alert if someone uses the !page command.",
-  "Name": "ChatPager",
+  "Description": "Advanced tools to control Twitch from your Stream Deck. Features include: Twitch Pager (Listens to your twitch chat and gives you a visual alert if someone uses the !page command), Clip-To-Chat, Channel Monitor (Shows you which of your favorite streamers are now live)",
+  "Name": "Twitch Tools",
   "Icon": "Images/pluginIcon",
   "URL": "https://BarRaider.com/",
-  "Version": "1.7.4",
+  "Version": "1.8.0",
   "CodePath": "com.barraider.chatpager",
-  "Category": "BarRaider",
+  "Category": "Twitch Tools [BarRaider]",
   "CategoryIcon": "Images/categoryIcon",
   "OS": [
     {

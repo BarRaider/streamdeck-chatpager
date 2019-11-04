@@ -10,12 +10,12 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
 
-namespace ChatPager
+namespace ChatPager.Actions
 {
     [PluginActionId("com.barraider.twitchpager")]
-    public class TwitchPager : PluginBase
+    public class TwitchPagerAction : ActionBase
     {
-        private class PluginSettings
+        protected class PluginSettings : PluginSettingsBase
         {
             public static PluginSettings CreateDefaultSettings()
             {
@@ -35,13 +35,12 @@ namespace ChatPager
                     ClearFileSeconds = DEFAULT_CLEAR_FILE_SECONDS.ToString(),
                     FilePrefix = String.Empty,
                     MultipleChannels = false,
-                    MonitoredStreamers = String.Empty
+                    MonitoredStreamers = String.Empty,
+                    PageCommand = DEFAULT_PAGE_COMMAND
+
                 };
                 return instance;
             }
-
-            [JsonProperty(PropertyName = "tokenExists")]
-            public bool TokenExists { get; set; }
 
             [JsonProperty(PropertyName = "pageCooldown")]
             public int PageCooldown { get; set; }
@@ -84,14 +83,35 @@ namespace ChatPager
 
             [JsonProperty(PropertyName = "alwaysAlert")]
             public bool AlwaysAlert { get; set; }
+
+            [JsonProperty(PropertyName = "pageCommand")]
+            public string PageCommand { get; set; }            
+        }
+
+        protected PluginSettings Settings
+        {
+            get
+            {
+                var result = settings as PluginSettings;
+                if (result == null)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, "Cannot convert PluginSettingsBase to PluginSettings");
+                }
+                return result;
+            }
+            set
+            {
+                settings = value;
+            }
         }
 
         #region Private members
 
         private const string BACKGROUND_COLOR = "#8560db";
+        private const string DEFAULT_PAGE_COMMAND = "!page";
         protected const int DEFAULT_CLEAR_FILE_SECONDS = 5;
 
-        private PluginSettings settings;
+
         private bool isPaging = false;
         private bool autoClearFile = false;
         private System.Timers.Timer tmrPage = new System.Timers.Timer();
@@ -104,24 +124,26 @@ namespace ChatPager
 
         #endregion
 
-        public TwitchPager(SDConnection connection, InitialPayload payload) : base(connection, payload)
+        
+
+        public TwitchPagerAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
         {
             if (payload.Settings == null || payload.Settings.Count == 0)
             {
-                this.settings = PluginSettings.CreateDefaultSettings();
+                this.Settings = PluginSettings.CreateDefaultSettings();
             }
             else
             {
-                this.settings = payload.Settings.ToObject<PluginSettings>();
+                this.Settings = payload.Settings.ToObject<PluginSettings>();
             }
-            TwitchStreamInfoManager.Instance.TwitchStreamInfoChanged += Instance_TwitchStreamInfoChanged;
-            TwitchTokenManager.Instance.TokenStatusChanged += Instance_TokenStatusChanged;
-            Connection.StreamDeckConnection.OnSendToPlugin += StreamDeckConnection_OnSendToPlugin;
+            MyTwitchChannelInfo.Instance.TwitchStreamInfoChanged += Instance_TwitchStreamInfoChanged;
+            
             AlertManager.Instance.TwitchPagerShown += Instance_TwitchPagerShown;
             TwitchChat.Instance.PageRaised += Chat_PageRaised;
 
-            this.settings.ChatMessage = TwitchChat.Instance.ChatMessage;
-            settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
+            this.Settings.ChatMessage = TwitchChat.Instance.ChatMessage;
+            this.Settings.PageCommand = TwitchChat.Instance.PageCommand;
+            Settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
             AlertManager.Instance.Initialize(Connection);
             ResetChat();
             deviceType = Connection.DeviceInfo().Type;
@@ -140,9 +162,7 @@ namespace ChatPager
 
         public override void Dispose()
         {
-            TwitchStreamInfoManager.Instance.TwitchStreamInfoChanged -= Instance_TwitchStreamInfoChanged;
-            TwitchTokenManager.Instance.TokenStatusChanged -= Instance_TokenStatusChanged;
-            Connection.StreamDeckConnection.OnSendToPlugin -= StreamDeckConnection_OnSendToPlugin;
+            MyTwitchChannelInfo.Instance.TwitchStreamInfoChanged -= Instance_TwitchStreamInfoChanged;
             TwitchChat.Instance.PageRaised -= Chat_PageRaised;
             AlertManager.Instance.TwitchPagerShown -= Instance_TwitchPagerShown;
             tmrPage.Stop();
@@ -160,11 +180,11 @@ namespace ChatPager
             }
             else
             {
-                if (!TwitchStreamInfoManager.Instance.IsLive || streamInfo == null)
+                if (!MyTwitchChannelInfo.Instance.IsLive || streamInfo == null)
                 {
-                    TwitchStreamInfoManager.Instance.ForceStreamInfoRefresh();
+                    MyTwitchChannelInfo.Instance.ForceStreamInfoRefresh();
                 }
-                else if (TwitchTokenManager.Instance.User != null && settings.DashboardOnClick)
+                else if (TwitchTokenManager.Instance.User != null && Settings.DashboardOnClick)
                 {
                     System.Diagnostics.Process.Start(String.Format("https://www.twitch.tv/{0}/dashboard/live", TwitchTokenManager.Instance.User.UserName));
                 }
@@ -175,7 +195,7 @@ namespace ChatPager
 
         public override void OnTick()
         {
-            if (isPaging && !tmrPage.Enabled && !settings.FullScreenAlert)
+            if (isPaging && !tmrPage.Enabled && !Settings.FullScreenAlert)
             {
                 alertStage = 0;
                 tmrPage.Start();
@@ -194,22 +214,25 @@ namespace ChatPager
             {
                 global = payload.Settings.ToObject<TwitchGlobalSettings>();
                 TwitchChat.Instance.SetChatMessage(global.ChatMessage);
-                settings.ChatMessage = TwitchChat.Instance.ChatMessage;
-                settings.FullScreenAlert = global.FullScreenAlert;
-                settings.TwoLettersPerKey = global.TwoLettersPerKey;
-                settings.AlwaysAlert = global.AlwaysAlert;
-                settings.AlertColor = global.InitialAlertColor;
-                settings.SaveToFile = global.SaveToFile;
-                settings.PageFileName = global.PageFileName;
-                settings.FilePrefix = global.FilePrefix;
-                settings.ClearFileSeconds = global.ClearFileSeconds;
+                TwitchChat.Instance.SetPageCommand(global.PageCommand);
+                Settings.ChatMessage = TwitchChat.Instance.ChatMessage;
+                Settings.PageCommand = TwitchChat.Instance.PageCommand;
+                Settings.FullScreenAlert = global.FullScreenAlert;
+                Settings.TwoLettersPerKey = global.TwoLettersPerKey;
+                Settings.AlwaysAlert = global.AlwaysAlert;
+                Settings.AlertColor = global.InitialAlertColor;
+                Settings.SaveToFile = global.SaveToFile;
+                Settings.PageFileName = global.PageFileName;
+                Settings.FilePrefix = global.FilePrefix;
+                Settings.ClearFileSeconds = global.ClearFileSeconds;
                 SetClearTimerInterval();
                 SaveSettings();
             }
             else // Global settings do not exist
             {
                 global = new TwitchGlobalSettings();
-                settings.ChatMessage = TwitchChat.Instance.ChatMessage;
+                Settings.ChatMessage = TwitchChat.Instance.ChatMessage;
+                Settings.PageCommand = TwitchChat.Instance.PageCommand;
                 SetGlobalSettings();
             }
         }
@@ -217,7 +240,7 @@ namespace ChatPager
         public override void ReceivedSettings(ReceivedSettingsPayload payload)
         {
             // Populate new values
-            Tools.AutoPopulateSettings(settings, payload.Settings);
+            Tools.AutoPopulateSettings(Settings, payload.Settings);
             SetClearTimerInterval();
             ResetChat();
             SetGlobalSettings();
@@ -235,15 +258,16 @@ namespace ChatPager
                 global = new TwitchGlobalSettings();
             }
 
-            global.ChatMessage = settings.ChatMessage;
-            global.FullScreenAlert = settings.FullScreenAlert;
-            global.TwoLettersPerKey = settings.TwoLettersPerKey;
-            global.AlwaysAlert = settings.AlwaysAlert;
-            global.InitialAlertColor = settings.AlertColor;
-            global.SaveToFile = settings.SaveToFile;
-            global.PageFileName = settings.PageFileName;
-            global.FilePrefix = settings.FilePrefix;
-            global.ClearFileSeconds = settings.ClearFileSeconds;
+            global.ChatMessage = Settings.ChatMessage;
+            global.PageCommand = Settings.PageCommand;
+            global.FullScreenAlert = Settings.FullScreenAlert;
+            global.TwoLettersPerKey = Settings.TwoLettersPerKey;
+            global.AlwaysAlert = Settings.AlwaysAlert;
+            global.InitialAlertColor = Settings.AlertColor;
+            global.SaveToFile = Settings.SaveToFile;
+            global.PageFileName = Settings.PageFileName;
+            global.FilePrefix = Settings.FilePrefix;
+            global.ClearFileSeconds = Settings.ClearFileSeconds;
             Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
         }
 
@@ -255,7 +279,7 @@ namespace ChatPager
 
             // Background
             
-            var bgBrush = new SolidBrush(Helpers.GenerateStageColor(settings.AlertColor, alertStage, Helpers.TOTAL_ALERT_STAGES));
+            var bgBrush = new SolidBrush(Helpers.GenerateStageColor(Settings.AlertColor, alertStage, Helpers.TOTAL_ALERT_STAGES));
             graphics.FillRectangle(bgBrush, 0, 0, width, height);
 
             if (String.IsNullOrEmpty(pageMessage))
@@ -288,13 +312,13 @@ namespace ChatPager
         {
             try
             {
-                if (!settings.TokenExists)
+                if (!Settings.TokenExists)
                 {
                     await Connection.SetImageAsync(Properties.Settings.Default.TwitchNoToken).ConfigureAwait(false);
                     return;
                 }
 
-                if (!TwitchStreamInfoManager.Instance.IsLive || streamInfo == null)
+                if (!MyTwitchChannelInfo.Instance.IsLive || streamInfo == null)
                 {
                     await Connection.SetImageAsync(Properties.Settings.Default.TwitchNotLive).ConfigureAwait(false);
                     return;
@@ -340,12 +364,6 @@ namespace ChatPager
             }
         }
 
-        private async void Instance_TokenStatusChanged(object sender, EventArgs e)
-        {
-            settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
-            await SaveSettings();
-        }
-
         private void Chat_PageRaised(object sender, PageRaisedEventArgs e)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"Received a page! Message: {e.Message?? String.Empty}");
@@ -359,37 +377,9 @@ namespace ChatPager
             streamInfo = e.StreamInfo;
         }
 
-        private Task SaveSettings()
+        protected override Task SaveSettings()
         {
-            return Connection.SetSettingsAsync(JObject.FromObject(settings));
-        }
-
-        // Used to register and revoke token
-        private async void StreamDeckConnection_OnSendToPlugin(object sender, streamdeck_client_csharp.StreamDeckEventReceivedEventArgs<streamdeck_client_csharp.Events.SendToPluginEvent> e)
-        {
-            var payload = e.Event.Payload;
-            if (Connection.ContextId != e.Event.Context)
-            {
-                return;
-            }
-
-            if (payload["property_inspector"] != null)
-            {
-                switch (payload["property_inspector"].ToString().ToLower())
-                {
-                    case "updateapproval":
-                        string approvalCode = (string)payload["approvalCode"];
-                        Logger.Instance.LogMessage(TracingLevel.INFO, $"Requesting approval with code: {approvalCode}");
-                        TwitchTokenManager.Instance.SetToken(new TwitchToken() { Token = approvalCode, TokenLastRefresh = DateTime.Now });
-                        Logger.Instance.LogMessage(TracingLevel.INFO, $"RefreshToken completed. Token Exists: {TwitchTokenManager.Instance.TokenExists}");
-                        break;
-                    case "resetplugin":
-                        Logger.Instance.LogMessage(TracingLevel.WARN, $"ResetPlugin called. Tokens are cleared");
-                        TwitchTokenManager.Instance.RevokeToken();
-                        await SaveSettings();
-                        break;
-                }
-            }
+            return Connection.SetSettingsAsync(JObject.FromObject(Settings));
         }
 
         private void ResetChat()
@@ -397,31 +387,31 @@ namespace ChatPager
             List<string> allowedPagers = null;
             List<string> monitoredStreamers = null;
 
-            if (!String.IsNullOrWhiteSpace(settings.AllowedPagers))
+            if (!String.IsNullOrWhiteSpace(Settings.AllowedPagers))
             {
-                allowedPagers = settings.AllowedPagers?.Replace("\r\n", "\n").Split('\n').ToList();
+                allowedPagers = Settings.AllowedPagers?.Replace("\r\n", "\n").Split('\n').ToList();
             }
 
-            if (settings.MultipleChannels)
+            if (Settings.MultipleChannels)
             {
-                if (string.IsNullOrWhiteSpace(settings.MonitoredStreamers))
+                if (string.IsNullOrWhiteSpace(Settings.MonitoredStreamers))
                 {
                     Logger.Instance.LogMessage(TracingLevel.WARN, "MultipleChannels is enabled but MonitoredStreamers is empty");
                 }
                 else
                 {
-                    monitoredStreamers = settings.MonitoredStreamers?.Replace("\r\n", "\n").Split('\n').ToList();
+                    monitoredStreamers = Settings.MonitoredStreamers?.Replace("\r\n", "\n").Split('\n').ToList();
                 }
             }
 
-            TwitchChat.Instance.Initialize(settings.PageCooldown, allowedPagers, monitoredStreamers);
+            TwitchChat.Instance.Initialize(Settings.PageCooldown, allowedPagers, monitoredStreamers);
         }
 
         private void SetClearTimerInterval()
         {
-            if (!int.TryParse(settings.ClearFileSeconds, out int value))
+            if (!int.TryParse(Settings.ClearFileSeconds, out int value))
             {
-                settings.ClearFileSeconds = DEFAULT_CLEAR_FILE_SECONDS.ToString();
+                Settings.ClearFileSeconds = DEFAULT_CLEAR_FILE_SECONDS.ToString();
                 SaveSettings();
             }
         }
