@@ -28,6 +28,8 @@ namespace ChatPager.Twitch
         private DateTime lastConnectAttempt;
         private object initLock = new object();
 
+        private Dictionary<string, DateTime> dictUserMessages = new Dictionary<string, DateTime>();
+
         #endregion
 
         #region Constructors
@@ -83,26 +85,16 @@ namespace ChatPager.Twitch
 
         #region Public Methods
 
-        public void Initialize(int pageCooldown, List<string> allowedPagers, List<string> monitoredStreamers)
+        public void Initialize()
         {
             lock (initLock)
             {
                 try
                 {
-                    this.monitoredStreamers = null;
-                    Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchChat: Initalizing");
-                    if (allowedPagers != null)
-                    {
-                        this.allowedPagers = allowedPagers.Select(x => x.ToLowerInvariant()).ToList();
-                    }
-                    if (monitoredStreamers != null)
-                    {
-                        this.monitoredStreamers = monitoredStreamers.Select(x => x.ToLowerInvariant()).ToList();
-                    }
-                    this.pageCooldown = pageCooldown;
-
+                    Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchChat: Initializing");
                     if (!client.IsConnected)
                     {
+                        Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchChat: Connecting to Chat");
                         Connect(DateTime.Now);
                     }
                 }
@@ -110,6 +102,30 @@ namespace ChatPager.Twitch
                 {
                     Logger.Instance.LogMessage(TracingLevel.ERROR, $"TwitchChat: Initialize exception {ex}");
                 }
+            }
+        }
+
+        public void InitializePager(int pageCooldown, List<string> allowedPagers, List<string> monitoredStreamers)
+        {
+            try
+            {
+                this.monitoredStreamers = null;
+                this.allowedPagers = null;
+                Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchChat: Initializing Pager");
+                if (allowedPagers != null)
+                {
+                    this.allowedPagers = allowedPagers.Select(x => x.ToLowerInvariant()).ToList();
+                }
+                if (monitoredStreamers != null)
+                {
+                    this.monitoredStreamers = monitoredStreamers.Select(x => x.ToLowerInvariant()).ToList();
+                }
+                this.pageCooldown = pageCooldown;
+                Initialize();
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"TwitchChat: Initialize Pager exception {ex}");
             }
         }
 
@@ -124,6 +140,40 @@ namespace ChatPager.Twitch
             {
                 PageCommand = pageCommand.ToLowerInvariant().Replace("!", "");
             }
+        }
+
+        public void SendMessage(string chatMessage)
+        {
+            SendMessage(TwitchTokenManager.Instance.User?.UserName, chatMessage);
+        }
+
+        public void SendMessage(string channel, string chatMessage)
+        {
+            if (String.IsNullOrEmpty(channel) || String.IsNullOrEmpty(chatMessage))
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchChat SendMessage called but channel or message are empty. Channel: {channel} Message: {chatMessage}");
+                return;
+            }
+
+            if (!IsConnected)
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchChat SendMessage called but not connected.");
+                return;
+            }
+            client.SendMessage(channel, chatMessage);
+        }
+
+        public List<string> GetLastChatters()
+        {
+            try
+            {
+                return dictUserMessages.Keys.Select(k => new { Username = k, LastChat = dictUserMessages[k] }).OrderByDescending(o => o.LastChat).Select(o => o.Username).ToList();
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetLastChatters Exception {ex}");
+            }
+            return null;
         }
 
         #endregion
@@ -142,7 +192,7 @@ namespace ChatPager.Twitch
                         return;
                     }
                     Logger.Instance.LogMessage(TracingLevel.INFO, $"TwitchChat: Connect called");
-                    Disconnect(); // Disconnect if already conected with previous credentials
+                    Disconnect(); // Disconnect if already connected with previous credentials
 
                     if (token == null || String.IsNullOrWhiteSpace(token.Token))
                     {
@@ -159,6 +209,7 @@ namespace ChatPager.Twitch
                     Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchChat: Attempting to connect");
                     string username = TwitchTokenManager.Instance.User.UserName;
                     ConnectionCredentials credentials = new ConnectionCredentials(username, $"oauth:{token.Token}");
+                    dictUserMessages = new Dictionary<string, DateTime>();
                     ResetClient();
                     client.Initialize(credentials, username);
                     client.Connect();
@@ -178,6 +229,12 @@ namespace ChatPager.Twitch
             {
                 client.Disconnect();
             }
+        }
+
+        private void HandleReceivedMessage(ChatMessage msg)
+        {
+            string userName = msg.Username.ToLowerInvariant();
+            dictUserMessages[userName] = DateTime.Now;
         }
 
         private void ParseCommand(ChatCommand cmd)
@@ -251,17 +308,23 @@ namespace ChatPager.Twitch
                 client.OnConnected -= Client_OnConnected;
                 client.OnDisconnected -= Client_OnDisconnected;
                 client.OnChatCommandReceived -= Client_OnChatCommandReceived;
+                client.OnMessageReceived -= Client_OnMessageReceived;
+                client.OnRaidNotification -= Client_OnRaidNotification;
+                client.OnNewSubscriber -= Client_OnNewSubscriber;
                 //client.OnUserJoined -= Client_OnUserJoined;
                 //client.OnUserLeft -= Client_OnUserLeft;
                 client.OnConnectionError -= Client_OnConnectionError;
                 client.OnError -= Client_OnError;
-                
+
             }
             client = null;
             client = new TwitchClient();
             client.OnConnected += Client_OnConnected;
             client.OnDisconnected += Client_OnDisconnected;
             client.OnChatCommandReceived += Client_OnChatCommandReceived;
+            client.OnMessageReceived += Client_OnMessageReceived;
+            client.OnRaidNotification += Client_OnRaidNotification;
+            client.OnNewSubscriber += Client_OnNewSubscriber;
             //client.OnUserJoined += Client_OnUserJoined;
             //client.OnUserLeft += Client_OnUserLeft;
             client.OnConnectionError += Client_OnConnectionError;
@@ -277,6 +340,11 @@ namespace ChatPager.Twitch
             */
         }
 
+        private void Client_OnMessageReceived(object sender, TwitchLib.Client.Events.OnMessageReceivedArgs e)
+        {
+            HandleReceivedMessage(e.ChatMessage);
+        }
+
         private void Client_OnWhisperReceived(object sender, TwitchLib.Client.Events.OnWhisperReceivedArgs e)
         {
             Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***Whisper: {e.WhisperMessage.Username}: {e.WhisperMessage.Message}");
@@ -290,11 +358,15 @@ namespace ChatPager.Twitch
         private void Client_OnRaidNotification(object sender, TwitchLib.Client.Events.OnRaidNotificationArgs e)
         {
             Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***Raid: {e.RaidNotificaiton.DisplayName}");
+            string userName = e.RaidNotificaiton.DisplayName.ToLowerInvariant();
+            dictUserMessages[userName] = DateTime.Now;
         }
 
         private void Client_OnNewSubscriber(object sender, TwitchLib.Client.Events.OnNewSubscriberArgs e)
         {
             Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***NewSubscriber: {e.Subscriber.DisplayName}");
+            string userName = e.Subscriber.DisplayName.ToLowerInvariant();
+            dictUserMessages[userName] = DateTime.Now;
         }
 
         private void Client_OnHostingStarted(object sender, TwitchLib.Client.Events.OnHostingStartedArgs e)

@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -22,6 +23,7 @@ namespace ChatPager.Actions
         #region Protected Members
 
         protected PluginSettingsBase settings;
+        protected bool baseHandledOnTick = false;
 
         #endregion
 
@@ -40,6 +42,15 @@ namespace ChatPager.Actions
             Logger.Instance.LogMessage(TracingLevel.INFO, $"Base Destructor called");
         }
 
+        public async override void OnTick()
+        {
+            if (!settings.TokenExists)
+            {
+                baseHandledOnTick = true;
+                await Connection.SetImageAsync(Properties.Settings.Default.TwitchNoToken).ConfigureAwait(false);
+                return;
+            }
+        }
 
         protected virtual Task SaveSettings()
         {
@@ -82,6 +93,10 @@ namespace ChatPager.Actions
         private async void Instance_TokenStatusChanged(object sender, EventArgs e)
         {
             settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
+            if (settings.TokenExists)
+            {
+                await Connection.SetImageAsync((String)null);
+            }
             await SaveSettings();
         }
 

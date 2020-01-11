@@ -39,6 +39,12 @@ namespace ChatPager.Twitch
         [JsonProperty(PropertyName = "alwaysAlert")]
         public bool AlwaysAlert { get; set; }
 
+        [JsonProperty(PropertyName = "previousViewersCount")]
+        public int PreviousViewersCount { get; set; }
+
+        [JsonProperty(PropertyName = "viewersBrush")]
+        public string ViewersBrush { get; set; }
+
         [JsonProperty(PropertyName = "token")]
         public TwitchToken Token { get; set; }
     }

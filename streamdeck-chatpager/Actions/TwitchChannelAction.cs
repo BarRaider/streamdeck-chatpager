@@ -19,6 +19,7 @@ namespace ChatPager.Actions
     //          BarRaider's Hall Of Fame
     // Subscriber: nubby_ninja
     // 200 Bits: Nachtmeister666
+    // Subscriber: icessassin
     //---------------------------------------------------
 
     [PluginActionId("com.barraider.twitchtools.channel")]
@@ -43,7 +44,7 @@ namespace ChatPager.Actions
             [JsonProperty(PropertyName = "hideChannelName")]
             public bool HideChannelName { get; set; }
 
-            
+
         }
 
         protected PluginSettings Settings
@@ -97,7 +98,7 @@ namespace ChatPager.Actions
 
         public override async void KeyPressed(KeyPayload payload)
         {
-            var respoonse = await TwitchChannelInfoManager.Instance.GetActiveStreamers();
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPressed");
             if (!String.IsNullOrEmpty(Settings.ChannelName))
             {
                 System.Diagnostics.Process.Start(String.Format("https://www.twitch.tv/{0}", Settings.ChannelName));
@@ -113,7 +114,15 @@ namespace ChatPager.Actions
 
         public async override void OnTick()
         {
-            if (!String.IsNullOrEmpty(Settings.ChannelName))
+            baseHandledOnTick = false;
+            base.OnTick();
+
+            if (baseHandledOnTick)
+            {
+                return;
+            }
+
+            if (!String.IsNullOrEmpty(Settings.ChannelName) && TwitchTokenManager.Instance.TokenExists)
             {
                 await RefreshChannelData();
                 await DrawKey();
@@ -126,7 +135,7 @@ namespace ChatPager.Actions
         {
             string channelName = Settings.ChannelName;
             Tools.AutoPopulateSettings(Settings, payload.Settings);
-            
+
             if (channelName != Settings.ChannelName)
             {
                 lastImageUpdate = DateTime.MinValue;
@@ -182,39 +191,48 @@ namespace ChatPager.Actions
             int height = bmp.Height;
             int width = bmp.Width;
 
-            var fontChannel = new Font("Arial", 40, FontStyle.Bold);
-            var fontIsStreaming = new Font("Webdings", 18, FontStyle.Regular);
-            GraphicsPath gpath = new GraphicsPath();
-            int startWidth = 0;
+            using (Font fontChannel = new Font("Arial", 40, FontStyle.Bold))
+            {
+                using (Font fontIsStreaming = new Font("Webdings", 18, FontStyle.Regular))
+                {
+                    using (GraphicsPath gpath = new GraphicsPath())
+                    {
+                        int startWidth = 0;
+                        if (thumbnailImage != null)
+                        {
+                            using (Image img = (Image)thumbnailImage.Clone())
+                            {
+                                // Draw background
+                                graphics.DrawImage(img, 0, 0, width, height);
+                            }
+                        }
 
-            using (Image img = (Image)thumbnailImage.Clone())
-            {
-                // Draw background
-                graphics.DrawImage(img, 0, 0, width, height);
-            }
+                        // Draw Red Circle
+                        if (isLive)
+                        {
+                            graphics.DrawString("n", fontIsStreaming, Brushes.Red, new Point(3, 110));
+                            startWidth = 30;
+                        }
 
-            // Draw Red Circle
-            if (isLive)
-            {
-                graphics.DrawString("n", fontIsStreaming, Brushes.Red, new Point(3, 110));
-                startWidth = 30;
-            }
-            
-            // Draw Channel name
-            if (!Settings.HideChannelName)
-            {
-  
-                gpath.AddString(Settings.ChannelName,
-                                    fontChannel.FontFamily,
-                                    (int)FontStyle.Bold,
-                                    graphics.DpiY * fontChannel.SizeInPoints / width,
-                                    new Point(startWidth, 108),
-                                    new StringFormat());
-                graphics.DrawPath(Pens.Black, gpath);
-                graphics.FillPath(Brushes.White, gpath);
+                        // Draw Channel name
+                        if (!Settings.HideChannelName)
+                        {
+
+                            gpath.AddString(Settings.ChannelName,
+                                                fontChannel.FontFamily,
+                                                (int)FontStyle.Bold,
+                                                graphics.DpiY * fontChannel.SizeInPoints / width,
+                                                new Point(startWidth, 108),
+                                                new StringFormat());
+                            graphics.DrawPath(Pens.Black, gpath);
+                            graphics.FillPath(Brushes.White, gpath);
+                        }
+                    }
+                }
             }
 
             await Connection.SetImageAsync(bmp);
+            graphics.Dispose();
         }
 
         private async Task RefreshChannelData()

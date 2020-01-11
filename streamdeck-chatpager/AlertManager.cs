@@ -65,6 +65,7 @@ namespace ChatPager
 
         public event EventHandler<FlashStatusEventArgs> FlashStatusChanged;
         public event EventHandler<ActiveStreamersEventArgs> ActiveStreamersChanged;
+        public event EventHandler<ChatMessageListEventArgs> ChatMessageListChanged;
         public event EventHandler TwitchPagerShown;
 
         public bool IsReady
@@ -89,6 +90,7 @@ namespace ChatPager
         private TwitchGlobalSettings global;
         private bool autoClearFile = false;
         private int numberOfKeys;
+        private ActiveStreamersEventArgs streamersEventArgs = null;
 
 
         #endregion
@@ -138,8 +140,46 @@ namespace ChatPager
                 Thread.Sleep(100);
                 retries++;
             }
-            ActiveStreamersChanged?.Invoke(this, new ActiveStreamersEventArgs(streamers));
+            streamersEventArgs = new ActiveStreamersEventArgs(streamers, numberOfKeys, 0);
+
+            ActiveStreamersChanged?.Invoke(this, streamersEventArgs);
         }
+
+        public void MoveToNextStreamersPage()
+        {
+            if (streamersEventArgs == null)
+            {
+                return;
+            }
+            StopFlash();
+            streamersEventArgs.CurrentPage++;
+            ActiveStreamersChanged?.Invoke(this, streamersEventArgs);
+        }
+
+        public async void ShowChatMessages(ChatMessageKey[] chatMessageKeys)
+        {
+            StopFlash();
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"ShowChatMessages called");
+
+            if (connection.DeviceInfo().Type == StreamDeckDeviceType.StreamDeckClassic)
+            {
+                await connection.SwitchProfileAsync("FullScreenAlert");
+            }
+            else
+            {
+                await connection.SwitchProfileAsync("FullScreenAlertXL");
+            }
+
+            // Wait until the GameUI Action keys have subscribed to get events
+            int retries = 0;
+            while (!IsReady && retries < 100)
+            {
+                Thread.Sleep(100);
+                retries++;
+            }
+            ChatMessageListChanged?.Invoke(this, new ChatMessageListEventArgs(chatMessageKeys));
+        }
+
 
         #endregion
 

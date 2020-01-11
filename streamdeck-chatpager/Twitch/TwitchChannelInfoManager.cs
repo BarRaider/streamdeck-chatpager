@@ -24,9 +24,9 @@ namespace ChatPager.Twitch
 
         private static TwitchChannelInfoManager instance = null;
         private static readonly object objLock = new object();
-        private TwitchComm comm;
-        private Dictionary<string, TwitchChannelUpdateInfo> dicChannelInfo = new Dictionary<string, TwitchChannelUpdateInfo>();
-        private SemaphoreSlim channelInfoLock = new SemaphoreSlim(1, 1);
+        private readonly TwitchComm comm;
+        private readonly Dictionary<string, TwitchChannelUpdateInfo> dicChannelInfo = new Dictionary<string, TwitchChannelUpdateInfo>();
+        private readonly SemaphoreSlim channelInfoLock = new SemaphoreSlim(1, 1);
         private DateTime lastActiveStreamers;
         private TwitchActiveStreamer[] activeStreamers;
 

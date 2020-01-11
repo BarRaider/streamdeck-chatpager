@@ -188,7 +188,7 @@ namespace ChatPager.Twitch
                 }
 
                 GlobalSettingsManager.Instance.SetGlobalSettings(JObject.FromObject(global));
-                Logger.Instance.LogMessage(TracingLevel.INFO, $"New token saved. Last refresh date was: {token.TokenLastRefresh}");
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"New token saved. Last refresh date was: {token?.TokenLastRefresh}");
             }
             catch (Exception ex)
             {

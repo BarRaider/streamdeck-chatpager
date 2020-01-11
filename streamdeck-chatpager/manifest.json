@@ -2,21 +2,6 @@
   "Actions": [
     {
       "Icon": "Images/channelIcon",
-      "Name": "Live Streamers",
-      "States": [
-        {
-          "Image": "Images/channelAction",
-          "TitleAlignment": "bottom",
-          "FontSize": "10"
-        }
-      ],
-      "SupportedInMultiActions": false,
-      "Tooltip": "Shows you which of the streamers you follow are currently live.",
-      "UUID": "com.barraider.twitchtools.livestreamers",
-      "PropertyInspectorPath": "PropertyInspector/ChatPager/Channel.html"
-    },
-    {
-      "Icon": "Images/channelIcon",
       "Name": "Channel Monitor",
       "States": [
         {
@@ -31,6 +16,66 @@
       "PropertyInspectorPath": "PropertyInspector/ChatPager/Channel.html"
     },
     {
+      "Icon": "Images/clipIcon",
+      "Name": "Clip to Chat",
+      "States": [
+        {
+          "Image": "Images/clipAction",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": true,
+      "Tooltip": "Creates a twitch clip and posts it in chat.",
+      "UUID": "com.barraider.twitchtools.cliptochat",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/LiveStreamers.html"
+    },
+    {
+      "Icon": "Images/channelIcon",
+      "Name": "Live Streamers",
+      "States": [
+        {
+          "Image": "Images/channelAction",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Shows you which of the streamers you follow are currently live.",
+      "UUID": "com.barraider.twitchtools.livestreamers",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/LiveStreamers.html"
+    },
+    {
+      "Icon": "Images/channelIcon",
+      "Name": "Shoutout",
+      "States": [
+        {
+          "Image": "Images/channelAction",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Shows you a list of people who just chatted and let's you send them a \"shoutout\".",
+      "UUID": "com.barraider.twitchtools.shoutout",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/Shoutout.html"
+    },
+    {
+      "Icon": "Images/channelIcon",
+      "Name": "Change Stream Title/Game",
+      "States": [
+        {
+          "Image": "Images/channelAction",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": true,
+      "Tooltip": "Allows you to change the Stream's status and game from text files",
+      "UUID": "com.barraider.twitchtools.streamtitle",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/StreamTitle.html"
+    },
+    {
       "Icon": "Images/icon",
       "Name": "Twitch Pager",
       "States": [
@@ -42,7 +87,7 @@
       ],
       "SupportedInMultiActions": false,
       "Tooltip": "Listens to your twitch chat and gives you a visual alert if someone uses the !page command.",
-      "UUID": "com.barraider.twitchpager",
+      "UUID": "com.barraider.twitchtools.twitchpager",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/Twitch.html"
     },
     {
@@ -66,8 +111,8 @@
   "Name": "Twitch Tools",
   "Icon": "Images/pluginIcon",
   "URL": "https://BarRaider.com/",
-  "Version": "1.8.0",
-  "CodePath": "com.barraider.chatpager",
+  "Version": "2.0",
+  "CodePath": "com.barraider.twitchtools",
   "Category": "Twitch Tools [BarRaider]",
   "CategoryIcon": "Images/categoryIcon",
   "OS": [
@@ -92,6 +137,6 @@
   ],
   "SDKVersion": 2,
   "Software": {
-    "MinimumVersion": "4.3.3"
+    "MinimumVersion": "4.5"
   }
 }

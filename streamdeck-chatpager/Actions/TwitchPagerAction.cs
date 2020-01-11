@@ -9,10 +9,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
+using ChatPager.Wrappers;
 
 namespace ChatPager.Actions
 {
-    [PluginActionId("com.barraider.twitchpager")]
+    [PluginActionId("com.barraider.twitchtools.twitchpager")]
     public class TwitchPagerAction : ActionBase
     {
         protected class PluginSettings : PluginSettingsBase
@@ -108,6 +109,7 @@ namespace ChatPager.Actions
         #region Private members
 
         private const string BACKGROUND_COLOR = "#8560db";
+        private const string GREEN_COLOR = "#00FF00";
         private const string DEFAULT_PAGE_COMMAND = "!page";
         protected const int DEFAULT_CLEAR_FILE_SECONDS = 5;
 
@@ -121,10 +123,10 @@ namespace ChatPager.Actions
         private bool fullScreenAlertTriggered = false;
         private StreamDeckDeviceType deviceType;
         private TwitchGlobalSettings global = null;
+        private int previousViewersCount = 0;
+        private Brush viewersBrush = Brushes.White;
 
-        #endregion
-
-        
+        #endregion     
 
         public TwitchPagerAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
         {
@@ -171,8 +173,7 @@ namespace ChatPager.Actions
 
         public override void KeyPressed(KeyPayload payload)
         {
-            //Chat_PageRaised(this, new PageRaisedEventArgs("This is a test"));
-            //RaiseFullScreenAlert();
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPressed");
             if (isPaging)
             {
                 isPaging = false;
@@ -195,6 +196,14 @@ namespace ChatPager.Actions
 
         public override void OnTick()
         {
+            baseHandledOnTick = false;
+            base.OnTick();
+
+            if (baseHandledOnTick)
+            {
+                return;
+            }
+
             if (isPaging && !tmrPage.Enabled && !Settings.FullScreenAlert)
             {
                 alertStage = 0;
@@ -225,6 +234,18 @@ namespace ChatPager.Actions
                 Settings.PageFileName = global.PageFileName;
                 Settings.FilePrefix = global.FilePrefix;
                 Settings.ClearFileSeconds = global.ClearFileSeconds;
+                previousViewersCount = global.PreviousViewersCount;
+                if (!String.IsNullOrEmpty(global.ViewersBrush))
+                {
+                    try
+                    {
+                        viewersBrush = new SolidBrush(ColorTranslator.FromHtml(global.ViewersBrush));
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Instance.LogMessage(TracingLevel.ERROR, $"Invalid global ViewersBrush {global.ViewersBrush} - {ex}");
+                    }
+                }
                 SetClearTimerInterval();
                 SaveSettings();
             }
@@ -268,6 +289,8 @@ namespace ChatPager.Actions
             global.PageFileName = Settings.PageFileName;
             global.FilePrefix = Settings.FilePrefix;
             global.ClearFileSeconds = Settings.ClearFileSeconds;
+            global.ViewersBrush = viewersBrush.ToHex();
+            global.PreviousViewersCount = previousViewersCount;
             Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
         }
 
@@ -306,26 +329,20 @@ namespace ChatPager.Actions
                 Connection.SetImageAsync(img);
             }
             alertStage = (alertStage + 1) % Helpers.TOTAL_ALERT_STAGES;
+            graphics.Dispose();
         }
 
         private async void DrawStreamData()
         {
             try
             {
-                if (!Settings.TokenExists)
-                {
-                    await Connection.SetImageAsync(Properties.Settings.Default.TwitchNoToken).ConfigureAwait(false);
-                    return;
-                }
-
                 if (!MyTwitchChannelInfo.Instance.IsLive || streamInfo == null)
                 {
                     await Connection.SetImageAsync(Properties.Settings.Default.TwitchNotLive).ConfigureAwait(false);
                     return;
                 }
 
-                Graphics graphics;
-                Bitmap bmp = Tools.GenerateKeyImage(deviceType, out graphics);
+                Bitmap bmp = Tools.GenerateKeyImage(deviceType, out Graphics graphics);
                 int height = Tools.GetKeyDefaultHeight(deviceType);
                 int width = Tools.GetKeyDefaultWidth(deviceType);
 
@@ -338,7 +355,7 @@ namespace ChatPager.Actions
                     fontSecondSize = 14;
                 }
 
-                var fontTitle = new Font("Verdana", fontTitleSize, FontStyle.Bold);
+                Font fontTitle = new Font("Verdana", fontTitleSize, FontStyle.Bold);
                 var fontSecond = new Font("Verdana", fontSecondSize, FontStyle.Bold);
 
                 // Background
@@ -350,13 +367,29 @@ namespace ChatPager.Actions
                 string title = $"⚫ {streamInfo.Game}";
                 graphics.DrawString(title, fontTitle, fgBrush, new PointF(3, 10));
 
+                // Figure out which color to use for the viewers
+                if (streamInfo.Viewers != previousViewersCount)
+                {
+                    if (streamInfo.Viewers < previousViewersCount)
+                    {
+                        viewersBrush = Brushes.Red;
+                    }
+                    else
+                    {
+                        viewersBrush = new SolidBrush(ColorTranslator.FromHtml(GREEN_COLOR));
+                    }
+                    previousViewersCount = streamInfo.Viewers;
+                    SetGlobalSettings();
+                }
+
                 title = $"⛑ {streamInfo.Viewers}";
-                graphics.DrawString(title, fontSecond, fgBrush, new PointF(3, 28));
+                graphics.DrawString(title, fontSecond, viewersBrush, new PointF(3, 28));
 
                 var span = DateTime.UtcNow - streamInfo.StreamStart;
                 title = span.Hours > 0 ? $"⛣ {span.Hours}:{span.Minutes.ToString("00")}" : $"⛣ {span.Minutes}m";
                 graphics.DrawString(title, fontSecond, fgBrush, new PointF(3, 50));
                 await Connection.SetImageAsync(bmp);
+                graphics.Dispose();
             }
             catch (Exception ex)
             {
@@ -404,12 +437,12 @@ namespace ChatPager.Actions
                 }
             }
 
-            TwitchChat.Instance.Initialize(Settings.PageCooldown, allowedPagers, monitoredStreamers);
+            TwitchChat.Instance.InitializePager(Settings.PageCooldown, allowedPagers, monitoredStreamers);
         }
 
         private void SetClearTimerInterval()
         {
-            if (!int.TryParse(Settings.ClearFileSeconds, out int value))
+            if (!int.TryParse(Settings.ClearFileSeconds, out _))
             {
                 Settings.ClearFileSeconds = DEFAULT_CLEAR_FILE_SECONDS.ToString();
                 SaveSettings();

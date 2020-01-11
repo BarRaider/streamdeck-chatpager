@@ -1,5 +1,6 @@
 ﻿using BarRaider.SdTools;
 using ChatPager.Twitch;
+using ChatPager.Wrappers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -15,8 +16,13 @@ using System.Threading.Tasks;
 namespace ChatPager.Actions
 {
 
-    [PluginActionId("com.barraider.twitchtools.livestreamers")]
-    public class TwitchLiveStreamersAction : ActionBase
+    //---------------------------------------------------
+    //          BarRaider's Hall Of Fame
+    // 100 Bits: Vedeksu
+    //---------------------------------------------------
+
+    [PluginActionId("com.barraider.twitchtools.shoutout")]
+    public class TwitchShoutoutAction : ActionBase
     {
         protected class PluginSettings : PluginSettingsBase
         {
@@ -24,10 +30,14 @@ namespace ChatPager.Actions
             {
                 PluginSettings instance = new PluginSettings
                 {
-                    TokenExists = false
+                    TokenExists = false,
+                    ChatMessage = DEFAULT_CHAT_MESSAGE
                 };
                 return instance;
-            }           
+            }
+
+            [JsonProperty(PropertyName = "chatMessage")]
+            public string ChatMessage { get; set; }
         }
 
         protected PluginSettings Settings
@@ -49,11 +59,13 @@ namespace ChatPager.Actions
 
         #region Private Members
 
+        private const string DEFAULT_CHAT_MESSAGE = "!so {USERNAME}";
+
         #endregion
 
         #region Public Methods
 
-        public TwitchLiveStreamersAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
+        public TwitchShoutoutAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
         {
             if (payload.Settings == null || payload.Settings.Count == 0)
             {
@@ -65,6 +77,7 @@ namespace ChatPager.Actions
             }
 
             Settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
+            TwitchChat.Instance.Initialize();
             SaveSettings();
         }
 
@@ -73,17 +86,42 @@ namespace ChatPager.Actions
         public override async void KeyPressed(KeyPayload payload)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPressed");
-            var streamers = await TwitchChannelInfoManager.Instance.GetActiveStreamers();
-            if (streamers != null)
+            if (!TwitchTokenManager.Instance.TokenExists)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} called without a valid token");
+                await Connection.ShowAlert();
+                return;
+            }
+
+            var chatters = TwitchChat.Instance.GetLastChatters();
+            if (chatters == null)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, "GetLastChatters returned null");
+                await Connection.ShowAlert();
+                return;
+            }
+
+            // We have a list of usernames, get some more details on them so we can display their image on the StreamDeck
+            List<ChatMessageKey> chatMessages = new List<ChatMessageKey>();
+            foreach (string username in chatters)
+            {
+                var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(username);
+
+                chatMessages.Add(new ChatMessageKey(userInfo.Name, userInfo.ProfileImageUrl, Settings.ChatMessage.Replace("{USERNAME}", $"{userInfo.Name}")));
+            }
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {chatMessages?.Count} chat messages");
+
+            // Show the active chatters on the StreamDeck
+            if (chatMessages != null && chatMessages.Count > 0)
             {
                 AlertManager.Instance.Initialize(Connection);
-                AlertManager.Instance.ShowActiveStreamers(streamers.Reverse().ToArray());
+                AlertManager.Instance.ShowChatMessages(chatMessages.ToArray());
             }
-            else
-            {
-                Logger.Instance.LogMessage(TracingLevel.WARN, "Key Pressed but GetActiveStreamers returned null");
-                await Connection.ShowAlert();
-            }
+
+
+
+
+            
         }
 
         public override void KeyReleased(KeyPayload payload) { }
@@ -98,11 +136,6 @@ namespace ChatPager.Actions
                 return;
             }
 
-            if (TwitchTokenManager.Instance.TokenExists)
-            {
-                var streamers = await TwitchChannelInfoManager.Instance.GetActiveStreamers();
-                await Connection.SetTitleAsync($"🔴 {streamers?.Length} live");
-            }
         }
 
         public override void ReceivedGlobalSettings(ReceivedGlobalSettingsPayload payload) { }

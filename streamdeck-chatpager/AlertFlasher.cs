@@ -16,6 +16,14 @@ namespace ChatPager
     [PluginActionId("com.barraider.alertflasher")]
     class AlertFlasher : PluginBase
     {
+        private enum FlashMode
+        {
+            Pager,
+            ActiveStreamers,
+            ChatMessage
+        }
+
+
         #region Private Members
 
         private const int PREVIEW_IMAGE_HEIGHT_PIXELS = 144;
@@ -28,10 +36,14 @@ namespace ChatPager
         private int locationRow = 0;
         private int locationColumn = 0;
         private int sequentialKey;
+        private int pagedSequentialKey = 0;
         private bool twoLettersPerKey;
-        private bool flashMode = false;
         private string channelName;
+        private string chatMessage;
         private readonly StreamDeckDeviceType deviceType;
+        private FlashMode flashMode;
+        private int numberOfStreamers = 0;
+        private int numberOfKeys = 0;
 
 
         #endregion
@@ -40,6 +52,7 @@ namespace ChatPager
         {
             AlertManager.Instance.FlashStatusChanged += Instance_FlashStatusChanged;
             AlertManager.Instance.ActiveStreamersChanged += Instance_ActiveStreamersChanged;
+            AlertManager.Instance.ChatMessageListChanged += Instance_ChatMessageListChanged;
             var deviceInfo = payload.DeviceInfo.Devices.Where(d => d.Id == connection.DeviceId).FirstOrDefault();
 
             stringMessageIndex = -1;
@@ -59,30 +72,43 @@ namespace ChatPager
         {
             AlertManager.Instance.FlashStatusChanged -= Instance_FlashStatusChanged;
             AlertManager.Instance.ActiveStreamersChanged -= Instance_ActiveStreamersChanged;
+            AlertManager.Instance.ChatMessageListChanged -= Instance_ChatMessageListChanged;
         }
 
         public override void KeyPressed(KeyPayload payload)
         {
-            if (flashMode || sequentialKey == 0)
+            // Exit the full screen if Exit key or Pager is pressed
+            if (flashMode == FlashMode.Pager || sequentialKey == 0)
             {
                 AlertManager.Instance.StopFlash();
                 Connection.SwitchProfileAsync(null);
             }
-            else if (!String.IsNullOrEmpty(channelName))
+            else if (flashMode == FlashMode.ChatMessage && !String.IsNullOrEmpty(chatMessage))
             {
-                System.Diagnostics.Process.Start(String.Format("https://www.twitch.tv/{0}", channelName));
+                TwitchChat.Instance.SendMessage(chatMessage);
             }
-               
+            else if (flashMode == FlashMode.ActiveStreamers)
+            {
+                if (sequentialKey == numberOfKeys - 1 && numberOfStreamers + 1 > pagedSequentialKey) // Next key is pressed
+                {
+                    // Move to next page
+                    AlertManager.Instance.MoveToNextStreamersPage();
+                }
+                else if  (!String.IsNullOrEmpty(channelName)) // Normal key
+                {
+                    System.Diagnostics.Process.Start(String.Format("https://www.twitch.tv/{0}", channelName));
+                }
+            }
         }
 
         public override void KeyReleased(KeyPayload payload)
         {
-            
+
         }
 
         public override void OnTick()
         {
-            
+
         }
 
         public override void ReceivedGlobalSettings(ReceivedGlobalSettingsPayload payload)
@@ -97,7 +123,7 @@ namespace ChatPager
 
         public override void ReceivedSettings(ReceivedSettingsPayload payload)
         {
-            
+
         }
 
         private void CalculateStringIndex()
@@ -108,28 +134,53 @@ namespace ChatPager
 
         private void Instance_FlashStatusChanged(object sender, FlashStatusEventArgs e)
         {
-            flashMode = true;
+            flashMode = FlashMode.Pager;
             FlashImage(e.FlashMessage, e.FlashColor);
         }
 
         private async void Instance_ActiveStreamersChanged(object sender, ActiveStreamersEventArgs e)
         {
-            flashMode = false;
+            flashMode = FlashMode.ActiveStreamers;
+            pagedSequentialKey = e.CurrentPage * (e.NumberOfKeys - 2) + sequentialKey;
+            channelName = String.Empty;
             if (sequentialKey == 0)
             {
                 await Connection.SetTitleAsync("Exit");
             }
-            else if (e.ActiveStreamers != null && e.ActiveStreamers.Length + 1 > sequentialKey) 
-                // +1 because starting on second key
+            else if (e.ActiveStreamers != null && sequentialKey == e.NumberOfKeys - 1 && e.ActiveStreamers.Length > pagedSequentialKey) // There is more than one page
             {
-                var streamerInfo = e.ActiveStreamers[sequentialKey - 1];
+                await Connection.SetTitleAsync(">>");
+                numberOfStreamers = e.ActiveStreamers.Length;
+                numberOfKeys = e.NumberOfKeys;
+            }
+            else if (e.ActiveStreamers != null && e.ActiveStreamers.Length >= pagedSequentialKey) // >= because we're doing -1 as we're starting on the second key
+            {
+                var streamerInfo = e.ActiveStreamers[pagedSequentialKey - 1];
                 using (Image image = FetchImage(streamerInfo.PreviewImages.Template.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString())))
                 {
                     await DrawStreamerImage(streamerInfo, image);
                 }
                 channelName = streamerInfo?.Channel?.Name;
             }
-            
+        }
+
+        private async void Instance_ChatMessageListChanged(object sender, ChatMessageListEventArgs e)
+        {
+            flashMode = FlashMode.ChatMessage;
+            if (sequentialKey == 0)
+            {
+                await Connection.SetTitleAsync("Exit");
+            }
+            else if (e.ChatMessageKeys != null && e.ChatMessageKeys.Length + 1 > sequentialKey)
+            // +1 because starting on second key
+            {
+                var userInfo = e.ChatMessageKeys[sequentialKey - 1];
+                using (Image image = FetchImage(userInfo.KeyImageURL.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString())))
+                {
+                    await DrawChatMessageImage(userInfo, image);
+                }
+                chatMessage = userInfo.ChatMessage;
+            }
         }
 
         private Image FetchImage(string imageUrl)
@@ -157,19 +208,54 @@ namespace ChatPager
             return null;
         }
 
+        private async Task DrawChatMessageImage(ChatMessageKey keyInfo, Image background)
+        {
+            Bitmap bmp = Tools.GenerateGenericKeyImage(out Graphics graphics);
+            int height = bmp.Height;
+            int width = bmp.Width;
+            int textHeight = bmp.Height - 36;
+
+
+            Font fontChannel = new Font("Arial", 40, FontStyle.Bold);
+            Font fontViewers = new Font("Verdana", 22, FontStyle.Bold);
+            Font fontIsStreaming = new Font("Webdings", 18, FontStyle.Regular);
+            Font fontViewerCount = new Font("Webdings", 24, FontStyle.Regular);
+            GraphicsPath gpath = new GraphicsPath();
+            if (background != null)
+            {
+                // Draw background
+                graphics.DrawImage(background, 0, 0, width, textHeight);
+            }
+
+            // Set Streamer Name
+            gpath.AddString(keyInfo.KeyTitle,
+                                fontChannel.FontFamily,
+                                (int)FontStyle.Bold,
+                                graphics.DpiY * fontChannel.SizeInPoints / width,
+                                new Point(0, textHeight),
+                                new StringFormat());
+            graphics.DrawPath(Pens.Black, gpath);
+            graphics.FillPath(Brushes.White, gpath);
+
+            await Connection.SetImageAsync(bmp);
+            fontChannel.Dispose();
+            fontViewers.Dispose();
+            fontIsStreaming.Dispose();
+            fontViewerCount.Dispose();
+            graphics.Dispose();
+        }
+
         private async Task DrawStreamerImage(TwitchActiveStreamer streamerInfo, Image background)
         {
             Bitmap bmp = Tools.GenerateGenericKeyImage(out Graphics graphics);
             int height = bmp.Height;
             int width = bmp.Width;
 
-            var fontChannel = new Font("Arial", 40, FontStyle.Bold);
-            var fontViewers = new Font("Verdana", 22, FontStyle.Bold);
-            var fontIsStreaming = new Font("Webdings", 18, FontStyle.Regular);
-            var fontViewerCount = new Font("Webdings", 24, FontStyle.Regular);
+            Font fontChannel = new Font("Arial", 40, FontStyle.Bold);
+            Font fontViewers = new Font("Verdana", 22, FontStyle.Bold);
+            Font fontIsStreaming = new Font("Webdings", 18, FontStyle.Regular);
+            Font fontViewerCount = new Font("Webdings", 24, FontStyle.Regular);
             GraphicsPath gpath = new GraphicsPath();
-            int startWidth = 0;
-
             if (background != null)
             {
                 // Draw background
@@ -189,7 +275,7 @@ namespace ChatPager
 
             // Draw Red Circle
             graphics.DrawString("n", fontIsStreaming, Brushes.Red, new Point(3, 110));
-            startWidth = 30;
+            int startWidth = 30;
 
             // Set Streamer Name
             gpath.AddString(streamerInfo.Channel.DisplayName,
@@ -201,9 +287,12 @@ namespace ChatPager
             graphics.DrawPath(Pens.Black, gpath);
             graphics.FillPath(Brushes.White, gpath);
 
-
-
             await Connection.SetImageAsync(bmp);
+            fontChannel.Dispose();
+            fontViewers.Dispose();
+            fontIsStreaming.Dispose();
+            fontViewerCount.Dispose();
+            graphics.Dispose();
         }
 
         private void FlashImage(string pageMessage, Color flashColor)
@@ -214,69 +303,73 @@ namespace ChatPager
                 Connection.SetTitleAsync(null);
                 return;
             }
-
-            Bitmap img = Tools.GenerateKeyImage(deviceType, out Graphics graphics);
-            int height = Tools.GetKeyDefaultHeight(deviceType);
-            int width = Tools.GetKeyDefaultWidth(deviceType);
-
-            // Magic numbers after a bunch of trial and error :-/
-
-            // For SD Classic
-            int twoLetterFontSize = 32;
-            int oneLetterFontSize = 50;
-            int twoLetterTop = 5;
-            int oneLetterTop = 0;
-            int twoLetterBuffer = 32;
-            if (deviceType == StreamDeckDeviceType.StreamDeckXL)
+            using (Bitmap img = Tools.GenerateKeyImage(deviceType, out Graphics graphics))
             {
-                twoLetterFontSize = 40;
-                twoLetterTop = 15;
-                oneLetterTop = 15;
-                twoLetterBuffer = 45;
-            }
-
-            // Background
-            var bgBrush = new SolidBrush(flashColor);
-            graphics.FillRectangle(bgBrush, 0, 0, width, height);
-
-            if (String.IsNullOrEmpty(pageMessage) || stringMessageIndex < 0 || stringMessageIndex >= pageMessage?.Length)
-            {
-                Connection.SetImageAsync(img);
-            }
-            else
-            {
-                var fgBrush = Brushes.White;
-                string letter = pageMessage[stringMessageIndex].ToString();
-
-                if (twoLettersPerKey) // 2 Letters per key
+                using (graphics)
                 {
-                    var font = new Font("Arial", twoLetterFontSize, FontStyle.Bold);
-                    if (pageMessage.Length > stringMessageIndex + 1)
-                    {
-                        letter = pageMessage.Substring(stringMessageIndex, 2);
-                    }
-                    
-                    // Draw first letter
-                    graphics.DrawString(letter[0].ToString(), font, fgBrush, new PointF(1, twoLetterTop));
+                    int height = Tools.GetKeyDefaultHeight(deviceType);
+                    int width = Tools.GetKeyDefaultWidth(deviceType);
 
-                    if (letter.Length > 1)
+                    // Magic numbers after a bunch of trial and error :-/
+
+                    // For SD Classic
+                    int twoLetterFontSize = 32;
+                    int oneLetterFontSize = 50;
+                    int twoLetterTop = 5;
+                    int oneLetterTop = 0;
+                    int twoLetterBuffer = 32;
+                    if (deviceType == StreamDeckDeviceType.StreamDeckXL)
                     {
-                        graphics.DrawString(letter[1].ToString(), font, fgBrush, new PointF(twoLetterBuffer, twoLetterTop));
+                        twoLetterFontSize = 40;
+                        twoLetterTop = 15;
+                        oneLetterTop = 15;
+                        twoLetterBuffer = 45;
+                    }
+
+                    // Background
+                    var bgBrush = new SolidBrush(flashColor);
+                    graphics.FillRectangle(bgBrush, 0, 0, width, height);
+
+                    if (String.IsNullOrEmpty(pageMessage) || stringMessageIndex < 0 || stringMessageIndex >= pageMessage?.Length)
+                    {
+                        Connection.SetImageAsync(img);
+                    }
+                    else
+                    {
+                        var fgBrush = Brushes.White;
+                        string letter = pageMessage[stringMessageIndex].ToString();
+
+                        if (twoLettersPerKey) // 2 Letters per key
+                        {
+                            var font = new Font("Arial", twoLetterFontSize, FontStyle.Bold);
+                            if (pageMessage.Length > stringMessageIndex + 1)
+                            {
+                                letter = pageMessage.Substring(stringMessageIndex, 2);
+                            }
+
+                            // Draw first letter
+                            graphics.DrawString(letter[0].ToString(), font, fgBrush, new PointF(1, twoLetterTop));
+
+                            if (letter.Length > 1)
+                            {
+                                graphics.DrawString(letter[1].ToString(), font, fgBrush, new PointF(twoLetterBuffer, twoLetterTop));
+                            }
+                        }
+                        else // 1 Letter per key
+                        {
+                            var font = new Font("Verdana", oneLetterFontSize, FontStyle.Bold);
+                            SizeF stringSize = graphics.MeasureString(letter, font);
+                            float stringPosX = 0;
+                            float stringPosY = oneLetterTop;
+                            if (stringSize.Width < img.Width)
+                            {
+                                stringPosX = Math.Abs((img.Width - stringSize.Width)) / 2;
+                            }
+                            graphics.DrawString(letter, font, fgBrush, new PointF(stringPosX, stringPosY));
+                        }
+                        Connection.SetImageAsync(img);
                     }
                 }
-                else // 1 Letter per key
-                {
-                    var font = new Font("Verdana", oneLetterFontSize, FontStyle.Bold);
-                    SizeF stringSize = graphics.MeasureString(letter, font);
-                    float stringPosX = 0;
-                    float stringPosY = oneLetterTop;
-                    if (stringSize.Width < img.Width)
-                    {
-                        stringPosX = Math.Abs((img.Width - stringSize.Width)) / 2;
-                    }
-                    graphics.DrawString(letter, font, fgBrush, new PointF(stringPosX, stringPosY));
-                }
-                Connection.SetImageAsync(img);
             }
         }
     }

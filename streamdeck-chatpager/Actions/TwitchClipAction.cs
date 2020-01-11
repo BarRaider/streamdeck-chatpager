@@ -14,9 +14,13 @@ using System.Threading.Tasks;
 
 namespace ChatPager.Actions
 {
+    //---------------------------------------------------
+    //          BarRaider's Hall Of Fame
+    // 500 Bits: Nachtmeister666
+    //---------------------------------------------------
 
-    [PluginActionId("com.barraider.twitchtools.livestreamers")]
-    public class TwitchLiveStreamersAction : ActionBase
+    [PluginActionId("com.barraider.twitchtools.cliptochat")]
+    public class TwitchClipAction : ActionBase
     {
         protected class PluginSettings : PluginSettingsBase
         {
@@ -24,10 +28,10 @@ namespace ChatPager.Actions
             {
                 PluginSettings instance = new PluginSettings
                 {
-                    TokenExists = false
+                    TokenExists = false,
                 };
                 return instance;
-            }           
+            }            
         }
 
         protected PluginSettings Settings
@@ -53,7 +57,7 @@ namespace ChatPager.Actions
 
         #region Public Methods
 
-        public TwitchLiveStreamersAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
+        public TwitchClipAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
         {
             if (payload.Settings == null || payload.Settings.Count == 0)
             {
@@ -73,22 +77,20 @@ namespace ChatPager.Actions
         public override async void KeyPressed(KeyPayload payload)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPressed");
-            var streamers = await TwitchChannelInfoManager.Instance.GetActiveStreamers();
-            if (streamers != null)
+            if (!TwitchTokenManager.Instance.TokenExists)
             {
-                AlertManager.Instance.Initialize(Connection);
-                AlertManager.Instance.ShowActiveStreamers(streamers.Reverse().ToArray());
-            }
-            else
-            {
-                Logger.Instance.LogMessage(TracingLevel.WARN, "Key Pressed but GetActiveStreamers returned null");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, "TwitchClipAction called without a valid token");
                 await Connection.ShowAlert();
+                return;
             }
+
+            await CreateClip();
+            await Connection.ShowOk();
         }
 
         public override void KeyReleased(KeyPayload payload) { }
 
-        public async override void OnTick()
+        public override void OnTick()
         {
             baseHandledOnTick = false;
             base.OnTick();
@@ -97,21 +99,39 @@ namespace ChatPager.Actions
             {
                 return;
             }
-
-            if (TwitchTokenManager.Instance.TokenExists)
-            {
-                var streamers = await TwitchChannelInfoManager.Instance.GetActiveStreamers();
-                await Connection.SetTitleAsync($"🔴 {streamers?.Length} live");
-            }
         }
 
         public override void ReceivedGlobalSettings(ReceivedGlobalSettingsPayload payload) { }
 
-        public override void ReceivedSettings(ReceivedSettingsPayload payload) { }
+        public override void ReceivedSettings(ReceivedSettingsPayload payload)
+        {
+            Tools.AutoPopulateSettings(Settings, payload.Settings);
+            SaveSettings();
+        }
 
         #endregion
 
         #region Private Methods
+
+        public async Task CreateClip()
+        {
+            try
+            {
+                using (TwitchComm comm = new TwitchComm())
+                {
+                    var clip = await comm.CreateClip();
+                    if (clip != null)
+                    {
+                        string clipUrl = clip.EditURL.Replace("/edit", "");
+                        TwitchChat.Instance.SendMessage(TwitchTokenManager.Instance.User.UserName, clipUrl);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"Could not create Twitch Clip: {ex}");
+            }
+        }
 
         protected override Task SaveSettings()
         {

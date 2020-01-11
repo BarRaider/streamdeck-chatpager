@@ -29,6 +29,8 @@ namespace ChatPager.Twitch
         private const string TWITCH_URI_CHANNEL_INFO = "/streams";
         private const string TWITCH_URL_USER_INFO = "/users";
         private const string TWITCH_URL_ACTIVE_STREAMERS = "/streams/followed";
+        private const string TWITCH_CREATE_CLIP_URI = "/clips?broadcaster_id=";
+        private const string TWITCH_URI_MODIFY_CHANNEL_STATUS = "/channels/{0}";
 
         private TwitchToken token;
 
@@ -108,7 +110,7 @@ namespace ChatPager.Twitch
 
         public async Task<TwitchActiveStreamer[]> GetActiveStreamers()
         {
-            HttpResponseMessage response = await TwitchQuery(TWITCH_URL_ACTIVE_STREAMERS, SendMethod.GET, null, null);
+            HttpResponseMessage response = await TwitchKrakenQuery(TWITCH_URL_ACTIVE_STREAMERS, SendMethod.GET, null, null);
             if (response.IsSuccessStatusCode)
             {
                 try
@@ -135,7 +137,7 @@ namespace ChatPager.Twitch
         public async Task<TwitchStreamInfo> GetMyStreamInfo()
         {
             string URI = String.Format(TWITCH_URI_MY_STREAM_INFO, TwitchTokenManager.Instance.User.UserId);
-            HttpResponseMessage response = await TwitchQuery(URI, SendMethod.GET, null, null);
+            HttpResponseMessage response = await TwitchKrakenQuery(URI, SendMethod.GET, null, null);
             if (response.IsSuccessStatusCode)
             {
                 try
@@ -157,13 +159,63 @@ namespace ChatPager.Twitch
             return null;
         }
 
+        public async Task<ClipDetails> CreateClip()
+        {
+            if (TwitchTokenManager.Instance.User == null)
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, "Cannot create Twitch clip, User object is null");
+                return null;
+            }
+
+            string uri = TWITCH_CREATE_CLIP_URI + TwitchTokenManager.Instance.User?.UserId;
+            HttpResponseMessage response = await TwitchHelixQuery(uri, SendMethod.POST, null, null);
+            if (response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    string body = await response.Content.ReadAsStringAsync();
+                    JObject json = JObject.Parse(body);
+                    return json["data"][0].ToObject<ClipDetails>();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"CreateClip Exception: {ex}");
+                }
+            }
+            else
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"CreateClip Fetch Failed. StatusCode: {response.StatusCode}");
+            }
+            return null;
+        }
+
+        public async Task<bool> UpdateChanelStatus(string statusMessage, string currentGame)
+        {
+            string uri = String.Format(TWITCH_URI_MODIFY_CHANNEL_STATUS, TwitchTokenManager.Instance.User.UserId);
+            if (string.IsNullOrEmpty(statusMessage) && string.IsNullOrEmpty(currentGame))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateChanelStatus called with empty status and game");
+                return false;
+            }
+
+            JObject body = new JObject();
+            JObject channelBody = new JObject();
+            channelBody.Add("status", statusMessage);
+            channelBody.Add("game", currentGame);
+
+            body.Add("channel", channelBody);
+            HttpResponseMessage response = await TwitchKrakenQuery(uri, SendMethod.PUT, null, body);
+            return response.IsSuccessStatusCode;
+        }
+
+
         #endregion
 
         #region Private Methods
 
         internal async Task<TwitchUserDetails> GetUserDetails()
         {
-            HttpResponseMessage response = await TwitchQuery(String.Empty, SendMethod.GET, null, null);
+            HttpResponseMessage response = await TwitchKrakenQuery(String.Empty, SendMethod.GET, null, null);
             if (response.IsSuccessStatusCode)
             {
                 try
@@ -188,7 +240,7 @@ namespace ChatPager.Twitch
 
         #region Twitch v5 (Kraken API)
 
-        internal async Task<HttpResponseMessage> TwitchQuery(string uriPath, SendMethod sendMethod, List<KeyValuePair<string, string>> optionalContent, JObject body)
+        internal async Task<HttpResponseMessage> TwitchKrakenQuery(string uriPath, SendMethod sendMethod, List<KeyValuePair<string, string>> optionalContent, JObject body)
         {
             try
             {
@@ -198,7 +250,7 @@ namespace ChatPager.Twitch
                     return new HttpResponseMessage() { StatusCode = HttpStatusCode.Conflict };
                 }
 
-                HttpResponseMessage response = await TwitchQueryInternal(uriPath, sendMethod, optionalContent, body);
+                HttpResponseMessage response = await TwitchKrakenQueryInternal(uriPath, sendMethod, optionalContent, body);
                 if (response == null)
                 {
                     Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchQueryInternal returned null");
@@ -220,7 +272,7 @@ namespace ChatPager.Twitch
             return new HttpResponseMessage() { StatusCode = HttpStatusCode.InternalServerError, ReasonPhrase = "TwitchQuery Exception" };
         }
 
-        private async Task<HttpResponseMessage> TwitchQueryInternal(string uriPath, SendMethod sendMethod, List<KeyValuePair<string, string>> optionalContent, JObject body)
+        private async Task<HttpResponseMessage> TwitchKrakenQueryInternal(string uriPath, SendMethod sendMethod, List<KeyValuePair<string, string>> optionalContent, JObject body)
         {
             if (token == null)
             {
