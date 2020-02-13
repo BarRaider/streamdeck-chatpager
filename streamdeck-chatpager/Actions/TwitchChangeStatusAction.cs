@@ -1,6 +1,7 @@
 ﻿using BarRaider.SdTools;
 using ChatPager.Twitch;
 using ChatPager.Wrappers;
+using HtmlAgilityPack;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -19,7 +20,9 @@ namespace ChatPager.Actions
     //---------------------------------------------------
     //          BarRaider's Hall Of Fame
     // 100 Bits: Vedeksu
+    // Subscriber: ASSASSIN0831
     //---------------------------------------------------
+
     [PluginActionId("com.barraider.twitchtools.streamtitle")]
     public class TwitchChangeStatusAction : ActionBase
     {
@@ -31,7 +34,8 @@ namespace ChatPager.Actions
                 {
                     TokenExists = false,
                     StatusFile = String.Empty,
-                    GameFile = String.Empty
+                    GameFile = String.Empty,
+                    TagsFile = String.Empty
 
                 };
                 return instance;
@@ -44,6 +48,10 @@ namespace ChatPager.Actions
             [FilenameProperty]
             [JsonProperty(PropertyName = "gameFile")]
             public string GameFile { get; set; }
+
+            [FilenameProperty]
+            [JsonProperty(PropertyName = "tagsFile")]
+            public string TagsFile { get; set; }
         }
 
         protected PluginSettings Settings
@@ -64,6 +72,10 @@ namespace ChatPager.Actions
         }
 
         #region Private Members
+
+        private const string ALL_TAGS_FILE = "tags.csv";
+
+        private Dictionary<string, string> dicTags;
 
         #endregion
 
@@ -97,6 +109,7 @@ namespace ChatPager.Actions
             }
 
             await UpdateStatus();
+            await UpdateTags();
         }
 
         public override void KeyReleased(KeyPayload payload) { }
@@ -179,7 +192,7 @@ namespace ChatPager.Actions
 
                 using (TwitchComm comm = new TwitchComm())
                 {
-                    if (await comm.UpdateChanelStatus(status, game))
+                    if (await comm.UpdateChannelStatus(status, game))
                     {
                         await Connection.ShowOk();
                     }
@@ -193,6 +206,100 @@ namespace ChatPager.Actions
             {
                 Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateStatus Exception: {ex}");
             }
+        }
+
+        private async Task UpdateTags()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(Settings.TagsFile))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, "UpdateTags called but not tags file set");
+                    return;
+                }
+
+                if (!File.Exists(Settings.TagsFile))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"Tags file does not exists: {Settings.TagsFile}");
+                    return;
+                }
+
+                string[] tags = File.ReadAllLines(Settings.TagsFile);
+                if (tags.Length == 0)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"Tags file is empty: {Settings.TagsFile}");
+                    return;
+                }
+
+                string[] tagIds = GetTagIdsFromTagNames(tags);
+                if (tagIds == null)
+                {
+                    await Connection.ShowAlert();
+                }
+
+                if (tagIds.Length > 0)
+                {
+                    using (TwitchComm comm = new TwitchComm())
+                    {
+                        if (await comm.UpdateChannelTags(tagIds))
+                        {
+                            await Connection.ShowOk();
+                        }
+                        else
+                        {
+                            await Connection.ShowAlert();
+                        }
+                    }
+                }
+                    
+            }
+
+            catch (Exception ex) 
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateTags Exception: {ex}");
+            }
+        }
+
+
+        private string[] GetTagIdsFromTagNames(string[] tagNames)
+        {
+            if (dicTags == null)
+            {
+                if (!File.Exists(ALL_TAGS_FILE))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, "Could not load All Tags File");
+                    return null;
+                }
+
+                string[] lines = File.ReadAllLines(ALL_TAGS_FILE);
+                dicTags = new Dictionary<string, string>();
+
+                foreach (var line in lines)
+                {
+                    var tag = line.Split(',');
+                    if (tag.Length == 2)
+                    {
+                        dicTags[tag[0].ToLowerInvariant()] = tag[1];
+                    }
+                    else
+                    {
+                        Logger.Instance.LogMessage(TracingLevel.WARN, $"Invalid Tag Line: {line}");
+                    }
+                }
+            }
+
+            List<string> tagIds = new List<string>();
+            foreach (string tagName in tagNames)
+            {
+                if (!dicTags.ContainsKey(tagName.ToLowerInvariant()))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"Tag not found: {tagName}");
+                    continue;
+                }
+                tagIds.Add(dicTags[tagName.ToLowerInvariant()]);
+            }
+
+            return tagIds.ToArray();
         }
 
         protected override Task SaveSettings()

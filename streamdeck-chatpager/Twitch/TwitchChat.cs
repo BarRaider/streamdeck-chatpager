@@ -13,6 +13,10 @@ namespace ChatPager.Twitch
 
         #region Private Members
         private const string DEFAULT_CHAT_MESSAGE = "Hey, {USERNAME}, I am now getting paged...! (Get a pager for your Elgato Stream Deck at https://BarRaider.com )";
+        private const string COMMAND_STARTWITH_PREFIX = @"/PRIVMSG";
+        private const string COMMAND_PREFIX = COMMAND_STARTWITH_PREFIX + " #{0} :";
+        
+
 
         private static TwitchChat instance = null;
         private static readonly object objLock = new object();
@@ -26,7 +30,7 @@ namespace ChatPager.Twitch
         private List<string> allowedPagers;
         private List<string> monitoredStreamers;
         private DateTime lastConnectAttempt;
-        private object initLock = new object();
+        private readonly object initLock = new object();
 
         private Dictionary<string, DateTime> dictUserMessages = new Dictionary<string, DateTime>();
 
@@ -160,7 +164,25 @@ namespace ChatPager.Twitch
                 Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchChat SendMessage called but not connected.");
                 return;
             }
-            client.SendMessage(channel, chatMessage);
+
+            // Attempt to join the channel if we're not in it - before sending the message.
+            if (!client.JoinedChannels.Any(c => c.Channel.ToLowerInvariant() == channel.ToLowerInvariant()))
+            {
+                client.JoinChannel(channel);
+            }
+
+            if (chatMessage[0] == '/')
+            {
+                if (!chatMessage.StartsWith(COMMAND_STARTWITH_PREFIX))
+                {
+                    chatMessage = COMMAND_PREFIX.Replace("{0}", channel) + chatMessage;
+                }
+                client.SendRaw(chatMessage.Substring(1));
+            }
+            else
+            {
+                client.SendMessage(channel, chatMessage);
+            }
         }
 
         public List<string> GetLastChatters()

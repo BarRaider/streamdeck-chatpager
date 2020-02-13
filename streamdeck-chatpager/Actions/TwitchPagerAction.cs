@@ -115,13 +115,13 @@ namespace ChatPager.Actions
 
 
         private bool isPaging = false;
-        private bool autoClearFile = false;
-        private System.Timers.Timer tmrPage = new System.Timers.Timer();
+        private readonly bool autoClearFile = false;
+        private readonly System.Timers.Timer tmrPage = new System.Timers.Timer();
         private int alertStage = 0;
         private TwitchStreamInfo streamInfo;
         private string pageMessage = null;
         private bool fullScreenAlertTriggered = false;
-        private StreamDeckDeviceType deviceType;
+        private readonly StreamDeckDeviceType deviceType;
         private TwitchGlobalSettings global = null;
         private int previousViewersCount = 0;
         private Brush viewersBrush = Brushes.White;

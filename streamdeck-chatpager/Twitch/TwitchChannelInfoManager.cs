@@ -21,6 +21,7 @@ namespace ChatPager.Twitch
         #region Private Members
         private const int CHANNEL_REFRESH_TIME_SEC = 60;
         private const int ACTIVE_STREAMERS_REFRESH_TIME_SEC = 60;
+        private const int CHANNEL_VIEWERS_REFRESH_TIME_SEC = 60;
 
         private static TwitchChannelInfoManager instance = null;
         private static readonly object objLock = new object();
@@ -29,6 +30,7 @@ namespace ChatPager.Twitch
         private readonly SemaphoreSlim channelInfoLock = new SemaphoreSlim(1, 1);
         private DateTime lastActiveStreamers;
         private TwitchActiveStreamer[] activeStreamers;
+        private readonly Dictionary<string, TwitchChannelViewers> dicViewers;
 
         #endregion
 
@@ -57,6 +59,7 @@ namespace ChatPager.Twitch
         private TwitchChannelInfoManager()
         {
             comm = new TwitchComm();
+            dicViewers = new Dictionary<string, TwitchChannelViewers>();
         }
 
         public async Task<TwitchChannelInfo> GetChannelInfo(string channelName)
@@ -100,6 +103,33 @@ namespace ChatPager.Twitch
             {
                 channelInfoLock.Release();
             }
+        }
+
+        public async Task<TwitchChannelViewers> GetChannelViewers(string channelName)
+        {
+            try
+            {
+                channelName = channelName.ToLowerInvariant();
+                if (!TwitchTokenManager.Instance.TokenExists)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, "GetActiveStreamers called without a valid token");
+                    return null;
+                }
+
+                if (!dicViewers.ContainsKey(channelName) ||
+                    (DateTime.Now - dicViewers[channelName].LastUpdated).TotalSeconds >= CHANNEL_VIEWERS_REFRESH_TIME_SEC)
+                {
+                    var viewers = await comm.GetChannelViewers(channelName);
+                    dicViewers[channelName] = viewers;
+                }
+
+                return dicViewers[channelName];
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetActiveStreamers Exception: {ex}");
+            }
+            return null;
         }
 
         public async Task<TwitchActiveStreamer[]> GetActiveStreamers()

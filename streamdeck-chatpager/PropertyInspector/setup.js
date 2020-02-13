@@ -62,7 +62,7 @@ function openTwitchAuth() {
         const json = {
             'event': 'openUrl',
             'payload': {
-                'url': 'https://id.twitch.tv/oauth2/authorize?client_id=on7mw688hvmsx4q8kykvk0b5bne9tf&redirect_uri=https://BarRaider.com/twitchauth&response_type=token&scope=channel_feed_read%20chat:read%20chat:edit%20whispers:read%20whispers:edit%20clips:edit%20channel_editor'
+                'url': 'https://id.twitch.tv/oauth2/authorize?client_id=on7mw688hvmsx4q8kykvk0b5bne9tf&redirect_uri=https://BarRaider.com/twitchauth&response_type=token&scope=channel_feed_read%20chat:read%20chat:edit%20whispers:read%20whispers:edit%20clips:edit%20channel_editor%20channel:moderate%20channel_commercial%20user:edit:broadcast'
             }
         };
         websocket.send(JSON.stringify(json));

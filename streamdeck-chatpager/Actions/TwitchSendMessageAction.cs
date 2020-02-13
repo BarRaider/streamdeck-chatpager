@@ -16,13 +16,8 @@ using System.Threading.Tasks;
 namespace ChatPager.Actions
 {
 
-    //---------------------------------------------------
-    //          BarRaider's Hall Of Fame
-    // 100 Bits: Vedeksu
-    //---------------------------------------------------
-
-    [PluginActionId("com.barraider.twitchtools.shoutout")]
-    public class TwitchShoutoutAction : ActionBase
+    [PluginActionId("com.barraider.twitchtools.sendmessage")]
+    public class TwitchSendMessageAction : ActionBase
     {
         protected class PluginSettings : PluginSettingsBase
         {
@@ -31,13 +26,26 @@ namespace ChatPager.Actions
                 PluginSettings instance = new PluginSettings
                 {
                     TokenExists = false,
-                    ChatMessage = DEFAULT_CHAT_MESSAGE
+                    ChatMessage = String.Empty,
+                    Channel = String.Empty,
+                    LoadFromFile = false,
+                    MessageFile = String.Empty
                 };
                 return instance;
             }
 
+            [JsonProperty(PropertyName = "channel")]
+            public string Channel { get; set; }
+
             [JsonProperty(PropertyName = "chatMessage")]
             public string ChatMessage { get; set; }
+
+            [JsonProperty(PropertyName = "loadFromFile")]
+            public bool LoadFromFile { get; set; }
+
+            [FilenameProperty]
+            [JsonProperty(PropertyName = "messageFile")]
+            public string MessageFile { get; set; }         
         }
 
         protected PluginSettings Settings
@@ -59,13 +67,11 @@ namespace ChatPager.Actions
 
         #region Private Members
 
-        private const string DEFAULT_CHAT_MESSAGE = "!so {USERNAME}";
-
         #endregion
 
         #region Public Methods
 
-        public TwitchShoutoutAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
+        public TwitchSendMessageAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
         {
             if (payload.Settings == null || payload.Settings.Count == 0)
             {
@@ -92,36 +98,40 @@ namespace ChatPager.Actions
                 await Connection.ShowAlert();
                 return;
             }
-
-            var chatters = TwitchChat.Instance.GetLastChatters();
-            if (chatters == null)
+            
+            if (String.IsNullOrEmpty(Settings.Channel))
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, "GetLastChatters returned null");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} called but no channel is set");
                 await Connection.ShowAlert();
                 return;
             }
 
-            // We have a list of usernames, get some more details on them so we can display their image on the StreamDeck
-            List<ChatMessageKey> chatMessages = new List<ChatMessageKey>();
-            foreach (string username in chatters)
+            string message = Settings.ChatMessage;
+            if (Settings.LoadFromFile)
             {
-                var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(username);
+                if (String.IsNullOrEmpty(Settings.MessageFile) || !File.Exists(Settings.MessageFile))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} called with LoadFromFile but invalid file name {Settings.MessageFile}");
+                    await Connection.ShowAlert();
+                    return;
+                }
 
-                chatMessages.Add(new ChatMessageKey(userInfo.Name, userInfo.ProfileImageUrl, Settings.ChatMessage.Replace("{USERNAME}", $"{userInfo.Name}")));
+                message = File.ReadAllText(Settings.MessageFile);
             }
-            Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {chatMessages?.Count} chat messages");
 
-            // Show the active chatters on the StreamDeck
-            if (chatMessages != null && chatMessages.Count > 0)
+            if (String.IsNullOrEmpty(message))
             {
-                AlertManager.Instance.Initialize(Connection);
-                AlertManager.Instance.ShowChatMessages(chatMessages.ToArray());
-            }           
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} called but no message is set");
+                await Connection.ShowAlert();
+                return;
+            }
+
+            TwitchChat.Instance.SendMessage(Settings.Channel, message);
         }
 
         public override void KeyReleased(KeyPayload payload) { }
 
-        public async override void OnTick()
+        public override void OnTick()
         {
             baseHandledOnTick = false;
             base.OnTick();

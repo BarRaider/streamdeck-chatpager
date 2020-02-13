@@ -10,10 +10,16 @@ namespace ChatPager.Wrappers
     public class ChatMessageListEventArgs : EventArgs
     {
         public ChatMessageKey[] ChatMessageKeys { get; private set; }
+        public int CurrentPage { get; set; }
 
-        public ChatMessageListEventArgs(ChatMessageKey[] chatMessageKeys)
+        public int NumberOfKeys { get; private set; }
+
+
+        public ChatMessageListEventArgs(ChatMessageKey[] chatMessageKeys, int numberOfKeys, int currentPage)
         {
             ChatMessageKeys = chatMessageKeys;
+            NumberOfKeys = numberOfKeys;
+            CurrentPage = currentPage;
         }
     }
 }

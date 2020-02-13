@@ -21,14 +21,4 @@
 
 function checkSettings(payload) {
     console.log("Checking Settings");
-
-    setSoundOnLiveSettings("none");
-    if (payload['playSoundOnLive']) {
-        setSoundOnLiveSettings("");
-    }
-}
-
-function setSoundOnLiveSettings(displayValue) {
-    var dvSoundOnLiveSettings = document.getElementById('dvSoundOnLiveSettings');
-    dvSoundOnLiveSettings.style.display = displayValue;
 }

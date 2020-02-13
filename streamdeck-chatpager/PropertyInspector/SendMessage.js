@@ -21,14 +21,20 @@
 
 function checkSettings(payload) {
     console.log("Checking Settings");
-
-    setSoundOnLiveSettings("none");
-    if (payload['playSoundOnLive']) {
-        setSoundOnLiveSettings("");
+    showHideFileName("none");
+    showHideMessage("");
+    if (payload['loadFromFile']) {
+        showHideFileName("");
+        showHideMessage("none");
     }
 }
 
-function setSoundOnLiveSettings(displayValue) {
-    var dvSoundOnLiveSettings = document.getElementById('dvSoundOnLiveSettings');
-    dvSoundOnLiveSettings.style.display = displayValue;
+function showHideFileName(displayValue) {
+    var dvFileName = document.getElementById('dvFileName');
+    dvFileName.style.display = displayValue;
+}
+
+function showHideMessage(displayValue) {
+    var dvChatMessage = document.getElementById('dvChatMessage');
+    dvChatMessage.style.display = displayValue;
 }

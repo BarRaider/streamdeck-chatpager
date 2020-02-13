@@ -31,6 +31,8 @@ namespace ChatPager.Twitch
         private const string TWITCH_URL_ACTIVE_STREAMERS = "/streams/followed";
         private const string TWITCH_CREATE_CLIP_URI = "/clips?broadcaster_id=";
         private const string TWITCH_URI_MODIFY_CHANNEL_STATUS = "/channels/{0}";
+        private const string TWITCH_CHANNEL_VIEWERS = "https://tmi.twitch.tv/group/user/{0}/chatters";
+        private const string TWITCH_URL_MODIFY_TAGS = "/streams/tags?broadcaster_id={0}";
 
         private TwitchToken token;
 
@@ -106,6 +108,26 @@ namespace ChatPager.Twitch
                 Logger.Instance.LogMessage(TracingLevel.WARN, $"GetUserInfo Fetch Failed. Response: {response.StatusCode} Reason: {response.ReasonPhrase}");
             }
             return null;
+        }
+        
+        public async Task<TwitchChannelViewers> GetChannelViewers(string channel)
+        {
+            string url = TWITCH_CHANNEL_VIEWERS.Replace("{0}", channel);
+            using (var client = new HttpClient())
+            {
+                HttpResponseMessage response = await client.GetAsync(url);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetChannelViewers failed - StatusCode: {response.StatusCode}");
+                    return null;
+                }
+
+                string body = await response.Content.ReadAsStringAsync();
+                JObject json = JObject.Parse(body);
+                var viewers = json.ToObject<TwitchChannelViewers>();
+                viewers.LastUpdated = DateTime.Now;
+                return viewers;
+            }
         }
 
         public async Task<TwitchActiveStreamer[]> GetActiveStreamers()
@@ -189,12 +211,12 @@ namespace ChatPager.Twitch
             return null;
         }
 
-        public async Task<bool> UpdateChanelStatus(string statusMessage, string currentGame)
+        public async Task<bool> UpdateChannelStatus(string statusMessage, string currentGame)
         {
             string uri = String.Format(TWITCH_URI_MODIFY_CHANNEL_STATUS, TwitchTokenManager.Instance.User.UserId);
             if (string.IsNullOrEmpty(statusMessage) && string.IsNullOrEmpty(currentGame))
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateChanelStatus called with empty status and game");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateChannelStatus called with empty status and game");
                 return false;
             }
 
@@ -205,6 +227,22 @@ namespace ChatPager.Twitch
 
             body.Add("channel", channelBody);
             HttpResponseMessage response = await TwitchKrakenQuery(uri, SendMethod.PUT, null, body);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> UpdateChannelTags(string[] tagIds)
+        {
+            string uri = String.Format(TWITCH_URL_MODIFY_TAGS, TwitchTokenManager.Instance.User.UserId);
+            if (tagIds == null || tagIds.Length < 1)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateChannelTags called with empty tagIds");
+                return false;
+            }
+
+            JObject body = new JObject();
+            body.Add("tag_ids", JToken.FromObject(tagIds));
+
+            HttpResponseMessage response = await TwitchHelixQuery(uri, SendMethod.PUT, null, body);
             return response.IsSuccessStatusCode;
         }
 

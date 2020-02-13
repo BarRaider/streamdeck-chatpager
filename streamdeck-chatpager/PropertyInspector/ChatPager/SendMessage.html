@@ -1,0 +1,58 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover">
+    <meta name=apple-mobile-web-app-capable content=yes>
+    <meta name=apple-mobile-web-app-status-bar-style content=black>
+    <title>Twitch Send Message</title>
+    <link rel="stylesheet" href="../sdpi.css">
+    <script src="../sdtools.common.js"></script>
+    <script src="../setup.js"></script>
+    <script src="../SendMessage.js"></script>
+</head>
+<body>
+    <div class="sdpi-wrapper">
+        <details class="message info">
+            <summary>For feedback/suggestions contact me at <span class="linkspan" onclick="openWebsite()">https://BarRaider.com</span> </summary>
+        </details>
+        <div id="sdWrapper" style="display:none;">
+            <div class="sdpi-item" id="dvChannel">
+                <div class="sdpi-item-label">Channel</div>
+                <input class="sdpi-item-value sdProperty" placeholder="barraider" id="channel" oninput="setSettings()">
+            </div>
+            <div type="checkbox" class="sdpi-item" id="dvLoadFromFile">
+                <div class="sdpi-item-label">Message</div>
+                <div class="sdpi-item-value">
+                    <input id="loadFromFile" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
+                    <label for="loadFromFile" class="sdpi-item-label"><span></span>Load message from file</label>
+                </div>
+            </div>
+            <div id="dvFileName" style="display:none">
+                <div class="sdpi-item" id="dvPrimaryInputFile">
+                    <div class="sdpi-item-label">File Name</div>
+                    <div class="sdpi-item-group file" id="filepickergroup">
+                        <input class="sdpi-item-value sdProperty sdFile" type="file" id="messageFile" accept=".txt" oninput="setSettings()">
+                        <label class="sdpi-file-info " for="messageFile" id="messageFileFilename">No file...</label>
+                        <label class="sdpi-file-label" for="messageFile">Choose file...</label>
+                    </div>
+                </div>
+            </div>
+            <div class="sdpi-item" id="dvChatMessage">
+                <div class="sdpi-item-label">Chat Message</div>
+                <input class="sdpi-item-value sdProperty" placeholder="Hello world" id="chatMessage" oninput="setSettings()">
+            </div>
+            <hr />
+            <div class="sdpi-item" id="dvReset">
+                <div class="sdpi-item-label">Revoke Approval</div>
+                <button class="sdpi-item-value max20" onclick="resetPlugin()">Revoke</button>
+                <p>Plugin will no longer communicate with Twitch and will ask for a new Approval Code</p>
+            </div>
+
+            <div class="sdpi-item" id="dvHdn">
+                <input value="" type="hidden" id="tokenExists" class="sdProperty" oninput="setSettings()">
+            </div>
+        </div>
+    </div>
+</body>
+</html>

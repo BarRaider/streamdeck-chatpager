@@ -30,20 +30,25 @@ namespace ChatPager
         private const int PREVIEW_IMAGE_WIDTH_PIXELS = 144;
         private const string PREVIEW_IMAGE_WIDTH_TOKEN = "{width}";
         private const string PREVIEW_IMAGE_HEIGHT_TOKEN = "{height}";
+        private const int LONG_KEYPRESS_LENGTH_MS = 600;
+        private const string RAID_COMMAND = "/raid ";
 
         private int stringMessageIndex;
-        private int deviceColumns = 0;
-        private int locationRow = 0;
-        private int locationColumn = 0;
-        private int sequentialKey;
+        private readonly int deviceColumns = 0;
+        private readonly int locationRow = 0;
+        private readonly int locationColumn = 0;
+        private readonly int sequentialKey;
         private int pagedSequentialKey = 0;
         private bool twoLettersPerKey;
         private string channelName;
         private string chatMessage;
         private readonly StreamDeckDeviceType deviceType;
         private FlashMode flashMode;
-        private int numberOfStreamers = 0;
+        private int numberOfElements = 0;
         private int numberOfKeys = 0;
+        private bool keyPressed = false;
+        private bool longKeyPressed = false;
+        private DateTime keyPressStart;
 
 
         #endregion
@@ -77,38 +82,65 @@ namespace ChatPager
 
         public override void KeyPressed(KeyPayload payload)
         {
+            keyPressed = true;
+            longKeyPressed = false;
+            keyPressStart = DateTime.Now;
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"Keypressed {this.GetType()}");
+        }
+
+        public override void KeyReleased(KeyPayload payload)
+        {
+            keyPressed = false;
+            if (longKeyPressed) // Take care of the short keypress
+            {
+                return;
+            }
+            
+            // Handle a Short Keypress
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"Short Keypress {this.GetType()}");
+
             // Exit the full screen if Exit key or Pager is pressed
             if (flashMode == FlashMode.Pager || sequentialKey == 0)
             {
                 AlertManager.Instance.StopFlash();
                 Connection.SwitchProfileAsync(null);
             }
-            else if (flashMode == FlashMode.ChatMessage && !String.IsNullOrEmpty(chatMessage))
+            else if (flashMode == FlashMode.ChatMessage)
             {
-                TwitchChat.Instance.SendMessage(chatMessage);
+                if (sequentialKey == numberOfKeys - 1 && numberOfElements + 1 > pagedSequentialKey) // Next key is pressed
+                {
+                    // Move to next page
+                    AlertManager.Instance.MoveToNextChatPage();
+                }
+                else if (!String.IsNullOrEmpty(chatMessage))
+                {
+                    TwitchChat.Instance.SendMessage(chatMessage);
+                }
             }
             else if (flashMode == FlashMode.ActiveStreamers)
             {
-                if (sequentialKey == numberOfKeys - 1 && numberOfStreamers + 1 > pagedSequentialKey) // Next key is pressed
+                if (sequentialKey == numberOfKeys - 1 && numberOfElements + 1 > pagedSequentialKey) // Next key is pressed
                 {
                     // Move to next page
                     AlertManager.Instance.MoveToNextStreamersPage();
                 }
-                else if  (!String.IsNullOrEmpty(channelName)) // Normal key
+                else if (!String.IsNullOrEmpty(channelName)) // Normal key
                 {
                     System.Diagnostics.Process.Start(String.Format("https://www.twitch.tv/{0}", channelName));
                 }
             }
         }
 
-        public override void KeyReleased(KeyPayload payload)
-        {
-
-        }
-
         public override void OnTick()
         {
-
+            if (keyPressed && !longKeyPressed)
+            {
+                int timeKeyWasPressed = (int)(DateTime.Now - keyPressStart).TotalMilliseconds;
+                if (timeKeyWasPressed >= LONG_KEYPRESS_LENGTH_MS)
+                {
+                    HandleLongKeyPress();
+                }
+            }
         }
 
         public override void ReceivedGlobalSettings(ReceivedGlobalSettingsPayload payload)
@@ -150,7 +182,7 @@ namespace ChatPager
             else if (e.ActiveStreamers != null && sequentialKey == e.NumberOfKeys - 1 && e.ActiveStreamers.Length > pagedSequentialKey) // There is more than one page
             {
                 await Connection.SetTitleAsync(">>");
-                numberOfStreamers = e.ActiveStreamers.Length;
+                numberOfElements = e.ActiveStreamers.Length;
                 numberOfKeys = e.NumberOfKeys;
             }
             else if (e.ActiveStreamers != null && e.ActiveStreamers.Length >= pagedSequentialKey) // >= because we're doing -1 as we're starting on the second key
@@ -167,14 +199,21 @@ namespace ChatPager
         private async void Instance_ChatMessageListChanged(object sender, ChatMessageListEventArgs e)
         {
             flashMode = FlashMode.ChatMessage;
+            pagedSequentialKey = e.CurrentPage * (e.NumberOfKeys - 2) + sequentialKey;
             if (sequentialKey == 0)
             {
                 await Connection.SetTitleAsync("Exit");
             }
-            else if (e.ChatMessageKeys != null && e.ChatMessageKeys.Length + 1 > sequentialKey)
+            else if (e.ChatMessageKeys != null && sequentialKey == e.NumberOfKeys - 1 && e.ChatMessageKeys.Length > pagedSequentialKey) // There is more than one page)
+            {
+                await Connection.SetTitleAsync(">>");
+                numberOfElements = e.ChatMessageKeys.Length;
+                numberOfKeys = e.NumberOfKeys;
+            }
+            else if (e.ChatMessageKeys != null && e.ChatMessageKeys.Length >= pagedSequentialKey) // >= because we're doing -1 as we're starting on the second key
             // +1 because starting on second key
             {
-                var userInfo = e.ChatMessageKeys[sequentialKey - 1];
+                var userInfo = e.ChatMessageKeys[pagedSequentialKey - 1];
                 using (Image image = FetchImage(userInfo.KeyImageURL.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString())))
                 {
                     await DrawChatMessageImage(userInfo, image);
@@ -369,6 +408,25 @@ namespace ChatPager
                         }
                         Connection.SetImageAsync(img);
                     }
+                }
+            }
+        }
+
+        private void HandleLongKeyPress()
+        {
+            longKeyPressed = true;
+
+            // Active Streamers 
+            if (flashMode == FlashMode.ActiveStreamers)
+            {
+                if (sequentialKey == numberOfKeys - 1 && numberOfElements + 1 > pagedSequentialKey) // Next key is pressed
+                {
+                    // Move to next page
+                    AlertManager.Instance.MoveToNextStreamersPage();
+                }
+                else if (!String.IsNullOrEmpty(channelName)) // Normal key
+                {
+                    TwitchChat.Instance.SendMessage(RAID_COMMAND + channelName);
                 }
             }
         }

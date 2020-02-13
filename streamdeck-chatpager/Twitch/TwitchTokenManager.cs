@@ -96,7 +96,7 @@ namespace ChatPager.Twitch
         {
             if (token != null && (this.token == null || token.TokenLastRefresh > this.token.TokenLastRefresh))
             {
-                Logger.Instance.LogMessage(TracingLevel.INFO, "New token set");
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"New token set Token Size: {token?.Token?.Length}");
                 this.token = token;
                 if (ValidateToken())
                 {
@@ -104,7 +104,7 @@ namespace ChatPager.Twitch
                 }
                 else
                 {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, "Could not validate token with twitch");
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, "Could not validate token with twitch");
                     this.token = null;
                 }
             }
@@ -144,6 +144,7 @@ namespace ChatPager.Twitch
 
                 if (token != null && token.Token == globalToken.Token && token.TokenLastRefresh == globalToken.TokenLastRefresh)
                 {
+                    Logger.Instance.LogMessage(TracingLevel.INFO, $"LoadToken called for EXISTING token. Token Size: {token?.Token?.Length}");
                     return;
                 }
 
@@ -153,7 +154,11 @@ namespace ChatPager.Twitch
                     TokenLastRefresh = globalToken.TokenLastRefresh
                 };
 
-                Logger.Instance.LogMessage(TracingLevel.INFO, $"Token initialized. Last refresh date was: {token.TokenLastRefresh}");
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"Token initialized. Last refresh date was: {token.TokenLastRefresh} Token Size: {token?.Token?.Length}");
+                if (String.IsNullOrWhiteSpace(token.Token))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, "Existing token in Global Settings is empty!");
+                }
                 RaiseTokenChanged();
             }
             catch (Exception ex)
@@ -168,14 +173,14 @@ namespace ChatPager.Twitch
             {
                 if (global == null)
                 {
-                    Logger.Instance.LogMessage(TracingLevel.ERROR, "Failed to save token, Global Settings is null");
-                    return;
+                    Logger.Instance.LogMessage(TracingLevel.WARN, "Global Settings is null, creating new instance");
+                    global = new TwitchGlobalSettings();
                 }
 
                 // Set token in Global Settings
                 if (token == null)
                 {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, "Saving null token to Global Settings");
+                    Logger.Instance.LogMessage(TracingLevel.WARN, "Saving NULL token to Global Settings");
                     global.Token = null;
                 }
                 else
@@ -185,10 +190,11 @@ namespace ChatPager.Twitch
                         Token = token.Token,
                         TokenLastRefresh = token.TokenLastRefresh
                     };
+                    Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchTokenManager saving token to global");
                 }
 
                 GlobalSettingsManager.Instance.SetGlobalSettings(JObject.FromObject(global));
-                Logger.Instance.LogMessage(TracingLevel.INFO, $"New token saved. Last refresh date was: {token?.TokenLastRefresh}");
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"New token saved. Last refresh date was: {token?.TokenLastRefresh} Token Size: {token?.Token?.Length}");
             }
             catch (Exception ex)
             {
@@ -208,10 +214,12 @@ namespace ChatPager.Twitch
             TokenStatusChanged?.Invoke(this, EventArgs.Empty);
             if (token != null)
             {
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"TwitchTokenManager raising new token change. Token Size: {token?.Token?.Length}");
                 TokensChanged?.Invoke(this, new TwitchTokenEventArgs(new TwitchToken() { Token = token.Token, TokenLastRefresh = token.TokenLastRefresh }));
             }
             else
             {
+                Logger.Instance.LogMessage(TracingLevel.WARN, "TwitchTokenManager raising EMPTY token change");
                 TokensChanged?.Invoke(this, new TwitchTokenEventArgs(null));
             }
         }

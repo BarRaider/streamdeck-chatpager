@@ -91,6 +91,7 @@ namespace ChatPager
         private bool autoClearFile = false;
         private int numberOfKeys;
         private ActiveStreamersEventArgs streamersEventArgs = null;
+        private ChatMessageListEventArgs chatMessageEventArgs = null;
 
 
         #endregion
@@ -145,6 +146,17 @@ namespace ChatPager
             ActiveStreamersChanged?.Invoke(this, streamersEventArgs);
         }
 
+        public void MoveToNextChatPage()
+        {
+            if (chatMessageEventArgs == null)
+            {
+                return;
+            }
+            StopFlash();
+            chatMessageEventArgs.CurrentPage++;
+            ChatMessageListChanged?.Invoke(this, chatMessageEventArgs);
+        }
+
         public void MoveToNextStreamersPage()
         {
             if (streamersEventArgs == null)
@@ -177,7 +189,9 @@ namespace ChatPager
                 Thread.Sleep(100);
                 retries++;
             }
-            ChatMessageListChanged?.Invoke(this, new ChatMessageListEventArgs(chatMessageKeys));
+
+            chatMessageEventArgs = new ChatMessageListEventArgs(chatMessageKeys, numberOfKeys, 0);
+            ChatMessageListChanged?.Invoke(this, chatMessageEventArgs);
         }
 
 

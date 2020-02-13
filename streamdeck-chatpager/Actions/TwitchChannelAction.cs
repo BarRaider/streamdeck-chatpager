@@ -1,5 +1,7 @@
 ﻿using BarRaider.SdTools;
 using ChatPager.Twitch;
+using ChatPager.Wrappers;
+using NAudio.Wave;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -9,7 +11,6 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ChatPager.Actions
@@ -33,7 +34,13 @@ namespace ChatPager.Actions
                 {
                     TokenExists = false,
                     ChannelName = String.Empty,
-                    HideChannelName = false
+                    HideChannelName = false,
+                    HideChannelPreview = false,
+                    PlaySoundOnLive = false,
+                    PlaybackDevices = null,
+                    PlaybackDevice = String.Empty,
+                    PlaySoundOnLiveFile = string.Empty,
+                    GrayscaleImageWhenNotLive = false
                 };
                 return instance;
             }
@@ -44,7 +51,25 @@ namespace ChatPager.Actions
             [JsonProperty(PropertyName = "hideChannelName")]
             public bool HideChannelName { get; set; }
 
+            [JsonProperty(PropertyName = "hideChannelPreview")]
+            public bool HideChannelPreview { get; set; }
 
+            [JsonProperty(PropertyName = "playSoundOnLive")]
+            public bool PlaySoundOnLive { get; set; }
+
+            [JsonProperty(PropertyName = "playbackDevices")]
+            public List<PlaybackDevice> PlaybackDevices { get; set; }
+
+            [JsonProperty(PropertyName = "playbackDevice")]
+            public string PlaybackDevice { get; set; }
+
+            [FilenameProperty]
+            [JsonProperty(PropertyName = "playSoundOnLiveFile")]
+            public string PlaySoundOnLiveFile { get; set; }
+
+            [JsonProperty(PropertyName = "grayscaleImageWhenNotLive")]
+            public bool GrayscaleImageWhenNotLive { get; set; }
+            
         }
 
         protected PluginSettings Settings
@@ -75,6 +100,9 @@ namespace ChatPager.Actions
         private DateTime lastImageUpdate;
         private Image thumbnailImage;
         private bool isLive = false;
+        private bool isFirstTimeLoading = true;
+        private bool previouslyWasLive = false;
+
 
         #endregion
 
@@ -91,6 +119,7 @@ namespace ChatPager.Actions
                 this.Settings = payload.Settings.ToObject<PluginSettings>();
             }
             Settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
+            InitializeSettings();
             SaveSettings();
         }
 
@@ -140,9 +169,8 @@ namespace ChatPager.Actions
             {
                 lastImageUpdate = DateTime.MinValue;
             }
+            InitializeSettings();
             SaveSettings();
-
-
         }
 
         #endregion
@@ -239,6 +267,7 @@ namespace ChatPager.Actions
         {
             if (!String.IsNullOrEmpty(Settings.ChannelName))
             {
+                previouslyWasLive = isLive;
                 isLive = false;
                 var channelInfo = await TwitchChannelInfoManager.Instance.GetChannelInfo(Settings.ChannelName);
                 if (channelInfo != null)
@@ -246,10 +275,18 @@ namespace ChatPager.Actions
                     isLive = channelInfo.Type.ToLowerInvariant() == IS_LIVE_TYPE;
                 }
 
+                // Channel just turned live.  Don't make a sound if we just loaded the plugin for the first time
+                if (isLive && isLive != previouslyWasLive && !isFirstTimeLoading)
+                {
+                    PlaySoundOnLive();
+                }
+                isFirstTimeLoading = false;
+
                 // Should we refresh the image?
                 if ((DateTime.Now - lastImageUpdate).TotalSeconds >= 60)
                 {
-                    if (channelInfo != null)
+                    // Only switch to channel preview if channelInfo is not null AND user did not request to hide preview
+                    if (channelInfo != null && !Settings.HideChannelPreview)
                     {
                         thumbnailImage = FetchImage(channelInfo.ThumbnailUrl.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString()));
                         lastImageUpdate = DateTime.Now;
@@ -262,6 +299,12 @@ namespace ChatPager.Actions
                         {
                             thumbnailImage = FetchImage(userInfo.ProfileImageUrl.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString()));
                             lastImageUpdate = DateTime.Now;
+
+                            // Make the image grayscale
+                            if (!isLive && Settings.GrayscaleImageWhenNotLive)
+                            {
+                                thumbnailImage = System.Windows.Forms.ToolStripRenderer.CreateDisabledImage(thumbnailImage);
+                            }
                         }
                         else
                         {
@@ -270,6 +313,87 @@ namespace ChatPager.Actions
                     }
                 }
             }
+        }
+
+        private void InitializeSettings()
+        {
+            PropagatePlaybackDevices();
+        }
+
+        private void PropagatePlaybackDevices()
+        {
+            Settings.PlaybackDevices = new List<PlaybackDevice>();
+
+            try
+            {
+                if (Settings.PlaySoundOnLive)
+                {
+                    for (int idx = -1; idx < WaveOut.DeviceCount; idx++)
+                    {
+                        var currDevice = WaveOut.GetCapabilities(idx);
+                        Settings.PlaybackDevices.Add(new PlaybackDevice() { ProductName = currDevice.ProductName });
+                    }
+
+                    Settings.PlaybackDevices = Settings.PlaybackDevices.OrderBy(p => p.ProductName).ToList();
+                    SaveSettings();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"Error propagating playback devices {ex}");
+            }
+        }
+
+        private void PlaySoundOnLive()
+        {
+            Task.Run(() =>
+            {
+                if (!Settings.PlaySoundOnLive)
+                {
+                    return;
+                }
+
+                if (String.IsNullOrEmpty(Settings.PlaySoundOnLiveFile) || string.IsNullOrEmpty(Settings.PlaybackDevice))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"PlaySoundOnLive called but File or Playback device are empty. File: {Settings.PlaySoundOnLiveFile} Device: {Settings.PlaybackDevice}");
+                    return;
+                }
+
+                if (!File.Exists(Settings.PlaySoundOnLiveFile))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"PlaySoundOnLive called but file does not exist: {Settings.PlaySoundOnLiveFile}");
+                    return;
+                }
+
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"PlaySoundOnLive called. Playing {Settings.PlaySoundOnLiveFile} on device: {Settings.PlaybackDevice}");
+                var deviceNumber = GetPlaybackDeviceFromDeviceName(Settings.PlaybackDevice);
+                using (var audioFile = new AudioFileReader(Settings.PlaySoundOnLiveFile))
+                {
+                    using (var outputDevice = new WaveOutEvent())
+                    {
+                        outputDevice.DeviceNumber = deviceNumber;
+                        outputDevice.Init(audioFile);
+                        outputDevice.Play();
+                        while (outputDevice.PlaybackState == PlaybackState.Playing)
+                        {
+                            System.Threading.Thread.Sleep(1000);
+                        }
+                    }
+                }
+            });
+        }
+
+        private int GetPlaybackDeviceFromDeviceName(string deviceName)
+        {
+            for (int idx = -1; idx < WaveOut.DeviceCount; idx++)
+            {
+                var currDevice = WaveOut.GetCapabilities(idx);
+                if (deviceName == currDevice.ProductName)
+                {
+                    return idx;
+                }
+            }
+            return -1;
         }
 
         #endregion

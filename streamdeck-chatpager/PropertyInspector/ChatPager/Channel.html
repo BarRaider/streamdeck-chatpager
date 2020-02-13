@@ -23,9 +23,45 @@
             </div>
 
             <div type="checkbox" class="sdpi-item" id="dvHideChannelName">
+                <div class="sdpi-item-label">Hide Name</div>
                 <div class="sdpi-item-value">
                     <input id="hideChannelName" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
                     <label for="hideChannelName" class="sdpi-item-label"><span></span>Hide Channel Name</label>
+                </div>
+            </div>
+            <div type="checkbox" class="sdpi-item" id="dvHidePreview">
+                <div class="sdpi-item-label">Hide Preview</div>
+                <div class="sdpi-item-value">
+                    <input id="hideChannelPreview" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
+                    <label for="hideChannelPreview" class="sdpi-item-label"><span></span>Don't show stream preview on key</label>
+                </div>
+            </div>
+            <div type="checkbox" class="sdpi-item" id="dvSoundOnLive">
+                <div class="sdpi-item-label">Sound</div>
+                <div class="sdpi-item-value">
+                    <input id="playSoundOnLive" type="checkbox" value="" class="sdProperty sdCheckbox" oninput="setSettings()">
+                    <label for="playSoundOnLive" class="sdpi-item-label"><span></span>Play sound when channel goes live</label>
+                </div>
+            </div>
+            <div id="dvSoundOnLiveSettings">
+                <div class="sdpi-item" id="dvPlaybackDevices">
+                    <div class="sdpi-item-label">Playback Device</div>
+                    <select class="sdpi-item-value select sdProperty sdList" id="playbackDevices" oninput="setSettings()" sdListTextProperty="name" sdListValueProperty="name" sdValueField="playbackDevice"></select>
+                </div>
+                <div class="sdpi-item" id="dvSoundFile">
+                    <div class="sdpi-item-label">Sound File</div>
+                    <div class="sdpi-item-group file" id="filepickergroup">
+                        <input class="sdpi-item-value sdProperty sdFile" type="file" id="playSoundOnLiveFile" accept=".wav, .mp3, .ogg, .wma, .aac, .mp4" oninput="setSettings()">
+                        <label class="sdpi-file-info " for="playSoundOnLiveFile" id="playSoundOnLiveFileFilename">No file...</label>
+                        <label class="sdpi-file-label" for="playSoundOnLiveFile">Choose file...</label>
+                    </div>
+                </div>
+            </div>
+            <div type="checkbox" class="sdpi-item" id="dvGrayscaleImage">
+                <div class="sdpi-item-label">Grayscale</div>
+                <div class="sdpi-item-value">
+                    <input id="grayscaleImageWhenNotLive" type="checkbox" value="" class="sdProperty sdCheckbox" oninput="setSettings()">
+                    <label for="grayscaleImageWhenNotLive" class="sdpi-item-label"><span></span>Grayscale logo if stream is not live</label>
                 </div>
             </div>
             <hr />

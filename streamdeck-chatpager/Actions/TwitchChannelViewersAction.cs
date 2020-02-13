@@ -18,11 +18,12 @@ namespace ChatPager.Actions
 
     //---------------------------------------------------
     //          BarRaider's Hall Of Fame
-    // 100 Bits: Vedeksu
+    // Subscriber: KreatureOfHaviQ
+    // Quote of the day: "Bots have feelings too..." 1/29 - BarRaider
     //---------------------------------------------------
 
-    [PluginActionId("com.barraider.twitchtools.shoutout")]
-    public class TwitchShoutoutAction : ActionBase
+    [PluginActionId("com.barraider.twitchtools.channelviewers")]
+    public class TwitchChannelViewersAction : ActionBase
     {
         protected class PluginSettings : PluginSettingsBase
         {
@@ -31,13 +32,13 @@ namespace ChatPager.Actions
                 PluginSettings instance = new PluginSettings
                 {
                     TokenExists = false,
-                    ChatMessage = DEFAULT_CHAT_MESSAGE
+                    ChannelName = string.Empty
                 };
                 return instance;
             }
 
-            [JsonProperty(PropertyName = "chatMessage")]
-            public string ChatMessage { get; set; }
+            [JsonProperty(PropertyName = "channelName")]
+            public string ChannelName { get; set; }
         }
 
         protected PluginSettings Settings
@@ -59,13 +60,11 @@ namespace ChatPager.Actions
 
         #region Private Members
 
-        private const string DEFAULT_CHAT_MESSAGE = "!so {USERNAME}";
-
         #endregion
 
         #region Public Methods
 
-        public TwitchShoutoutAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
+        public TwitchChannelViewersAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
         {
             if (payload.Settings == null || payload.Settings.Count == 0)
             {
@@ -77,7 +76,6 @@ namespace ChatPager.Actions
             }
 
             Settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
-            TwitchChat.Instance.Initialize();
             SaveSettings();
         }
 
@@ -86,37 +84,31 @@ namespace ChatPager.Actions
         public override async void KeyPressed(KeyPayload payload)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPressed");
-            if (!TwitchTokenManager.Instance.TokenExists)
-            {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} called without a valid token");
-                await Connection.ShowAlert();
-                return;
-            }
-
-            var chatters = TwitchChat.Instance.GetLastChatters();
-            if (chatters == null)
-            {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, "GetLastChatters returned null");
-                await Connection.ShowAlert();
-                return;
-            }
+            var viewers = await TwitchChannelInfoManager.Instance.GetChannelViewers(Settings.ChannelName);
 
             // We have a list of usernames, get some more details on them so we can display their image on the StreamDeck
             List<ChatMessageKey> chatMessages = new List<ChatMessageKey>();
-            foreach (string username in chatters)
+            foreach (string username in viewers.AllViewers)
             {
                 var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(username);
 
-                chatMessages.Add(new ChatMessageKey(userInfo.Name, userInfo.ProfileImageUrl, Settings.ChatMessage.Replace("{USERNAME}", $"{userInfo.Name}")));
+                if (userInfo != null)
+                {
+                    chatMessages.Add(new ChatMessageKey(userInfo?.Name, userInfo?.ProfileImageUrl, null));
+                }
+                else
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"Could not fetch twitch user info for user: {username}");
+                }
             }
-            Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {chatMessages?.Count} chat messages");
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {chatMessages?.Count} viewers");
 
             // Show the active chatters on the StreamDeck
             if (chatMessages != null && chatMessages.Count > 0)
             {
                 AlertManager.Instance.Initialize(Connection);
-                AlertManager.Instance.ShowChatMessages(chatMessages.ToArray());
-            }           
+                AlertManager.Instance.ShowChatMessages(chatMessages.OrderBy(c => c.KeyTitle).ToArray());
+            }
         }
 
         public override void KeyReleased(KeyPayload payload) { }
@@ -131,11 +123,16 @@ namespace ChatPager.Actions
                 return;
             }
 
+            if (TwitchTokenManager.Instance.TokenExists && !String.IsNullOrEmpty(Settings.ChannelName))
+            {
+                var viewers = await TwitchChannelInfoManager.Instance.GetChannelViewers(Settings.ChannelName);
+                await Connection.SetTitleAsync($"👀 {viewers?.TotalViewers}");
+            }
         }
 
         public override void ReceivedGlobalSettings(ReceivedGlobalSettingsPayload payload) { }
 
-        public override void ReceivedSettings(ReceivedSettingsPayload payload) 
+        public override void ReceivedSettings(ReceivedSettingsPayload payload)
         {
             Tools.AutoPopulateSettings(Settings, payload.Settings);
             SaveSettings();

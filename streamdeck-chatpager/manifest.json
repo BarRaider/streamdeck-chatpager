@@ -16,6 +16,21 @@
       "PropertyInspectorPath": "PropertyInspector/ChatPager/Channel.html"
     },
     {
+      "Icon": "Images/viewersIcon",
+      "Name": "Channel Live Viewers",
+      "States": [
+        {
+          "Image": "Images/viewersAction",
+          "TitleAlignment": "bottom",
+          "FontSize": "11"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Shows you who is currently viewing your channel.",
+      "UUID": "com.barraider.twitchtools.channelviewers",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/ChannelViewers.html"
+    },
+    {
       "Icon": "Images/clipIcon",
       "Name": "Clip to Chat",
       "States": [
@@ -46,13 +61,28 @@
       "PropertyInspectorPath": "PropertyInspector/ChatPager/LiveStreamers.html"
     },
     {
-      "Icon": "Images/channelIcon",
+      "Icon": "Images/messageIcon",
+      "Name": "Send Message",
+      "States": [
+        {
+          "Image": "Images/messageAction",
+          "TitleAlignment": "middle",
+          "FontSize": "11"
+        }
+      ],
+      "SupportedInMultiActions": true,
+      "Tooltip": "Sends a preset message to a channel",
+      "UUID": "com.barraider.twitchtools.sendmessage",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/SendMessage.html"
+    },
+    {
+      "Icon": "Images/shoutoutIcon",
       "Name": "Shoutout",
       "States": [
         {
-          "Image": "Images/channelAction",
-          "TitleAlignment": "bottom",
-          "FontSize": "10"
+          "Image": "Images/shoutoutAction",
+          "TitleAlignment": "middle",
+          "FontSize": "12"
         }
       ],
       "SupportedInMultiActions": false,
@@ -61,17 +91,17 @@
       "PropertyInspectorPath": "PropertyInspector/ChatPager/Shoutout.html"
     },
     {
-      "Icon": "Images/channelIcon",
-      "Name": "Change Stream Title/Game",
+      "Icon": "Images/streamTitleIcon",
+      "Name": "Change Stream Title/Game/Tags",
       "States": [
         {
-          "Image": "Images/channelAction",
+          "Image": "Images/streamTitleAction",
           "TitleAlignment": "bottom",
           "FontSize": "10"
         }
       ],
       "SupportedInMultiActions": true,
-      "Tooltip": "Allows you to change the Stream's status and game from text files",
+      "Tooltip": "Allows you to change the Stream's status, game and tags from text files",
       "UUID": "com.barraider.twitchtools.streamtitle",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/StreamTitle.html"
     },
@@ -111,7 +141,7 @@
   "Name": "Twitch Tools",
   "Icon": "Images/pluginIcon",
   "URL": "https://BarRaider.com/",
-  "Version": "2.0",
+  "Version": "2.1",
   "CodePath": "com.barraider.twitchtools",
   "Category": "Twitch Tools [BarRaider]",
   "CategoryIcon": "Images/categoryIcon",
