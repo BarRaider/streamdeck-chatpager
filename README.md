@@ -4,6 +4,16 @@
 
 **Author's website and contact information:** [https://barraider.com](https://barraider.com)
 
+### New in v2.1
+- New `Send Message` allows you to send messages to any channel you want (not just your own!).
+- Support for reading the message from a file. Allows you to create dynamic messages (like current song played on Spotify)
+- Both `Shoutout` and `Send Message` now support sending /commands. (Try writing a message starting with `/me`). Create a Shoutout with `/ban {USERNAME}` to choose which username to ban. :pogchamp:
+- New `Channel Live Viewers` action shows you everyone who's currently watching you stream.
+- `Change Stream/Title` action now also allows setting the ***tags*** for the stream. Up to 5 tags are supported. This too is loaded from a file (and thus can be dynamic).
+- `Channel Monitor` - Sound support when a streamer goes live
+- `Channel Monitor` - New option to *NOT* show a stream preview when channel is live
+- `Channel Monitor` - New option to show stream logo as Gray when channel is not live.
+
 ### New in v2.0
 
 **Chat Pager**  
