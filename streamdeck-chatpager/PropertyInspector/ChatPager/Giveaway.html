@@ -1,0 +1,93 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover">
+    <meta name=apple-mobile-web-app-capable content=yes>
+    <meta name=apple-mobile-web-app-status-bar-style content=black>
+    <title>Twitch Send Message</title>
+    <link rel="stylesheet" href="../sdpi.css">
+    <script src="../sdtools.common.js"></script>
+    <script src="../setup.js"></script>
+    <script src="../Giveaway.js"></script>
+</head>
+<body>
+    <div class="sdpi-wrapper">
+        <details class="message info">
+            <summary>For feedback/suggestions contact me at <span class="linkspan" onclick="openWebsite()">https://BarRaider.com</span> </summary>
+        </details>
+        <div type="range" class="sdpi-item">
+            <details class="message">
+                <summary>First short press will start giveaway. Every additional short press will name a winner. Long press key to reset and end giveaway. Or use the two buttons below</summary>
+            </details>
+        </div>
+        <div id="sdWrapper" style="display:none;">
+            <div class="sdpi-item" id="dvCommand">
+                <div class="sdpi-item-label">Signup Command</div>
+                <input class="sdpi-item-value sdProperty" placeholder="!giveaway" id="command" oninput="setSettings()">
+            </div>
+            <div class="sdpi-item" id="dvItem">
+                <div class="sdpi-item-label">Giveaway Item</div>
+                <input class="sdpi-item-value sdProperty" placeholder="a Steam key" id="item" oninput="setSettings()">
+            </div>
+            <div class="sdpi-item" id="dvReminder">
+                <div class="sdpi-item-label">Giveaway Reminder every (minutes)</div>
+                <input class="sdpi-item-value sdProperty" id="reminder" inputmode="numeric" pattern="[0-9]*" type="number" placeholder="1" oninput="setSettings()">
+            </div>
+            <div type="checkbox" class="sdpi-item" id="dvPauseAfterFirstDraw">
+                <div class="sdpi-item-label">Limit Giveaway</div>
+                <div class="sdpi-item-value">
+                    <input id="pauseAfterFirstDraw" type="checkbox" value="" class="sdProperty sdCheckbox" oninput="setSettings()">
+                    <label for="pauseAfterFirstDraw" class="sdpi-item-label"><span></span>Stop new entries after 1st draw</label>
+                </div>
+            </div>
+            <div class="sdpi-item" id="dvWinnersFileName">
+                <div class="sdpi-item-label">Winners File</div>
+                <input class="sdpi-item-value sdProperty hasFileButton" disabled value="" id="winnersFileName">
+                <button class="max100 minmargin" onclick="openSaveFilePicker('Store names of winners in file', 'Text files (*.txt)|*.txt|All files (*.*)|*.*', 'winnersFileName');">...</button>
+            </div>
+            <div type="checkbox" class="sdpi-item" id="dvAutoDraw">
+                <div class="sdpi-item-label">Auto Draw</div>
+                <div class="sdpi-item-value">
+                    <input id="autoDraw" type="checkbox" value="" class="sdProperty sdCheckbox" oninput="setSettings()">
+                    <label for="autoDraw" class="sdpi-item-label"><span></span>Use timer to select winner</label>
+                </div>
+            </div>
+            <div id="dvAutoDrawSettings">
+                <div class="sdpi-item" id="dvTimerTime">
+                    <div class="sdpi-item-label">Countdown</div>
+                    <input class="sdpi-item-value sdProperty" placeholder="00:05:00" value="" id="timerInterval" oninput="setSettings()">
+                </div>
+                <div class="sdpi-item" id="dvTimerFileName">
+                    <div class="sdpi-item-label">Timer File</div>
+                    <input class="sdpi-item-value sdProperty hasFileButton" disabled value="" id="timerFileName">
+                    <button class="max100 minmargin" onclick="openSaveFilePicker('Store timer in file to show on stream', 'Text files (*.txt)|*.txt|All files (*.*)|*.*', 'timerFileName');">...</button>
+                </div>
+                <div type="range" class="sdpi-item">
+                    <details class="message">
+                        <summary>Note: Don't switch to another SD profile while Auto-Draw is counting down</summary>
+                    </details>
+                </div>
+            </div>
+            <div class="sdpi-item" id="dvChooseWinner">
+                <div class="sdpi-item-label">Choose Winner</div>
+                <button class="sdpi-item-value" onclick="chooseWinner()">Choose Winner</button>
+            </div>
+            <div class="sdpi-item" id="dvEndGiveaway">
+                <div class="sdpi-item-label">Reset Giveaway</div>
+                <button class="sdpi-item-value" onclick="endGiveaway()">Reset Giveaway</button>
+            </div>
+            <hr />
+            <div class="sdpi-item" id="dvReset">
+                <div class="sdpi-item-label">Revoke Approval</div>
+                <button class="sdpi-item-value max20" onclick="resetPlugin()">Revoke</button>
+                <p>Plugin will no longer communicate with Twitch and will ask for a new Approval Code</p>
+            </div>
+
+            <div class="sdpi-item" id="dvHdn">
+                <input value="" type="hidden" id="tokenExists" class="sdProperty" oninput="setSettings()">
+            </div>
+        </div>
+    </div>
+</body>
+</html>

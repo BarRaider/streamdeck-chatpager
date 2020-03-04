@@ -10,6 +10,8 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <UserSecretsId>20082251-0bfa-41b0-809f-befa2ea5d218</UserSecretsId>
+    <ApplicationIcon />
+    <StartupObject />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp2.2|AnyCPU'">
     <OutputPath>bin\debug\com.barraider.chatpager.core</OutputPath>
@@ -33,6 +35,9 @@
     <PackageReference Include="TwitchLib" Version="3.0.1" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="PickersUtil">
+      <HintPath>..\..\PickersUtil\PickersUtil\bin\Release\PickersUtil.dll</HintPath>
+    </Reference>
     <Reference Include="System">
       <HintPath>System</HintPath>
     </Reference>
@@ -47,6 +52,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Update="FullScreenAlert.streamDeckProfile">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="FullScreenAlertMini.streamDeckProfile">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="FullScreenAlertXL.streamDeckProfile">
@@ -88,6 +96,18 @@
     <None Update="Images\clipIcon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Images\giveawayAction%402x.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\giveawayAction.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\giveawayIcon%402x.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\giveawayIcon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Images\icon%402x.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -104,6 +124,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Images\messageIcon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\noicon%402x.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Images\noicon.png">
@@ -170,10 +193,16 @@
     <None Update="PropertyInspector\ChatPager\ChannelViewers.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="PropertyInspector\ChatPager\Giveaway.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="PropertyInspector\ChatPager\SendMessage.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="PropertyInspector\ChatPager\StreamTitle.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="PropertyInspector\Giveaway.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="PropertyInspector\SendMessage.js">

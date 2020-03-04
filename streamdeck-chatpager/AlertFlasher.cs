@@ -32,6 +32,7 @@ namespace ChatPager
         private const string PREVIEW_IMAGE_HEIGHT_TOKEN = "{height}";
         private const int LONG_KEYPRESS_LENGTH_MS = 600;
         private const string RAID_COMMAND = "/raid ";
+        private const string HOST_COMMAND = "/host ";
 
         private int stringMessageIndex;
         private readonly int deviceColumns = 0;
@@ -41,6 +42,7 @@ namespace ChatPager
         private int pagedSequentialKey = 0;
         private bool twoLettersPerKey;
         private string channelName;
+        private TwitchLiveStreamersLongPressAction liveStreamersLongPressAction;
         private string chatMessage;
         private readonly StreamDeckDeviceType deviceType;
         private FlashMode flashMode;
@@ -114,7 +116,15 @@ namespace ChatPager
                 }
                 else if (!String.IsNullOrEmpty(chatMessage))
                 {
-                    TwitchChat.Instance.SendMessage(chatMessage);
+                    if (!String.IsNullOrEmpty(channelName))
+                    {
+                        TwitchChat.Instance.SendMessage(channelName, chatMessage);
+                    }
+                    else
+                    {
+                        TwitchChat.Instance.SendMessage(chatMessage);
+                    }
+                    
                 }
             }
             else if (flashMode == FlashMode.ActiveStreamers)
@@ -175,6 +185,7 @@ namespace ChatPager
             flashMode = FlashMode.ActiveStreamers;
             pagedSequentialKey = e.CurrentPage * (e.NumberOfKeys - 2) + sequentialKey;
             channelName = String.Empty;
+            liveStreamersLongPressAction = e.LongPressAction;
             if (sequentialKey == 0)
             {
                 await Connection.SetTitleAsync("Exit");
@@ -199,6 +210,7 @@ namespace ChatPager
         private async void Instance_ChatMessageListChanged(object sender, ChatMessageListEventArgs e)
         {
             flashMode = FlashMode.ChatMessage;
+            channelName = e.Channel;
             pagedSequentialKey = e.CurrentPage * (e.NumberOfKeys - 2) + sequentialKey;
             if (sequentialKey == 0)
             {
@@ -426,7 +438,14 @@ namespace ChatPager
                 }
                 else if (!String.IsNullOrEmpty(channelName)) // Normal key
                 {
-                    TwitchChat.Instance.SendMessage(RAID_COMMAND + channelName);
+                    if (liveStreamersLongPressAction == TwitchLiveStreamersLongPressAction.Raid)
+                    {
+                        TwitchChat.Instance.SendMessage(RAID_COMMAND + channelName);
+                    }
+                    else
+                    {
+                        TwitchChat.Instance.SendMessage(HOST_COMMAND + channelName);
+                    }
                 }
             }
         }

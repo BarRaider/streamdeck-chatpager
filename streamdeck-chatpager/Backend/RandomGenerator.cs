@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChatPager.Wrappers
+namespace ChatPager.Backend
 { 
     public static class RandomGenerator
     {
-        private static Random random = new Random();
+        private static readonly Random random = new Random();
 
         public static int Next(int maxValue)
         {

@@ -16,6 +16,13 @@
         <details class="message info">
             <summary>For feedback/suggestions contact me at <span class="linkspan" onclick="openWebsite()">https://BarRaider.com</span> </summary>
         </details>
+        <div class="sdpi-item" id="select_single">
+            <div class="sdpi-item-label">Long Press</div>
+            <select class="sdpi-item-value select sdProperty" id="longPressAction" oninput="setSettings()">
+                <option value="0" selected>Raids Streamer</option>
+                <option value="1">Hosts Streamer</option>
+            </select>
+        </div>
         <div id="sdWrapper" style="display:none;">
             <hr />
             <div class="sdpi-item" id="dvReset">

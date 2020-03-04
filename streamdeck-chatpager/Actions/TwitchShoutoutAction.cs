@@ -31,13 +31,17 @@ namespace ChatPager.Actions
                 PluginSettings instance = new PluginSettings
                 {
                     TokenExists = false,
-                    ChatMessage = DEFAULT_CHAT_MESSAGE
+                    ChatMessage = DEFAULT_CHAT_MESSAGE,
+                    Channel = String.Empty
                 };
                 return instance;
             }
 
             [JsonProperty(PropertyName = "chatMessage")]
             public string ChatMessage { get; set; }
+
+            [JsonProperty(PropertyName = "channel")]
+            public string Channel { get; set; }
         }
 
         protected PluginSettings Settings
@@ -115,7 +119,7 @@ namespace ChatPager.Actions
             if (chatMessages != null && chatMessages.Count > 0)
             {
                 AlertManager.Instance.Initialize(Connection);
-                AlertManager.Instance.ShowChatMessages(chatMessages.ToArray());
+                AlertManager.Instance.ShowChatMessages(chatMessages.ToArray(), Settings.Channel);
             }           
         }
 

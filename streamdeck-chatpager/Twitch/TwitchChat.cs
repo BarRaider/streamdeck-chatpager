@@ -5,6 +5,7 @@ using System.Text;
 using TwitchLib.Client;
 using TwitchLib.Client.Models;
 using System.Linq;
+using ChatPager.Wrappers;
 
 namespace ChatPager.Twitch
 {
@@ -63,6 +64,7 @@ namespace ChatPager.Twitch
         #region Public Members
 
         public event EventHandler<PageRaisedEventArgs> PageRaised;
+        public event EventHandler<ChatMessageReceivedEventArgs> OnChatMessageReceived;
 
         public bool IsConnected
         {
@@ -255,6 +257,7 @@ namespace ChatPager.Twitch
 
         private void HandleReceivedMessage(ChatMessage msg)
         {
+            OnChatMessageReceived?.Invoke(this, new ChatMessageReceivedEventArgs(msg.Message, msg.Username));
             string userName = msg.Username.ToLowerInvariant();
             dictUserMessages[userName] = DateTime.Now;
         }

@@ -29,7 +29,7 @@ namespace ChatPager.Actions
 
         public ActionBase(SDConnection connection, InitialPayload payload) : base(connection, payload)
         {
-            Connection.StreamDeckConnection.OnSendToPlugin += StreamDeckConnection_OnSendToPlugin;
+            Connection.OnSendToPlugin += Connection_OnSendToPlugin;
             TwitchTokenManager.Instance.TokenStatusChanged += Instance_TokenStatusChanged;
         }
 
@@ -38,7 +38,7 @@ namespace ChatPager.Actions
         public override void Dispose()
         {
             TwitchTokenManager.Instance.TokenStatusChanged -= Instance_TokenStatusChanged;
-            Connection.StreamDeckConnection.OnSendToPlugin -= StreamDeckConnection_OnSendToPlugin;
+            Connection.OnSendToPlugin -= Connection_OnSendToPlugin;
             Logger.Instance.LogMessage(TracingLevel.INFO, $"Base Destructor called");
         }
 
@@ -63,13 +63,9 @@ namespace ChatPager.Actions
 
 
         // Used to register and revoke token
-        private async void StreamDeckConnection_OnSendToPlugin(object sender, streamdeck_client_csharp.StreamDeckEventReceivedEventArgs<streamdeck_client_csharp.Events.SendToPluginEvent> e)
+        private async void Connection_OnSendToPlugin(object sender, BarRaider.SdTools.Wrappers.SDEventReceivedEventArgs<BarRaider.SdTools.Events.SendToPlugin> e)
         {
             var payload = e.Event.Payload;
-            if (Connection.ContextId != e.Event.Context)
-            {
-                return;
-            }
 
             if (payload["property_inspector"] != null)
             {

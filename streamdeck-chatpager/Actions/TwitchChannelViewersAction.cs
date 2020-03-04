@@ -107,7 +107,7 @@ namespace ChatPager.Actions
             if (chatMessages != null && chatMessages.Count > 0)
             {
                 AlertManager.Instance.Initialize(Connection);
-                AlertManager.Instance.ShowChatMessages(chatMessages.OrderBy(c => c.KeyTitle).ToArray());
+                AlertManager.Instance.ShowChatMessages(chatMessages.OrderBy(c => c.KeyTitle).ToArray(), null);
             }
         }
 

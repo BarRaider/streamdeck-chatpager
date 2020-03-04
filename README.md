@@ -4,17 +4,22 @@
 
 **Author's website and contact information:** [https://barraider.com](https://barraider.com)
 
-### New in v2.1
-- New `Send Message` allows you to send messages to any channel you want (not just your own!).
-- Support for reading the message from a file. Allows you to create dynamic messages (like current song played on Spotify)
-- Both `Shoutout` and `Send Message` now support sending /commands. (Try writing a message starting with `/me`). Create a Shoutout with `/ban {USERNAME}` to choose which username to ban. :pogchamp:
-- New `Channel Live Viewers` action shows you everyone who's currently watching you stream.
-- `Change Stream/Title` action now also allows setting the ***tags*** for the stream. Up to 5 tags are supported. This too is loaded from a file (and thus can be dynamic).
-- `Channel Monitor` - Sound support when a streamer goes live
-- `Channel Monitor` - New option to *NOT* show a stream preview when channel is live
-- `Channel Monitor` - New option to show stream logo as Gray when channel is not live.
+## New in v2.2
+- :new: `GiveAway` action - Control your Stream giveaways from the Stream Deck
+    - Customizable registration command and giveaway title
+    - Shows number of people currently entered on the key
+    - Randomly selects the winner
+    - Saves winners to file (so you don't have to deal with the who won what while streaming)
+    - Shows winner's name on stream
+    - `Auto-Draw` feature sets a countdown and automatically selects a winner when time is up
+    - Auto-Reminders in chat that giveaway is active
+- `Live Streamers` action now lets you choose if a long press Raids or Hosts the streamer
+- `Shoutout` commands can now be sent to any channel (not just your own) -> More control for mods!
+- **Support for the Stream Deck Mini!**
 
-### New in v2.0
+For more information see: https://github.com/BarRaider/streamdeck-chatpager/
+
+## Features
 
 **Chat Pager**  
 The Twitch Chat Pager plugin listens to your Twitch chat and gives you a visual alert if someone uses the !page command.  
@@ -26,11 +31,17 @@ Shows you when your favorite streamer is live. Clicking the button will take you
 **Live Streamers**  
 Pressing this action will use all your Stream Deck keys to shows you which of the streamers you follow are currently live + viewer count. Clicking the button will take you to their stream.
 
-**Shoutout**  
-Shows you a list of the latest people that chatted/raided/subscribed to your channel, allowing you to send them an automated message in chat.
+**Send Message**  
+Allows you to send messages to any channel you want (not just your own!).
+- Support for reading the message from a file, allows you to create dynamic messages (like current song played on Spotify)
 
-**Change Title/Game**  
-Allows you to load the Stream's title and game from a file. Works along with the Text File Tools to dynamically modify what game/title you want shown.
+**Shoutout**  
+Shows you a list of the latest people that chatted/raided/subscribed to your channel, allowing you to send them an automated message in chat. 
+
+* Both `Shoutout` and `Send Message` now support sending `/commands`. (Try writing a message starting with `/me`). Create a Shoutout with `/ban {USERNAME}` to choose which username to ban.
+
+**Change Title/Game/Tags**  
+Allows you to load the Stream's title, game, and tags from a file. Works along with the Text File Tools to dynamically modify what game/title you want shown.
     - Adding multiple lines in the "Title" file will cause the plugin to randomly choose one (allowing you to generate multiple similar titles for the same game).
 
 **Clip-To-Chat**  

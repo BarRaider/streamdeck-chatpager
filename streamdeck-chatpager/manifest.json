@@ -1,6 +1,21 @@
 {
   "Actions": [
     {
+      "Icon": "Images/streamTitleIcon",
+      "Name": "Change Stream Title/Game/Tags",
+      "States": [
+        {
+          "Image": "Images/streamTitleAction",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": true,
+      "Tooltip": "Allows you to change the Stream's status, game and tags from text files",
+      "UUID": "com.barraider.twitchtools.streamtitle",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/StreamTitle.html"
+    },
+    {
       "Icon": "Images/channelIcon",
       "Name": "Channel Monitor",
       "States": [
@@ -16,21 +31,6 @@
       "PropertyInspectorPath": "PropertyInspector/ChatPager/Channel.html"
     },
     {
-      "Icon": "Images/viewersIcon",
-      "Name": "Channel Live Viewers",
-      "States": [
-        {
-          "Image": "Images/viewersAction",
-          "TitleAlignment": "bottom",
-          "FontSize": "11"
-        }
-      ],
-      "SupportedInMultiActions": false,
-      "Tooltip": "Shows you who is currently viewing your channel.",
-      "UUID": "com.barraider.twitchtools.channelviewers",
-      "PropertyInspectorPath": "PropertyInspector/ChatPager/ChannelViewers.html"
-    },
-    {
       "Icon": "Images/clipIcon",
       "Name": "Clip to Chat",
       "States": [
@@ -44,6 +44,21 @@
       "Tooltip": "Creates a twitch clip and posts it in chat.",
       "UUID": "com.barraider.twitchtools.cliptochat",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/LiveStreamers.html"
+    },
+    {
+      "Icon": "Images/giveawayIcon",
+      "Name": "Giveaway",
+      "States": [
+        {
+          "Image": "Images/giveawayAction",
+          "TitleAlignment": "middle",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": true,
+      "Tooltip": "Allows to manage Giveaways from your Stream Deck",
+      "UUID": "com.barraider.twitchtools.giveaway",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/Giveaway.html"
     },
     {
       "Icon": "Images/channelIcon",
@@ -91,21 +106,6 @@
       "PropertyInspectorPath": "PropertyInspector/ChatPager/Shoutout.html"
     },
     {
-      "Icon": "Images/streamTitleIcon",
-      "Name": "Change Stream Title/Game/Tags",
-      "States": [
-        {
-          "Image": "Images/streamTitleAction",
-          "TitleAlignment": "bottom",
-          "FontSize": "10"
-        }
-      ],
-      "SupportedInMultiActions": true,
-      "Tooltip": "Allows you to change the Stream's status, game and tags from text files",
-      "UUID": "com.barraider.twitchtools.streamtitle",
-      "PropertyInspectorPath": "PropertyInspector/ChatPager/StreamTitle.html"
-    },
-    {
       "Icon": "Images/icon",
       "Name": "Twitch Pager",
       "States": [
@@ -119,6 +119,21 @@
       "Tooltip": "Listens to your twitch chat and gives you a visual alert if someone uses the !page command.",
       "UUID": "com.barraider.twitchtools.twitchpager",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/Twitch.html"
+    },
+    {
+      "Icon": "Images/viewersIcon",
+      "Name": "Viewers",
+      "States": [
+        {
+          "Image": "Images/viewersAction",
+          "TitleAlignment": "bottom",
+          "FontSize": "11"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Shows you who is currently viewing a channel.",
+      "UUID": "com.barraider.twitchtools.channelviewers",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/ChannelViewers.html"
     },
     {
       "Icon": "Images/icon",
@@ -141,7 +156,7 @@
   "Name": "Twitch Tools",
   "Icon": "Images/pluginIcon",
   "URL": "https://BarRaider.com/",
-  "Version": "2.1",
+  "Version": "2.2",
   "CodePath": "com.barraider.twitchtools",
   "Category": "Twitch Tools [BarRaider]",
   "CategoryIcon": "Images/categoryIcon",
@@ -159,6 +174,12 @@
       "DontAutoSwitchWhenInstalled": true
     },
     {
+      "Name": "FullScreenAlertMini",
+      "ReadOnly": true,
+      "DeviceType": 1,
+      "DontAutoSwitchWhenInstalled": true
+    },
+    {
       "Name": "FullScreenAlertXL",
       "ReadOnly": true,
       "DeviceType": 2,
@@ -167,6 +188,6 @@
   ],
   "SDKVersion": 2,
   "Software": {
-    "MinimumVersion": "4.5"
+    "MinimumVersion": "4.5.1"
   }
 }

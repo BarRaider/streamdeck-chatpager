@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ChatPager.Twitch
+namespace ChatPager.Wrappers
 {
     public class PageRaisedEventArgs : EventArgs
     {

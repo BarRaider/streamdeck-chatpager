@@ -120,18 +120,25 @@ namespace ChatPager
             FlashStatusChanged?.Invoke(this, new FlashStatusEventArgs(Color.Empty, null));
         }
 
-        public async void ShowActiveStreamers(TwitchActiveStreamer[] streamers)
+        public async void ShowActiveStreamers(TwitchActiveStreamer[] streamers, TwitchLiveStreamersLongPressAction longPressAction)
         {
             StopFlash();
             Logger.Instance.LogMessage(TracingLevel.INFO, $"ShowActiveStreamers called");
 
-            if (connection.DeviceInfo().Type == StreamDeckDeviceType.StreamDeckClassic)
+            switch (connection.DeviceInfo().Type)
             {
-                await connection.SwitchProfileAsync("FullScreenAlert");
-            }
-            else
-            {
-                await connection.SwitchProfileAsync("FullScreenAlertXL");
+                case StreamDeckDeviceType.StreamDeckClassic:
+                    await connection.SwitchProfileAsync("FullScreenAlert");
+                    break;
+                case StreamDeckDeviceType.StreamDeckMini:
+                    await connection.SwitchProfileAsync("FullScreenAlertMini");
+                    break;
+                case StreamDeckDeviceType.StreamDeckXL:
+                    await connection.SwitchProfileAsync("FullScreenAlertXL");
+                    break;
+                default:
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"SwitchProfileAsync: Unsupported device type: {connection.DeviceInfo().Type}");
+                    break;
             }
 
             // Wait until the GameUI Action keys have subscribed to get events
@@ -141,7 +148,7 @@ namespace ChatPager
                 Thread.Sleep(100);
                 retries++;
             }
-            streamersEventArgs = new ActiveStreamersEventArgs(streamers, numberOfKeys, 0);
+            streamersEventArgs = new ActiveStreamersEventArgs(streamers, longPressAction, numberOfKeys, 0);
 
             ActiveStreamersChanged?.Invoke(this, streamersEventArgs);
         }
@@ -168,18 +175,25 @@ namespace ChatPager
             ActiveStreamersChanged?.Invoke(this, streamersEventArgs);
         }
 
-        public async void ShowChatMessages(ChatMessageKey[] chatMessageKeys)
+        public async void ShowChatMessages(ChatMessageKey[] chatMessageKeys, string channel)
         {
             StopFlash();
             Logger.Instance.LogMessage(TracingLevel.INFO, $"ShowChatMessages called");
 
-            if (connection.DeviceInfo().Type == StreamDeckDeviceType.StreamDeckClassic)
+            switch (connection.DeviceInfo().Type)
             {
-                await connection.SwitchProfileAsync("FullScreenAlert");
-            }
-            else
-            {
-                await connection.SwitchProfileAsync("FullScreenAlertXL");
+                case StreamDeckDeviceType.StreamDeckClassic:
+                    await connection.SwitchProfileAsync("FullScreenAlert");
+                    break;
+                case StreamDeckDeviceType.StreamDeckMini:
+                    await connection.SwitchProfileAsync("FullScreenAlertMini");
+                    break;
+                case StreamDeckDeviceType.StreamDeckXL:
+                    await connection.SwitchProfileAsync("FullScreenAlertXL");
+                    break;
+                default:
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"SwitchProfileAsync: Unsupported device type: {connection.DeviceInfo().Type}");
+                    break;
             }
 
             // Wait until the GameUI Action keys have subscribed to get events
@@ -190,7 +204,7 @@ namespace ChatPager
                 retries++;
             }
 
-            chatMessageEventArgs = new ChatMessageListEventArgs(chatMessageKeys, numberOfKeys, 0);
+            chatMessageEventArgs = new ChatMessageListEventArgs(chatMessageKeys, channel, numberOfKeys, 0);
             ChatMessageListChanged?.Invoke(this, chatMessageEventArgs);
         }
 
@@ -199,7 +213,7 @@ namespace ChatPager
 
         #region Private Methods
 
-        private void Chat_PageRaised(object sender, PageRaisedEventArgs e)
+        private async void Chat_PageRaised(object sender, PageRaisedEventArgs e)
         {
             SavePageToFile($"{global.FilePrefix}{e.Message}");
             if (!global.FullScreenAlert)
@@ -216,13 +230,20 @@ namespace ChatPager
             Logger.Instance.LogMessage(TracingLevel.INFO, $"Full screen alert: {pageMessage ?? String.Empty}");
             InitFlash();
 
-            if (connection.DeviceInfo().Type == StreamDeckDeviceType.StreamDeckClassic)
+            switch (connection.DeviceInfo().Type)
             {
-                connection.SwitchProfileAsync("FullScreenAlert");
-            }
-            else
-            {
-                connection.SwitchProfileAsync("FullScreenAlertXL");
+                case StreamDeckDeviceType.StreamDeckClassic:
+                    await connection.SwitchProfileAsync("FullScreenAlert");
+                    break;
+                case StreamDeckDeviceType.StreamDeckMini:
+                    await connection.SwitchProfileAsync("FullScreenAlertMini");
+                    break;
+                case StreamDeckDeviceType.StreamDeckXL:
+                    await connection.SwitchProfileAsync("FullScreenAlertXL");
+                    break;
+                default:
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"SwitchProfileAsync: Unsupported device type: {connection.DeviceInfo().Type}");
+                    break;
             }
         }
 

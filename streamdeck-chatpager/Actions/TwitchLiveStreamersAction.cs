@@ -1,5 +1,6 @@
 ﻿using BarRaider.SdTools;
 using ChatPager.Twitch;
+using ChatPager.Wrappers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -14,7 +15,10 @@ using System.Threading.Tasks;
 
 namespace ChatPager.Actions
 {
-
+    //---------------------------------------------------
+    //          BarRaider's Hall Of Fame
+    // Subscriber: nubby_ninja
+    //---------------------------------------------------    
     [PluginActionId("com.barraider.twitchtools.livestreamers")]
     public class TwitchLiveStreamersAction : ActionBase
     {
@@ -24,10 +28,14 @@ namespace ChatPager.Actions
             {
                 PluginSettings instance = new PluginSettings
                 {
-                    TokenExists = false
+                    TokenExists = false,
+                    LongPressAction = TwitchLiveStreamersLongPressAction.Raid
                 };
                 return instance;
-            }           
+            }
+
+            [JsonProperty(PropertyName = "longPressAction")]
+            public TwitchLiveStreamersLongPressAction LongPressAction { get; set; }
         }
 
         protected PluginSettings Settings
@@ -77,7 +85,7 @@ namespace ChatPager.Actions
             if (streamers != null)
             {
                 AlertManager.Instance.Initialize(Connection);
-                AlertManager.Instance.ShowActiveStreamers(streamers.Reverse().ToArray());
+                AlertManager.Instance.ShowActiveStreamers(streamers.Reverse().ToArray(), Settings.LongPressAction);
             }
             else
             {
@@ -107,7 +115,11 @@ namespace ChatPager.Actions
 
         public override void ReceivedGlobalSettings(ReceivedGlobalSettingsPayload payload) { }
 
-        public override void ReceivedSettings(ReceivedSettingsPayload payload) { }
+        public override void ReceivedSettings(ReceivedSettingsPayload payload) 
+        {
+            Tools.AutoPopulateSettings(Settings, payload.Settings);
+            SaveSettings();
+        }
 
         #endregion
 

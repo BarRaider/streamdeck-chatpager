@@ -69,6 +69,7 @@ namespace ChatPager.Actions
             }
 
             Settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
+            TwitchChat.Instance.Initialize();
             SaveSettings();
         }
 

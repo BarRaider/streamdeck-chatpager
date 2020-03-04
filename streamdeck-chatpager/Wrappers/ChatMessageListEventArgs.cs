@@ -14,12 +14,15 @@ namespace ChatPager.Wrappers
 
         public int NumberOfKeys { get; private set; }
 
+        public string Channel { get; private set; }
 
-        public ChatMessageListEventArgs(ChatMessageKey[] chatMessageKeys, int numberOfKeys, int currentPage)
+
+        public ChatMessageListEventArgs(ChatMessageKey[] chatMessageKeys, string channel, int numberOfKeys, int currentPage)
         {
             ChatMessageKeys = chatMessageKeys;
             NumberOfKeys = numberOfKeys;
             CurrentPage = currentPage;
+            Channel = channel;
         }
     }
 }

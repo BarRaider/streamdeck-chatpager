@@ -13,11 +13,14 @@ namespace ChatPager.Wrappers
         public int NumberOfKeys { get; private set; }
         public int CurrentPage { get; set; }
 
-        public ActiveStreamersEventArgs(TwitchActiveStreamer[] activeStreamers, int numberOfKeys, int currentPage)
+        public TwitchLiveStreamersLongPressAction LongPressAction { get; private set; }
+
+        public ActiveStreamersEventArgs(TwitchActiveStreamer[] activeStreamers, TwitchLiveStreamersLongPressAction longPressAction, int numberOfKeys, int currentPage)
         {
             ActiveStreamers = activeStreamers;
             NumberOfKeys = numberOfKeys;
             CurrentPage = currentPage;
+            LongPressAction = longPressAction;
         }
     }
 }
