@@ -152,7 +152,7 @@
     }
   ],
   "Author": "BarRaider",
-  "Description": "Advanced tools to control Twitch from your Stream Deck. Features include: Twitch Pager (Listens to your twitch chat and gives you a visual alert if someone uses the !page command), Clip-To-Chat, Channel Monitor (Shows you which of your favorite streamers are now live)",
+  "Description": "Advanced tools to control Twitch from your Stream Deck. Features include: Manage Giveaways from your Stream Deck, Twitch Pager (Listens to your twitch chat and gives you a visual alert if someone uses the !page command), Clip-To-Chat, Channel Monitor (Shows you which of your favorite streamers are now live)",
   "Name": "Twitch Tools",
   "Icon": "Images/pluginIcon",
   "URL": "https://BarRaider.com/",
