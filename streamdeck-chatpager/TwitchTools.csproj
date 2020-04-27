@@ -30,7 +30,7 @@
   <ItemGroup>
     <PackageReference Include="HtmlAgilityPack" Version="1.11.17" />
     <PackageReference Include="NAudio" Version="1.9.0" />
-    <PackageReference Include="StreamDeck-Tools" Version="2.7.0" />
+    <PackageReference Include="StreamDeck-Tools" Version="2.8.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.6.0" />
     <PackageReference Include="TwitchLib" Version="3.0.1" />
   </ItemGroup>
