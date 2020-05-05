@@ -21,6 +21,7 @@ namespace ChatPager.Actions
     // Subscriber: nubby_ninja
     // 200 Bits: Nachtmeister666
     // Subscriber: icessassin
+    // Subscriber: Vedeksu
     //---------------------------------------------------
 
     [PluginActionId("com.barraider.twitchtools.channel")]
@@ -35,12 +36,14 @@ namespace ChatPager.Actions
                     TokenExists = false,
                     ChannelName = String.Empty,
                     HideChannelName = false,
-                    HideChannelPreview = false,
                     PlaySoundOnLive = false,
                     PlaybackDevices = null,
                     PlaybackDevice = String.Empty,
                     PlaySoundOnLiveFile = string.Empty,
-                    GrayscaleImageWhenNotLive = false
+                    GrayscaleImageWhenNotLive = false,
+                    LiveStreamPreview = true,
+                    LiveGameIcon = false,
+                    LiveUserIcon = false
                 };
                 return instance;
             }
@@ -51,6 +54,7 @@ namespace ChatPager.Actions
             [JsonProperty(PropertyName = "hideChannelName")]
             public bool HideChannelName { get; set; }
 
+            [Obsolete("Should no longer be used")]
             [JsonProperty(PropertyName = "hideChannelPreview")]
             public bool HideChannelPreview { get; set; }
 
@@ -69,7 +73,15 @@ namespace ChatPager.Actions
 
             [JsonProperty(PropertyName = "grayscaleImageWhenNotLive")]
             public bool GrayscaleImageWhenNotLive { get; set; }
-            
+
+            [JsonProperty(PropertyName = "liveStreamPreview")]
+            public bool LiveStreamPreview { get; set; }
+
+            [JsonProperty(PropertyName = "liveGameIcon")]
+            public bool LiveGameIcon { get; set; }
+
+            [JsonProperty(PropertyName = "liveUserIcon")]
+            public bool LiveUserIcon { get; set; }
         }
 
         protected PluginSettings Settings
@@ -285,15 +297,10 @@ namespace ChatPager.Actions
                 // Should we refresh the image?
                 if ((DateTime.Now - lastImageUpdate).TotalSeconds >= 60)
                 {
-                    // Only switch to channel preview if channelInfo is not null AND user did not request to hide preview
-                    if (channelInfo != null && !Settings.HideChannelPreview)
+                    thumbnailImage = null;
+
+                    if (!isLive) // Handle non live streamer
                     {
-                        thumbnailImage = FetchImage(channelInfo.ThumbnailUrl.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString()));
-                        lastImageUpdate = DateTime.Now;
-                    }
-                    else // Could not fetch channelInfo
-                    {
-                        // Get the user info to fetch the image
                         var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(Settings.ChannelName);
                         if (userInfo != null)
                         {
@@ -301,14 +308,41 @@ namespace ChatPager.Actions
                             lastImageUpdate = DateTime.Now;
 
                             // Make the image grayscale
-                            if (!isLive && Settings.GrayscaleImageWhenNotLive)
+                            if (Settings.GrayscaleImageWhenNotLive)
                             {
                                 thumbnailImage = System.Windows.Forms.ToolStripRenderer.CreateDisabledImage(thumbnailImage);
                             }
                         }
-                        else
+                        return;
+                    }
+
+                    // Streamer is live!
+                    // Only switch to stream preview if channelInfo is not null AND user wants the stream preview
+                    if (channelInfo != null && Settings.LiveStreamPreview)
+                    {
+                        thumbnailImage = FetchImage(channelInfo.ThumbnailUrl.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString()));
+                        lastImageUpdate = DateTime.Now;
+                    }
+                    else if (channelInfo != null && Settings.LiveGameIcon) // User wants to see the game icon
+                    {
+                        if (!String.IsNullOrEmpty(channelInfo.GameId))
                         {
-                            thumbnailImage = null;
+                            var gameInfo = await TwitchChannelInfoManager.Instance.GetGameInfo(channelInfo.GameId);
+                            if (gameInfo != null)
+                            {
+                                thumbnailImage = FetchImage(gameInfo.ImageUrl.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString()));
+                                lastImageUpdate = DateTime.Now;
+                            }
+                        }
+                    }
+                    else if (Settings.LiveUserIcon) // User wants the user's icon
+                    {
+                        // Get the user info to fetch the image
+                        var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(Settings.ChannelName);
+                        if (userInfo != null)
+                        {
+                            thumbnailImage = FetchImage(userInfo.ProfileImageUrl.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString()));
+                            lastImageUpdate = DateTime.Now;
                         }
                     }
                 }
@@ -317,6 +351,7 @@ namespace ChatPager.Actions
 
         private void InitializeSettings()
         {
+            SetLiveImageSetting();
             PropagatePlaybackDevices();
         }
 
@@ -394,6 +429,26 @@ namespace ChatPager.Actions
                 }
             }
             return -1;
+        }
+
+        private void SetLiveImageSetting()
+        {
+            // Check if at least one of these settings are enabled, if it is - no need to do anything
+            if (Settings.LiveUserIcon || Settings.LiveStreamPreview || Settings.LiveGameIcon)
+            {
+                return;
+            }
+
+            // Should run once when moving to version Twitch Tools 2.3 (backwards compability)
+            if (Settings.HideChannelPreview)
+            {
+                Settings.LiveUserIcon = true;
+            }
+            else
+            {
+                Settings.LiveStreamPreview = true;
+            }
+            SaveSettings();
         }
 
         #endregion

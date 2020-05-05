@@ -6,6 +6,7 @@ using TwitchLib.Client;
 using TwitchLib.Client.Models;
 using System.Linq;
 using ChatPager.Wrappers;
+using System.Drawing;
 
 namespace ChatPager.Twitch
 {
@@ -200,6 +201,11 @@ namespace ChatPager.Twitch
             return null;
         }
 
+        public void RaisePageAlert(string message, string color)
+        {
+            PageRaised?.Invoke(this, new PageRaisedEventArgs(message, color));
+        }
+
         #endregion
 
         #region Private Methods
@@ -275,7 +281,7 @@ namespace ChatPager.Twitch
                         if (allowedPagers == null || allowedPagers.Count == 0 || allowedPagers.Contains(msg.DisplayName.ToLowerInvariant()))
                         {
                             lastPage = DateTime.Now;
-                            PageRaised?.Invoke(this, new PageRaisedEventArgs(cmd.ArgumentsAsString));
+                            PageRaised?.Invoke(this, new PageRaisedEventArgs(cmd.ArgumentsAsString, null));
 
                             if (!String.IsNullOrWhiteSpace(ChatMessage))
                             {
@@ -382,8 +388,8 @@ namespace ChatPager.Twitch
 
         private void Client_OnRaidNotification(object sender, TwitchLib.Client.Events.OnRaidNotificationArgs e)
         {
-            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***Raid: {e.RaidNotificaiton.DisplayName}");
-            string userName = e.RaidNotificaiton.DisplayName.ToLowerInvariant();
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***Raid: {e.RaidNotification.DisplayName}");
+            string userName = e.RaidNotification.DisplayName.ToLowerInvariant();
             dictUserMessages[userName] = DateTime.Now;
         }
 

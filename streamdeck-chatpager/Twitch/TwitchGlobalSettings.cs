@@ -47,5 +47,44 @@ namespace ChatPager.Twitch
 
         [JsonProperty(PropertyName = "token")]
         public TwitchToken Token { get; set; }
+
+        [JsonProperty(PropertyName = "pubsubNotifications")]
+        public bool PubsubNotifications { get; set; }
+
+        [JsonProperty(PropertyName = "bitsFlashColor")]
+        public string BitsFlashColor { get; set; }
+
+        [JsonProperty(PropertyName = "bitsFlashMessage")]
+        public string BitsFlashMessage { get; set; }
+
+        [JsonProperty(PropertyName = "bitsChatMessage")]
+        public string BitsChatMessage { get; set; }
+
+        [JsonProperty(PropertyName = "followFlashColor")]
+        public string FollowFlashColor { get; set; }
+
+        [JsonProperty(PropertyName = "followFlashMessage")]
+        public string FollowFlashMessage { get; set; }
+
+        [JsonProperty(PropertyName = "followChatMessage")]
+        public string FollowChatMessage { get; set; }
+
+        [JsonProperty(PropertyName = "subFlashColor")]
+        public string SubFlashColor { get; set; }
+
+        [JsonProperty(PropertyName = "subFlashMessage")]
+        public string SubFlashMessage { get; set; }
+
+        [JsonProperty(PropertyName = "subChatMessage")]
+        public string SubChatMessage { get; set; }
+
+        [JsonProperty(PropertyName = "pointsFlashColor")]
+        public string PointsFlashColor { get; set; }
+
+        [JsonProperty(PropertyName = "pointsFlashMessage")]
+        public string PointsFlashMessage { get; set; }
+
+        [JsonProperty(PropertyName = "pointsChatMessage")]
+        public string PointsChatMessage { get; set; }
     }
 }

@@ -173,7 +173,7 @@ namespace ChatPager.Twitch
             {
                 if (global == null)
                 {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, "Global Settings is null, creating new instance");
+                    Logger.Instance.LogMessage(TracingLevel.WARN, "SaveToken: Global Settings is null, creating new instance");
                     global = new TwitchGlobalSettings();
                 }
 

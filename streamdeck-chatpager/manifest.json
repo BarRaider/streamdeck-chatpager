@@ -43,7 +43,7 @@
       "SupportedInMultiActions": true,
       "Tooltip": "Creates a twitch clip and posts it in chat.",
       "UUID": "com.barraider.twitchtools.cliptochat",
-      "PropertyInspectorPath": "PropertyInspector/ChatPager/LiveStreamers.html"
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/ClipToChat.html"
     },
     {
       "Icon": "Images/giveawayIcon",
@@ -156,7 +156,7 @@
   "Name": "Twitch Tools",
   "Icon": "Images/pluginIcon",
   "URL": "https://BarRaider.com/",
-  "Version": "2.2",
+  "Version": "2.3",
   "CodePath": "com.barraider.twitchtools",
   "Category": "Twitch Tools [BarRaider]",
   "CategoryIcon": "Images/categoryIcon",

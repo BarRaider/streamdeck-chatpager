@@ -27,7 +27,9 @@ namespace ChatPager.Twitch
         private static readonly object objLock = new object();
         private readonly TwitchComm comm;
         private readonly Dictionary<string, TwitchChannelUpdateInfo> dicChannelInfo = new Dictionary<string, TwitchChannelUpdateInfo>();
+        private readonly Dictionary<string, TwitchGameInfo> dicGameInfo = new Dictionary<string, TwitchGameInfo>();
         private readonly SemaphoreSlim channelInfoLock = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim gameInfoLock = new SemaphoreSlim(1, 1);
         private DateTime lastActiveStreamers;
         private TwitchActiveStreamer[] activeStreamers;
         private readonly Dictionary<string, TwitchChannelViewers> dicViewers;
@@ -155,6 +157,48 @@ namespace ChatPager.Twitch
                 Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetActiveStreamers Exception: {ex}");
             }
             return null;
+        }
+
+        public async Task<TwitchGameInfo> GetGameInfo(string gameId)
+        {
+            if (String.IsNullOrEmpty(gameId))
+            {
+                return null;
+            }
+
+            await gameInfoLock.WaitAsync();
+            try
+            {
+                gameId = gameId.ToLowerInvariant();
+                // Check if we already cached the information on this game
+                if (dicGameInfo.ContainsKey(gameId))
+                {
+                    return dicGameInfo[gameId];
+                }
+
+                if (!TwitchTokenManager.Instance.TokenExists)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, "GetGameInfo called without a valid token");
+                    return null;
+                }
+                var gameInfo = await comm.GetGameInfo(gameId);
+                if (gameInfo == null)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"GetGameInfo returned null for GameId: {gameId}");
+                }
+
+                dicGameInfo[gameId] = gameInfo;
+                return gameInfo;
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetGameInfo Exception: {ex}");
+                return null;
+            }
+            finally
+            {
+                gameInfoLock.Release();
+            }
         }
 
         #endregion

@@ -1,5 +1,4 @@
 ﻿using BarRaider.SdTools;
-using ChatPager.Backend;
 using ChatPager.Twitch;
 using ChatPager.Wrappers;
 using HtmlAgilityPack;

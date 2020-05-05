@@ -28,6 +28,7 @@ namespace ChatPager.Twitch
         private const string TWITCH_URI_MY_STREAM_INFO = "/streams/{0}";
         private const string TWITCH_URI_CHANNEL_INFO = "/streams";
         private const string TWITCH_URL_USER_INFO = "/users";
+        private const string TWITCH_URL_GAME_INFO = "/games";
         private const string TWITCH_URL_ACTIVE_STREAMERS = "/streams/followed";
         private const string TWITCH_CREATE_CLIP_URI = "/clips?broadcaster_id=";
         private const string TWITCH_URI_MODIFY_CHANNEL_STATUS = "/channels/{0}";
@@ -244,6 +245,36 @@ namespace ChatPager.Twitch
 
             HttpResponseMessage response = await TwitchHelixQuery(uri, SendMethod.PUT, null, body);
             return response.IsSuccessStatusCode;
+        }
+
+        public async Task<TwitchGameInfo> GetGameInfo(string gameId)
+        {
+            var kvp = new List<KeyValuePair<string, string>>();
+            kvp.Add(new KeyValuePair<string, string>("id", gameId));
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URL_GAME_INFO, SendMethod.GET, kvp, null);
+            if (response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    string body = await response.Content.ReadAsStringAsync();
+                    JObject json = JObject.Parse(body);
+                    if (json["data"].HasValues)
+                    {
+                        return json["data"][0].ToObject<TwitchGameInfo>();
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetGameInfo Exception: {ex}");
+                }
+            }
+            else
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"GetGameInfo Fetch Failed. Response: {response.StatusCode} Reason: {response.ReasonPhrase}");
+            }
+            return null;
         }
 
 

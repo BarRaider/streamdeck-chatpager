@@ -7,7 +7,7 @@
     <meta name=apple-mobile-web-app-status-bar-style content=black>
     <title>Twitch Shoutout</title>
     <link rel="stylesheet" href="../sdpi.css">
-    <script src="../sdtools.common.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
     <script src="../setup.js"></script>
     <script src="../Shoutout.js"></script>
 </head>
@@ -28,6 +28,13 @@
             <details class="message">
                 <summary>Empty Channel sends message to your own channel</summary>
             </details>
+            <div class="sdpi-item" id="dvUsersDisplay">
+                <div class="sdpi-item-label">Choose from</div>
+                <select class="sdpi-item-value select sdProperty" id="usersDisplay" oninput="setSettings()" value="0">
+                    <option value="0">Active Chatters</option>
+                    <option value="1">All Viewers</option>
+                </select>
+            </div>
             <hr />
             <div class="sdpi-item" id="dvReset">
                 <div class="sdpi-item-label">Revoke Approval</div>

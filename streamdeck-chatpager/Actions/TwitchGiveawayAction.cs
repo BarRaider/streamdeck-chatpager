@@ -1,5 +1,4 @@
 ﻿using BarRaider.SdTools;
-using ChatPager.Backend;
 using ChatPager.Twitch;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;

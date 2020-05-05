@@ -24,6 +24,7 @@ function checkSettings(payload) {
     setFullScreenAlert("none");
     setSaveToFile("none");
     setMultipleChannels("none");
+    setPubSubNotifications("none");
 
     if (payload['fullScreenAlert']) {
         setFullScreenAlert("");
@@ -35,6 +36,10 @@ function checkSettings(payload) {
 
     if (payload['multipleChannels']) {
         setMultipleChannels("");
+    }
+
+    if (payload['pubsubNotifications']) {
+        setPubSubNotifications("");
     }
 }
 
@@ -51,4 +56,9 @@ function setSaveToFile(displayValue) {
 function setMultipleChannels(displayValue) {
     var dvMultipleChannels = document.getElementById('dvMultipleChannels');
     dvMultipleChannels.style.display = displayValue;
+}
+
+function setPubSubNotifications(displayValue) {
+    var dvPubsubNotifications = document.getElementById('dvPubsubNotifications');
+    dvPubsubNotifications.style.display = displayValue;
 }

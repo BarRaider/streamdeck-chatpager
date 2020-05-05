@@ -9,10 +9,17 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ChatPager
 {
+
+    //---------------------------------------------------
+    //          BarRaider's Hall Of Fame
+    // fex2stroke - Tip: 21.76
+    //---------------------------------------------------
+
     [PluginActionId("com.barraider.alertflasher")]
     class AlertFlasher : PluginBase
     {
@@ -57,9 +64,7 @@ namespace ChatPager
 
         public AlertFlasher(SDConnection connection, InitialPayload payload) : base(connection, payload)
         {
-            AlertManager.Instance.FlashStatusChanged += Instance_FlashStatusChanged;
-            AlertManager.Instance.ActiveStreamersChanged += Instance_ActiveStreamersChanged;
-            AlertManager.Instance.ChatMessageListChanged += Instance_ChatMessageListChanged;
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"[{Thread.CurrentThread.ManagedThreadId}] AlertFlasher loading");
             var deviceInfo = payload.DeviceInfo.Devices.Where(d => d.Id == connection.DeviceId).FirstOrDefault();
 
             stringMessageIndex = -1;
@@ -73,10 +78,15 @@ namespace ChatPager
             }
             deviceType = Connection.DeviceInfo().Type;
             Connection.GetGlobalSettingsAsync();
+            AlertManager.Instance.FlashStatusChanged += Instance_FlashStatusChanged;
+            AlertManager.Instance.ActiveStreamersChanged += Instance_ActiveStreamersChanged;
+            AlertManager.Instance.ChatMessageListChanged += Instance_ChatMessageListChanged;
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"[{Thread.CurrentThread.ManagedThreadId}] AlertFlasher up: {sequentialKey}");
         }
 
         public override void Dispose()
         {
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"[{Thread.CurrentThread.ManagedThreadId}] AlertFlasher going down: {sequentialKey}");
             AlertManager.Instance.FlashStatusChanged -= Instance_FlashStatusChanged;
             AlertManager.Instance.ActiveStreamersChanged -= Instance_ActiveStreamersChanged;
             AlertManager.Instance.ChatMessageListChanged -= Instance_ChatMessageListChanged;

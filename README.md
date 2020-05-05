@@ -4,6 +4,13 @@
 
 **Author's website and contact information:** [https://barraider.com](https://barraider.com)
 
+## New in v2.3
+- `Chat Pager` now supports **Notifications**! Create customizable alerts on your Stream Deck + Auto-Message your chat whenever someone Follows, Subs, Cheers (bits) or Redeems Channel Points!
+- `Shoutout` action now allows you to toggle between showing **Active Chatters** (as before), or **All Viewers** in the channel
+- Updated the `Chat Pager` plugin (which also shows number of viewers and overall stream time) to refresh the active viewers on a more frequent basis
+- `Channel Monitor` now allows you to choose what to show when a streamer is live. Options are: 1. Live preview of the stream 2. Icon of the game being played 3. Avatar of the streamer
+- Updated OAuth tokens given new Twitch Helix requirements
+
 ## New in v2.2
 - :new: `GiveAway` action - Control your Stream giveaways from the Stream Deck
     - Customizable registration command and giveaway title

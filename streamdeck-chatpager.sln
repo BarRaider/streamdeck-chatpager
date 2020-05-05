@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.106
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29905.134
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "streamdeck-chatpager", "streamdeck-chatpager\streamdeck-chatpager.csproj", "{D4609600-2469-47DC-A7C0-5D654E708BD3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TwitchTools", "streamdeck-chatpager\TwitchTools.csproj", "{D4609600-2469-47DC-A7C0-5D654E708BD3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TwitchLib.PubSub", "..\TwitchLib.PubSub\TwitchLib.PubSub\TwitchLib.PubSub.csproj", "{6F2F830D-E7E0-4592-BB05-6BF56382079F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{D4609600-2469-47DC-A7C0-5D654E708BD3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D4609600-2469-47DC-A7C0-5D654E708BD3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D4609600-2469-47DC-A7C0-5D654E708BD3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F2F830D-E7E0-4592-BB05-6BF56382079F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F2F830D-E7E0-4592-BB05-6BF56382079F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F2F830D-E7E0-4592-BB05-6BF56382079F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F2F830D-E7E0-4592-BB05-6BF56382079F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

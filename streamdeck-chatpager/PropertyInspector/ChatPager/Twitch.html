@@ -7,7 +7,7 @@
     <meta name=apple-mobile-web-app-status-bar-style content=black>
     <title>BarRaider's Twitch Pager</title>
     <link rel="stylesheet" href="../sdpi.css">
-    <script src="../sdtools.common.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
     <script src="../setup.js"></script>
     <script src="../Twitch.js"></script>
 </head>
@@ -95,6 +95,70 @@
                     <div class="sdpi-item-label">Auto clear after (seconds)</div>
                     <input class="sdpi-item-value sdProperty" id="clearFileSeconds" inputmode="numeric" pattern="[0-9]*" type="number" oninput="setSettings()">
                 </div>
+            </div>
+            <div type="checkbox" class="sdpi-item">
+                <div class="sdpi-item-label">Notifications</div>
+                <div class="sdpi-item-value">
+                    <input id="pubsubNotifications" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
+                    <label for="pubsubNotifications" class="sdpi-item-label"><span></span>Cheers/Follows/Subs/Points</label>
+                </div>
+            </div>
+            <div id="dvPubsubNotifications">
+                <details class="message">
+                    <summary>* Leave Flash / Chat messages blank to disable them</summary>
+                </details>
+                <details class="message">
+                    <summary>Cheers/Bits</summary>
+                </details>
+                <div type="color" class="sdpi-item" id="dvBits">
+                    <div class="sdpi-item-label">Flash</div>
+                    <input type="color" class="sdpi-item-value sdProperty" value="#FF00FF" id="bitsFlashColor" oninput="setSettings()">
+                    <input class="sdpi-item-value sdProperty" placeholder="{DISPLAYNAME} - {BITS} bits" value="" id="bitsFlashMessage" oninput="setSettings()">
+                </div>
+                <div class="sdpi-item" id="dvChatBits">
+                    <div class="sdpi-item-label">Chat</div>
+                    <input class="sdpi-item-value sdProperty" id="bitsChatMessage" placeholder="{DISPLAYNAME} cheered {BITS} bits! Overall cheered {TOTALBITS} bits. {MESSAGE}" value="" oninput="setSettings()">
+                </div>
+                <hr />
+                <details class="message">
+                    <summary>Follow</summary>
+                </details>
+                <div type="color" class="sdpi-item" id="dvFollow">
+                    <div class="sdpi-item-label">Flash</div>
+                    <input type="color" class="sdpi-item-value sdProperty" value="#0000FF" id="followFlashColor" oninput="setSettings()">
+                    <input class="sdpi-item-value sdProperty" placeholder="Follower: {DISPLAYNAME}" value="" id="followFlashMessage" oninput="setSettings()">
+                </div>
+                <div class="sdpi-item" id="dvChatFollow">
+                    <div class="sdpi-item-label">Chat</div>
+                    <input class="sdpi-item-value sdProperty" id="followChatMessage" placeholder="Thanks for the follow, @{DISPLAYNAME} !!!" value="" oninput="setSettings()">
+                </div>
+                <hr />
+                <details class="message">
+                    <summary>Sub</summary>
+                </details>
+                <div type="color" class="sdpi-item" id="dvSub">
+                    <div class="sdpi-item-label">Flash</div>
+                    <input type="color" class="sdpi-item-value sdProperty" value="#FF0000" id="subFlashColor" oninput="setSettings()">
+                    <input class="sdpi-item-value sdProperty" placeholder="Sub: {DISPLAYNAME}" value="" id="subFlashMessage" oninput="setSettings()">
+                </div>
+                <div class="sdpi-item" id="dvChatSub">
+                    <div class="sdpi-item-label">Chat</div>
+                    <input class="sdpi-item-value sdProperty" id="subChatMessage" placeholder="New Sub by: @{DISPLAYNAME} for {MONTHS} months!!! {MESSAGE}" value="" oninput="setSettings()">
+                </div>
+                <hr />
+                <details class="message">
+                    <summary>Channel Points</summary>
+                </details>
+                <div type="color" class="sdpi-item" id="dvPoints">
+                    <div class="sdpi-item-label">Flash</div>
+                    <input type="color" class="sdpi-item-value sdProperty" value="#00FF00" id="pointsFlashColor" oninput="setSettings()">
+                    <input class="sdpi-item-value sdProperty" placeholder="Points: {DISPLAYNAME} - {TITLE}" value="" id="pointsFlashMessage" oninput="setSettings()">
+                </div>
+                <div class="sdpi-item" id="dvChatPoints">
+                    <div class="sdpi-item-label">Chat</div>
+                    <input class="sdpi-item-value sdProperty" id="pointsChatMessage" placeholder="{DISPLAYNAME} redeemed {TITLE} for {POINTS} points. {MESSAGE}" value="" oninput="setSettings()">
+                </div>
+                <hr />
             </div>
             <div type="checkbox" class="sdpi-item">
                 <div class="sdpi-item-label">Channels</div>

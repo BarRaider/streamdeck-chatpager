@@ -1,4 +1,5 @@
 ﻿using BarRaider.SdTools;
+using ChatPager.Backend;
 using ChatPager.Twitch;
 using ChatPager.Wrappers;
 using System;
@@ -20,6 +21,7 @@ namespace ChatPager
         private System.Timers.Timer tmrPage = new System.Timers.Timer();
         private System.Timers.Timer tmrClearFile = new System.Timers.Timer();
         private int alertStage = 0;
+        private string currentPageInitialColor = DEFAULT_ALERT_COLOR;
 
         #endregion
 
@@ -45,8 +47,6 @@ namespace ChatPager
                 }
             }
         }
-
-        private string initialAlertColor = null;
 
         private AlertManager()
         {
@@ -226,8 +226,18 @@ namespace ChatPager
                 return;
             }
 
+            // Set color if defined in page
+            if (String.IsNullOrEmpty(e.Color))
+            {
+                currentPageInitialColor = global?.InitialAlertColor ?? DEFAULT_ALERT_COLOR;
+            }
+            else
+            {
+                currentPageInitialColor = e.Color;
+            }
             pageMessage = e.Message;
-            Logger.Instance.LogMessage(TracingLevel.INFO, $"Full screen alert: {pageMessage ?? String.Empty}");
+
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"Full screen alert: {pageMessage ?? String.Empty} Color: {currentPageInitialColor}");
             InitFlash();
 
             switch (connection.DeviceInfo().Type)
@@ -252,20 +262,21 @@ namespace ChatPager
             if (payload?.Settings != null)
             {
                 global = payload.Settings.ToObject<TwitchGlobalSettings>();
-                initialAlertColor = global.InitialAlertColor;
                 SetClearTimerInterval();
             }
         }
 
         private void TmrPage_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            if (String.IsNullOrEmpty(initialAlertColor))
+            if (String.IsNullOrEmpty(currentPageInitialColor))
             {
-                initialAlertColor = DEFAULT_ALERT_COLOR;
+                Logger.Instance.LogMessage(TracingLevel.WARN, "TmrPage: No alert color, reverting to default");
+                currentPageInitialColor = DEFAULT_ALERT_COLOR;
             }
 
-            FlashStatusChanged?.Invoke(this, new FlashStatusEventArgs(Helpers.GenerateStageColor(initialAlertColor, alertStage, Helpers.TOTAL_ALERT_STAGES), pageMessage));
-            alertStage = (alertStage + 1) % Helpers.TOTAL_ALERT_STAGES;
+            Color shadeColor = GraphicsTools.GenerateColorShades(currentPageInitialColor, alertStage, Constants.ALERT_TOTAL_SHADES);
+            FlashStatusChanged?.Invoke(this, new FlashStatusEventArgs(shadeColor, pageMessage));
+            alertStage = (alertStage + 1) % Constants.ALERT_TOTAL_SHADES;
         }
 
         private void SavePageToFile(string pageMessage, bool autoClear = true)

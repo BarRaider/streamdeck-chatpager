@@ -24,6 +24,11 @@ namespace ChatPager.Actions
     [PluginActionId("com.barraider.twitchtools.shoutout")]
     public class TwitchShoutoutAction : ActionBase
     {
+        public enum UsersDisplay
+        {
+            ActiveChatters,
+            AllViewers
+        }
         protected class PluginSettings : PluginSettingsBase
         {
             public static PluginSettings CreateDefaultSettings()
@@ -32,7 +37,8 @@ namespace ChatPager.Actions
                 {
                     TokenExists = false,
                     ChatMessage = DEFAULT_CHAT_MESSAGE,
-                    Channel = String.Empty
+                    Channel = String.Empty,
+                    UsersDisplay = UsersDisplay.ActiveChatters
                 };
                 return instance;
             }
@@ -42,6 +48,9 @@ namespace ChatPager.Actions
 
             [JsonProperty(PropertyName = "channel")]
             public string Channel { get; set; }
+
+            [JsonProperty(PropertyName = "usersDisplay")]
+            public UsersDisplay UsersDisplay { get; set; }
         }
 
         protected PluginSettings Settings
@@ -97,17 +106,42 @@ namespace ChatPager.Actions
                 return;
             }
 
-            var chatters = TwitchChat.Instance.GetLastChatters();
-            if (chatters == null)
+            string[] userNames;
+
+            if (Settings.UsersDisplay == UsersDisplay.ActiveChatters)
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, "GetLastChatters returned null");
-                await Connection.ShowAlert();
-                return;
+                var chatters = TwitchChat.Instance.GetLastChatters();
+                if (chatters == null)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, "GetLastChatters returned null");
+                    await Connection.ShowAlert();
+                    return;
+                }
+
+                Logger.Instance.LogMessage(TracingLevel.INFO, "Shoutout loading active chatters");
+                userNames = chatters.ToArray();
             }
+            else // Show all viewers
+            {
+                string channel = Settings.Channel;
+                if (String.IsNullOrEmpty(channel))
+                {
+                    channel = TwitchTokenManager.Instance.User.UserName;
+                }
+                var viewers = await TwitchChannelInfoManager.Instance.GetChannelViewers(channel);
+                if (viewers == null)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, "GetChannelViewers returned null");
+                    await Connection.ShowAlert();
+                    return;
+                }
+                Logger.Instance.LogMessage(TracingLevel.INFO, "Shoutout loading all viewers");
+                userNames = viewers.AllViewers.ToArray();
+            }           
 
             // We have a list of usernames, get some more details on them so we can display their image on the StreamDeck
             List<ChatMessageKey> chatMessages = new List<ChatMessageKey>();
-            foreach (string username in chatters)
+            foreach (string username in userNames)
             {
                 var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(username);
 

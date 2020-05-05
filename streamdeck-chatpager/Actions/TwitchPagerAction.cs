@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
 using ChatPager.Wrappers;
+using ChatPager.Backend;
 
 namespace ChatPager.Actions
 {
@@ -37,8 +38,20 @@ namespace ChatPager.Actions
                     FilePrefix = String.Empty,
                     MultipleChannels = false,
                     MonitoredStreamers = String.Empty,
-                    PageCommand = DEFAULT_PAGE_COMMAND
-
+                    PageCommand = DEFAULT_PAGE_COMMAND,
+                    PubsubNotifications = false,
+                    BitsChatMessage = BITS_CHAT_DEFAULT_MESSAGE,
+                    BitsFlashColor = BITS_FLASH_DEFAULT_COLOR,
+                    BitsFlashMessage = BITS_FLASH_DEFAULT_MESSAGE,
+                    FollowChatMessage = FOLLOW_CHAT_DEFAULT_MESSAGE,
+                    FollowFlashColor = FOLLOW_FLASH_DEFAULT_COLOR,
+                    FollowFlashMessage = FOLLOW_FLASH_DEFAULT_MESSAGE,
+                    SubChatMessage = SUB_CHAT_DEFAULT_MESSAGE,
+                    SubFlashColor = SUB_FLASH_DEFAULT_COLOR,
+                    SubFlashMessage = SUB_FLASH_DEFAULT_MESSAGE,
+                    PointsChatMessage = POINTS_CHAT_DEFAULT_MESSAGE,
+                    PointsFlashColor = POINTS_FLASH_DEFAULT_COLOR,
+                    PointsFlashMessage = POINTS_FLASH_DEFAULT_MESSAGE
                 };
                 return instance;
             }
@@ -86,7 +99,47 @@ namespace ChatPager.Actions
             public bool AlwaysAlert { get; set; }
 
             [JsonProperty(PropertyName = "pageCommand")]
-            public string PageCommand { get; set; }            
+            public string PageCommand { get; set; }
+
+            [JsonProperty(PropertyName = "pubsubNotifications")]
+            public bool PubsubNotifications { get; set; }
+
+            [JsonProperty(PropertyName = "bitsFlashColor")]
+            public string BitsFlashColor { get; set; }
+
+            [JsonProperty(PropertyName = "bitsFlashMessage")]
+            public string BitsFlashMessage { get; set; }
+
+            [JsonProperty(PropertyName = "bitsChatMessage")]
+            public string BitsChatMessage { get; set; }
+
+            [JsonProperty(PropertyName = "followFlashColor")]
+            public string FollowFlashColor { get; set; }
+
+            [JsonProperty(PropertyName = "followFlashMessage")]
+            public string FollowFlashMessage { get; set; }
+
+            [JsonProperty(PropertyName = "followChatMessage")]
+            public string FollowChatMessage { get; set; }
+
+            [JsonProperty(PropertyName = "subFlashColor")]
+            public string SubFlashColor { get; set; }
+
+            [JsonProperty(PropertyName = "subFlashMessage")]
+            public string SubFlashMessage { get; set; }
+
+            [JsonProperty(PropertyName = "subChatMessage")]
+            public string SubChatMessage { get; set; }
+
+            [JsonProperty(PropertyName = "pointsFlashColor")]
+            public string PointsFlashColor { get; set; }
+
+            [JsonProperty(PropertyName = "pointsFlashMessage")]
+            public string PointsFlashMessage { get; set; }
+
+            [JsonProperty(PropertyName = "pointsChatMessage")]
+            public string PointsChatMessage { get; set; }
+
         }
 
         protected PluginSettings Settings
@@ -111,20 +164,31 @@ namespace ChatPager.Actions
         private const string BACKGROUND_COLOR = "#8560db";
         private const string GREEN_COLOR = "#00FF00";
         private const string DEFAULT_PAGE_COMMAND = "!page";
+        private const string BITS_CHAT_DEFAULT_MESSAGE = "{DISPLAYNAME} cheered {BITS} bits! Overall cheered {TOTALBITS} bits. {MESSAGE}";
+        private const string BITS_FLASH_DEFAULT_COLOR = "#FF00FF";
+        private const string BITS_FLASH_DEFAULT_MESSAGE = "{DISPLAYNAME} - {BITS} bits";
+        private const string FOLLOW_CHAT_DEFAULT_MESSAGE = "Thanks for the follow, @{DISPLAYNAME} !!!";
+        private const string FOLLOW_FLASH_DEFAULT_COLOR = "#0000FF";
+        private const string FOLLOW_FLASH_DEFAULT_MESSAGE = "Follower: {DISPLAYNAME}";
+        private const string SUB_CHAT_DEFAULT_MESSAGE = "New Sub by: @{DISPLAYNAME} for {MONTHS} months!!! {MESSAGE}";
+        private const string SUB_FLASH_DEFAULT_COLOR = "#FF0000";
+        private const string SUB_FLASH_DEFAULT_MESSAGE = "Sub: {DISPLAYNAME}";
+        private const string POINTS_CHAT_DEFAULT_MESSAGE = "{DISPLAYNAME} redeemed {TITLE} for {POINTS} points. {MESSAGE}";
+        private const string POINTS_FLASH_DEFAULT_COLOR = "#00FF00";
+        private const string POINTS_FLASH_DEFAULT_MESSAGE = "Points: {DISPLAYNAME} - {TITLE}";
+
         protected const int DEFAULT_CLEAR_FILE_SECONDS = 5;
-
-
+                                 
         private bool isPaging = false;
-        private readonly bool autoClearFile = false;
         private readonly System.Timers.Timer tmrPage = new System.Timers.Timer();
         private int alertStage = 0;
         private TwitchStreamInfo streamInfo;
         private string pageMessage = null;
-        private bool fullScreenAlertTriggered = false;
         private readonly StreamDeckDeviceType deviceType;
         private TwitchGlobalSettings global = null;
         private int previousViewersCount = 0;
         private Brush viewersBrush = Brushes.White;
+        private bool globalSettingsLoaded = false;
 
         #endregion     
 
@@ -139,9 +203,9 @@ namespace ChatPager.Actions
                 this.Settings = payload.Settings.ToObject<PluginSettings>();
             }
             MyTwitchChannelInfo.Instance.TwitchStreamInfoChanged += Instance_TwitchStreamInfoChanged;
-            
             AlertManager.Instance.TwitchPagerShown += Instance_TwitchPagerShown;
             TwitchChat.Instance.PageRaised += Chat_PageRaised;
+            TwitchPubSubManager.Instance.Initialize();
 
             this.Settings.ChatMessage = TwitchChat.Instance.ChatMessage;
             this.Settings.PageCommand = TwitchChat.Instance.PageCommand;
@@ -149,7 +213,8 @@ namespace ChatPager.Actions
             AlertManager.Instance.Initialize(Connection);
             ResetChat();
             deviceType = Connection.DeviceInfo().Type;
-            
+            InitializeStreamInfo();
+           
             tmrPage.Interval = 200;
             tmrPage.Elapsed += TmrPage_Elapsed;
             SaveSettings();
@@ -218,6 +283,7 @@ namespace ChatPager.Actions
 
         public override void ReceivedGlobalSettings(ReceivedGlobalSettingsPayload payload)
         {
+            globalSettingsLoaded = true;
             // Global Settings exist
             if (payload?.Settings != null && payload.Settings.Count > 0)
             {
@@ -234,6 +300,19 @@ namespace ChatPager.Actions
                 Settings.PageFileName = global.PageFileName;
                 Settings.FilePrefix = global.FilePrefix;
                 Settings.ClearFileSeconds = global.ClearFileSeconds;
+                Settings.PubsubNotifications = global.PubsubNotifications;
+                Settings.BitsChatMessage = global.BitsChatMessage;
+                Settings.BitsFlashColor = global.BitsFlashColor;
+                Settings.BitsFlashMessage = global.BitsFlashMessage;
+                Settings.FollowChatMessage = global.FollowChatMessage;
+                Settings.FollowFlashColor = global.FollowFlashColor;
+                Settings.FollowFlashMessage = global.FollowFlashMessage;
+                Settings.SubChatMessage = global.SubChatMessage;
+                Settings.SubFlashColor = global.SubFlashColor;
+                Settings.SubFlashMessage = global.SubFlashMessage;
+                Settings.PointsChatMessage = global.PointsChatMessage;
+                Settings.PointsFlashColor = global.PointsFlashColor;
+                Settings.PointsFlashMessage = global.PointsFlashMessage;
                 previousViewersCount = global.PreviousViewersCount;
                 if (!String.IsNullOrEmpty(global.ViewersBrush))
                 {
@@ -251,7 +330,7 @@ namespace ChatPager.Actions
             }
             else // Global settings do not exist
             {
-                global = new TwitchGlobalSettings();
+                Logger.Instance.LogMessage(TracingLevel.WARN, "TwitchPagerAction: Global Settings do not exist!");
                 Settings.ChatMessage = TwitchChat.Instance.ChatMessage;
                 Settings.PageCommand = TwitchChat.Instance.PageCommand;
                 SetGlobalSettings();
@@ -260,10 +339,18 @@ namespace ChatPager.Actions
 
         public override void ReceivedSettings(ReceivedSettingsPayload payload)
         {
+            bool previousPubsubNotifications = Settings.PubsubNotifications;
             // Populate new values
             Tools.AutoPopulateSettings(Settings, payload.Settings);
             SetClearTimerInterval();
             ResetChat();
+
+            if (previousPubsubNotifications != Settings.PubsubNotifications && Settings.PubsubNotifications) // Enabled checkbox
+            {
+                ResetNotificationMessages();
+            }
+
+            Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchPagerAction ReceivedSettings calling SetGlobalSettings");
             SetGlobalSettings();
         }
 
@@ -271,8 +358,14 @@ namespace ChatPager.Actions
 
         #region Private Members
 
-        private void SetGlobalSettings()
+        private bool SetGlobalSettings()
         {
+            if (!globalSettingsLoaded)
+            {
+                Logger.Instance.LogMessage(TracingLevel.INFO, "Ignoring SetGlobalSettings as they were not yet loaded");
+                return false;
+            }
+
             if (global == null)
             {
                 Logger.Instance.LogMessage(TracingLevel.WARN, "SetGlobalSettings called while Global Settings are null");
@@ -289,9 +382,24 @@ namespace ChatPager.Actions
             global.PageFileName = Settings.PageFileName;
             global.FilePrefix = Settings.FilePrefix;
             global.ClearFileSeconds = Settings.ClearFileSeconds;
+            global.PubsubNotifications = Settings.PubsubNotifications;
+            global.BitsChatMessage = Settings.BitsChatMessage;
+            global.BitsFlashColor = Settings.BitsFlashColor;
+            global.BitsFlashMessage = Settings.BitsFlashMessage;
+            global.FollowChatMessage = Settings.FollowChatMessage;
+            global.FollowFlashColor = Settings.FollowFlashColor;
+            global.FollowFlashMessage = Settings.FollowFlashMessage;
+            global.SubChatMessage = Settings.SubChatMessage;
+            global.SubFlashColor = Settings.SubFlashColor;
+            global.SubFlashMessage = Settings.SubFlashMessage;
+            global.PointsChatMessage = Settings.PointsChatMessage;
+            global.PointsFlashColor = Settings.PointsFlashColor;
+            global.PointsFlashMessage = Settings.PointsFlashMessage;
             global.ViewersBrush = viewersBrush.ToHex();
             global.PreviousViewersCount = previousViewersCount;
             Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
+
+            return true;
         }
 
         private void TmrPage_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
@@ -302,7 +410,7 @@ namespace ChatPager.Actions
 
             // Background
             
-            var bgBrush = new SolidBrush(Helpers.GenerateStageColor(Settings.AlertColor, alertStage, Helpers.TOTAL_ALERT_STAGES));
+            var bgBrush = new SolidBrush(GraphicsTools.GenerateColorShades(Settings.AlertColor, alertStage, Constants.ALERT_TOTAL_SHADES));
             graphics.FillRectangle(bgBrush, 0, 0, width, height);
 
             if (String.IsNullOrEmpty(pageMessage))
@@ -328,7 +436,7 @@ namespace ChatPager.Actions
                 graphics.DrawString(pageMessage, font, fgBrush, new PointF(stringPos, stringHeight));
                 Connection.SetImageAsync(img);
             }
-            alertStage = (alertStage + 1) % Helpers.TOTAL_ALERT_STAGES;
+            alertStage = (alertStage + 1) % Constants.ALERT_TOTAL_SHADES;
             graphics.Dispose();
         }
 
@@ -379,7 +487,12 @@ namespace ChatPager.Actions
                         viewersBrush = new SolidBrush(ColorTranslator.FromHtml(GREEN_COLOR));
                     }
                     previousViewersCount = streamInfo.Viewers;
-                    SetGlobalSettings();
+                    Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchPagerAction DrawStreamData calling SetGlobalSettings");
+                    
+                    if (!SetGlobalSettings()) // Reset this so it will push the valid value when Global Settings exist
+                    {
+                        previousViewersCount = 0;
+                    }
                 }
 
                 title = $"⛑ {streamInfo.Viewers}";
@@ -402,7 +515,6 @@ namespace ChatPager.Actions
             Logger.Instance.LogMessage(TracingLevel.INFO, $"Received a page! Message: {e.Message?? String.Empty}");
             pageMessage = e.Message;
             isPaging = true;
-            fullScreenAlertTriggered = false;
         }
 
         private void Instance_TwitchStreamInfoChanged(object sender, TwitchStreamInfoEventArgs e)
@@ -448,7 +560,32 @@ namespace ChatPager.Actions
                 SaveSettings();
             }
         }
-        
+
+        private void InitializeStreamInfo()
+        {
+            streamInfo = MyTwitchChannelInfo.Instance.StreamInfo;
+            if (streamInfo == null)
+            {
+                MyTwitchChannelInfo.Instance.ForceStreamInfoRefresh();
+            }
+        }
+
+        private void ResetNotificationMessages()
+        {
+            Settings.BitsChatMessage = BITS_CHAT_DEFAULT_MESSAGE;
+            Settings.BitsFlashColor = BITS_FLASH_DEFAULT_COLOR;
+            Settings.BitsFlashMessage = BITS_FLASH_DEFAULT_MESSAGE;
+            Settings.FollowChatMessage = FOLLOW_CHAT_DEFAULT_MESSAGE;
+            Settings.FollowFlashColor = FOLLOW_FLASH_DEFAULT_COLOR;
+            Settings.FollowFlashMessage = FOLLOW_FLASH_DEFAULT_MESSAGE;
+            Settings.SubChatMessage = SUB_CHAT_DEFAULT_MESSAGE;
+            Settings.SubFlashColor = SUB_FLASH_DEFAULT_COLOR;
+            Settings.SubFlashMessage = SUB_FLASH_DEFAULT_MESSAGE;
+            Settings.PointsChatMessage = POINTS_CHAT_DEFAULT_MESSAGE;
+            Settings.PointsFlashColor = POINTS_FLASH_DEFAULT_COLOR;
+            Settings.PointsFlashMessage = POINTS_FLASH_DEFAULT_MESSAGE;
+        }
+
         #endregion
     }
 }

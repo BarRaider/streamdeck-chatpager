@@ -28,11 +28,13 @@
     <OutputPath>bin\debug\com.barraider.twitchtools.sdplugin</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.17" />
-    <PackageReference Include="NAudio" Version="1.9.0" />
-    <PackageReference Include="StreamDeck-Tools" Version="2.7.0" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.6.0" />
-    <PackageReference Include="TwitchLib" Version="3.0.1" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.23" />
+    <PackageReference Include="NAudio" Version="1.10.0" />
+    <PackageReference Include="StreamDeck-Tools" Version="2.8.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
+    <PackageReference Include="TwitchLib.Api" Version="3.1.2" />
+    <PackageReference Include="TwitchLib.Api.Core" Version="3.1.2" />
+    <PackageReference Include="TwitchLib.Client" Version="3.1.4" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="PickersUtil">
@@ -202,6 +204,9 @@
     <None Update="PropertyInspector\ChatPager\StreamTitle.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="PropertyInspector\ChatPager\ClipToChat.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="PropertyInspector\Giveaway.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -292,6 +297,9 @@
     <None Update="tags.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\TwitchLib.PubSub\TwitchLib.PubSub\TwitchLib.PubSub.csproj" />
   </ItemGroup>
 
 </Project>
