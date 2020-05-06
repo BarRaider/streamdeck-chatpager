@@ -33,7 +33,7 @@
     <PackageReference Include="StreamDeck-Tools" Version="2.8.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
     <PackageReference Include="TwitchLib.Api" Version="3.1.2" />
-    <PackageReference Include="TwitchLib.Api.Core" Version="3.1.2" />
+    <PackageReference Include="TwitchLib.Api.Core" Version="3.1.3" />
     <PackageReference Include="TwitchLib.Client" Version="3.1.4" />
   </ItemGroup>
   <ItemGroup>
