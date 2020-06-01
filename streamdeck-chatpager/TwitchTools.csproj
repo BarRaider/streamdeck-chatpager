@@ -28,7 +28,7 @@
     <OutputPath>bin\debug\com.barraider.twitchtools.sdplugin</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.23" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.24" />
     <PackageReference Include="NAudio" Version="1.10.0" />
     <PackageReference Include="StreamDeck-Tools" Version="2.8.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
