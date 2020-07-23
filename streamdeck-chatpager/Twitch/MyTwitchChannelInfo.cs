@@ -21,9 +21,9 @@ namespace ChatPager.Twitch
 
         private TwitchStreamInfo lastStreamInfo;
         private DateTime lastStreamInfoRefresh;
-        private TwitchComm comm;
-        private System.Timers.Timer tmrFetchStreamInfo;
-        private SemaphoreSlim refreshLock = new SemaphoreSlim(1, 1);
+        private readonly TwitchComm comm;
+        private readonly System.Timers.Timer tmrFetchStreamInfo;
+        private readonly SemaphoreSlim refreshLock = new SemaphoreSlim(1, 1);
 
         #endregion
 

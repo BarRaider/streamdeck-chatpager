@@ -69,7 +69,7 @@ namespace ChatPager.Actions
 
             if (payload["property_inspector"] != null)
             {
-                switch (payload["property_inspector"].ToString().ToLower())
+                switch (payload["property_inspector"].ToString().ToLowerInvariant())
                 {
                     case "updateapproval":
                         string approvalCode = (string)payload["approvalCode"];

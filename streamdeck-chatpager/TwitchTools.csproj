@@ -28,13 +28,13 @@
     <OutputPath>bin\debug\com.barraider.twitchtools.sdplugin</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.23" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.24" />
     <PackageReference Include="NAudio" Version="1.10.0" />
-    <PackageReference Include="StreamDeck-Tools" Version="2.8.0" />
+    <PackageReference Include="StreamDeck-Tools" Version="2.9.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
-    <PackageReference Include="TwitchLib.Api" Version="3.1.2" />
-    <PackageReference Include="TwitchLib.Api.Core" Version="3.1.2" />
-    <PackageReference Include="TwitchLib.Client" Version="3.1.4" />
+    <PackageReference Include="TwitchLib.Api" Version="3.1.3" />
+    <PackageReference Include="TwitchLib.Api.Core" Version="3.1.3" />
+    <PackageReference Include="TwitchLib.Client" Version="3.1.5" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="PickersUtil">
@@ -186,9 +186,6 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
-    <None Update="PropertyInspector\caret.svg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="PropertyInspector\ChannelViewers.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -261,31 +258,13 @@
     <None Update="PropertyInspector\ChatPager\Channel.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="PropertyInspector\ChatPager\Twitch.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="PropertyInspector\check.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="PropertyInspector\check.svg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="PropertyInspector\elg_calendar.svg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="PropertyInspector\elg_calendar_inv.svg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="PropertyInspector\rcheck.svg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="PropertyInspector\sdpi.css">
+    <None Update="PropertyInspector\ChatPager\Pager.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="PropertyInspector\Channel.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="PropertyInspector\Twitch.js">
+    <None Update="PropertyInspector\Pager.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="PropertyInspector\setup.js">

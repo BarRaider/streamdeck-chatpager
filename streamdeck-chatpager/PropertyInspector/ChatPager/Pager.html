@@ -6,10 +6,10 @@
     <meta name=apple-mobile-web-app-capable content=yes>
     <meta name=apple-mobile-web-app-status-bar-style content=black>
     <title>BarRaider's Twitch Pager</title>
-    <link rel="stylesheet" href="../sdpi.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css">
     <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
     <script src="../setup.js"></script>
-    <script src="../Twitch.js"></script>
+    <script src="../Pager.js"></script>
 </head>
 <body>
     <div class="sdpi-wrapper">
@@ -33,8 +33,12 @@
                 <div class="sdpi-item-label">Alert Color</div>
                 <input type="color" class="sdpi-item-value sdProperty" value="#FF0000" id="alertColor" oninput="setSettings()">
             </div>
+            <div class="sdpi-item" id="dvAutoStopPage">
+                <div class="sdpi-item-label">Auto Stop (seconds)</div>
+                <input class="sdpi-item-value sdProperty" placeholder="10" id="autoStopPage" oninput="setSettings()">
+            </div>
             <div type="range" class="sdpi-item">
-                <details class="message">
+                <details class="message titleAlignedSmall">
                     <summary>Leave Allowed Pagers blank to allow anyone in chat to page</summary>
                 </details>
             </div>
@@ -85,7 +89,7 @@
                 <div class="sdpi-item" id="dvPageFileName">
                     <div class="sdpi-item-label">File Name</div>
                     <input class="sdpi-item-value sdProperty" placeholder="c:\temp\pager.txt" value="" id="pageFileName">
-                    <button class="sdpi-item-value max20 minmargin" onclick="setSettings()">Save</button>
+                    <button class="sdpi-item-value max20 leftMargin0" onclick="setSettings()">Save</button>
                 </div>
                 <div class="sdpi-item" id="dvFilePrefix">
                     <div class="sdpi-item-label">File Title Prefix</div>

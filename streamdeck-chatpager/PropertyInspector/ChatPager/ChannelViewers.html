@@ -5,8 +5,8 @@
     <meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover">
     <meta name=apple-mobile-web-app-capable content=yes>
     <meta name=apple-mobile-web-app-status-bar-style content=black>
-    <title>Twitch Channel</title>
-    <link rel="stylesheet" href="../sdpi.css">
+    <title>Twitch Viewers</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css">
     <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
     <script src="../setup.js"></script>
     <script src="../ChannelViewers.js"></script>
@@ -20,6 +20,13 @@
             <div class="sdpi-item" id="dvStreamerName">
                 <div class="sdpi-item-label">Channel Name</div>
                 <input class="sdpi-item-value sdProperty" placeholder="BarRaider" id="channelName" oninput="setSettings()">
+            </div>
+            <div type="checkbox" class="sdpi-item" id="dvDontLoadImages">
+                <div class="sdpi-item-label">User Images</div>
+                <div class="sdpi-item-value">
+                    <input id="dontLoadImages" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
+                    <label for="dontLoadImages" class="sdpi-item-label"><span></span>Don't load images (loads faster)</label>
+                </div>
             </div>
             <hr />
             <div class="sdpi-item" id="dvReset">

@@ -54,8 +54,10 @@ namespace ChatPager.Twitch
        
         public async Task<TwitchChannelInfo> GetChannelInfo(string channelName)
         {
-            var kvp = new List<KeyValuePair<string, string>>();
-            kvp.Add(new KeyValuePair<string, string>("user_login", channelName));
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("user_login", channelName)
+            };
 
             HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_CHANNEL_INFO, SendMethod.GET, kvp, null);
             if (response.IsSuccessStatusCode)
@@ -83,8 +85,10 @@ namespace ChatPager.Twitch
 
         public async Task<TwitchUserInfo> GetUserInfo(string userLogin)
         {
-            var kvp = new List<KeyValuePair<string, string>>();
-            kvp.Add(new KeyValuePair<string, string>("login", userLogin));
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("login", userLogin)
+            };
 
             HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URL_USER_INFO, SendMethod.GET, kvp, null);
             if (response.IsSuccessStatusCode)
@@ -133,7 +137,12 @@ namespace ChatPager.Twitch
 
         public async Task<TwitchActiveStreamer[]> GetActiveStreamers()
         {
-            HttpResponseMessage response = await TwitchKrakenQuery(TWITCH_URL_ACTIVE_STREAMERS, SendMethod.GET, null, null);
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("limit", 100.ToString())
+            };
+
+            HttpResponseMessage response = await TwitchKrakenQuery(TWITCH_URL_ACTIVE_STREAMERS, SendMethod.GET, kvp, null);
             if (response.IsSuccessStatusCode)
             {
                 try
@@ -249,8 +258,10 @@ namespace ChatPager.Twitch
 
         public async Task<TwitchGameInfo> GetGameInfo(string gameId)
         {
-            var kvp = new List<KeyValuePair<string, string>>();
-            kvp.Add(new KeyValuePair<string, string>("id", gameId));
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("id", gameId)
+            };
 
             HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URL_GAME_INFO, SendMethod.GET, kvp, null);
             if (response.IsSuccessStatusCode)
@@ -415,11 +426,15 @@ namespace ChatPager.Twitch
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchHelixQueryInternal  returned with StatusCode: {response.StatusCode}");
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchHelixQueryInternal returned with StatusCode: {response.StatusCode}");
+                    if (response.StatusCode == HttpStatusCode.Unauthorized)
+                    {
+                        Logger.Instance.LogMessage(TracingLevel.WARN, "TwitchHelixQueryInternal returned unauthorized, revoking tokens");
+                        TwitchTokenManager.Instance.RevokeToken();
+                    }
                 }
 
                 return response;
-
             }
             catch (Exception ex)
             {

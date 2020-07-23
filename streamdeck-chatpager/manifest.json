@@ -118,7 +118,7 @@
       "SupportedInMultiActions": false,
       "Tooltip": "Listens to your twitch chat and gives you a visual alert if someone uses the !page command.",
       "UUID": "com.barraider.twitchtools.twitchpager",
-      "PropertyInspectorPath": "PropertyInspector/ChatPager/Twitch.html"
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/Pager.html"
     },
     {
       "Icon": "Images/viewersIcon",
@@ -152,11 +152,11 @@
     }
   ],
   "Author": "BarRaider",
-  "Description": "Advanced tools to control Twitch from your Stream Deck. Features include: Manage Giveaways from your Stream Deck, Twitch Pager (Listens to your twitch chat and gives you a visual alert if someone uses the !page command), Clip-To-Chat, Channel Monitor (Shows you which of your favorite streamers are now live)",
+  "Description": "Advanced tools to control Twitch from your Stream Deck. Features include: Manage Giveaways, Clip-To-Chat, Send chat messages, Ban users, Update stream title and tags, Twitch Pager (Flashes stream deck on follows/subs/bits/channel points, or !page command), Channel Monitor (Shows which of your favorite streamers are now live)",
   "Name": "Twitch Tools",
   "Icon": "Images/pluginIcon",
   "URL": "https://BarRaider.com/",
-  "Version": "2.3",
+  "Version": "2.4",
   "CodePath": "com.barraider.twitchtools",
   "Category": "Twitch Tools [BarRaider]",
   "CategoryIcon": "Images/categoryIcon",
@@ -188,6 +188,6 @@
   ],
   "SDKVersion": 2,
   "Software": {
-    "MinimumVersion": "4.5.1"
+    "MinimumVersion": "4.7"
   }
 }

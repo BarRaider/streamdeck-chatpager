@@ -31,7 +31,11 @@ namespace ChatPager.Actions
                     AutoDraw = false,
                     TimerInterval = DEFAULT_TIMER_INTERVAL,
                     TimerFileName = String.Empty,
-                    Reminder = DEFAULT_REMINDER_MINUTES.ToString()
+                    Reminder = DEFAULT_REMINDER_MINUTES.ToString(),
+                    StartMessage = DEFAULT_GIVEAWAY_START_MESSAGE,
+                    WinMessage = DEFAULT_GIVEAWAY_WIN_MESSAGE,
+                    ReminderMessage = DEFAULT_GIVEAWAY_REMINDER_MESSAGE,
+                    WinnersFileOverwrite = false
                 };
                 return instance;
             }
@@ -61,6 +65,18 @@ namespace ChatPager.Actions
 
             [JsonProperty(PropertyName = "reminder")]
             public string Reminder { get; set; }
+
+            [JsonProperty(PropertyName = "startMessage")]
+            public string StartMessage { get; set; }
+
+            [JsonProperty(PropertyName = "winMessage")]
+            public string WinMessage { get; set; }
+
+            [JsonProperty(PropertyName = "reminderMessage")]
+            public string ReminderMessage { get; set; }
+
+            [JsonProperty(PropertyName = "winnersFileOverwrite")]
+            public bool WinnersFileOverwrite { get; set; }
         }
 
         protected PluginSettings Settings
@@ -84,6 +100,9 @@ namespace ChatPager.Actions
 
         private const string DEFAULT_COMMAND = "!giveaway";
         private const string DEFAULT_TIMER_INTERVAL = "00:01:00";
+        private const string DEFAULT_GIVEAWAY_START_MESSAGE = "New giveaway started for {ITEM} to enter type: {COMMAND} in the channel!";
+        private const string DEFAULT_GIVEAWAY_WIN_MESSAGE = "Congratulations @{USER} you won the giveaway for {ITEM}!";
+        private const string DEFAULT_GIVEAWAY_REMINDER_MESSAGE = "Giveaway for {ITEM} is still active! To enter type: {COMMAND} in the channel!";
         private const int DEFAULT_REMINDER_MINUTES = 1;
         private const int LONG_KEYPRESS_LENGTH_MS = 600;
         
@@ -186,7 +205,7 @@ namespace ChatPager.Actions
                 {
                     Logger.Instance.LogMessage(TracingLevel.ERROR, "GetGiveawayUsers returned null entries");
                 }
-                string title = $"{entries?.Count} entries";
+                string title = $"{entries?.Count}\nentries";
 
                 if (Settings.AutoDraw && !startedAutoDraw)
                 {
@@ -234,11 +253,10 @@ namespace ChatPager.Actions
 
         private void StartNewGiveaway()
         {
-            TwitchChat.Instance.SendMessage($"New giveaway started for {Settings.Item} to enter type: {Settings.Command} in the channel!");
+            TwitchChat.Instance.SendMessage(Settings.StartMessage.Replace("{ITEM}", Settings.Item).Replace("{COMMAND}", Settings.Command));
             previousWinners = new HashSet<string>();
             lastReminderTime = DateTime.Now;
             TwitchGiveawayManager.Instance.StartGiveaway(Settings.Command);
-
 
             if (Settings.AutoDraw)
             {
@@ -280,7 +298,8 @@ namespace ChatPager.Actions
                 return;
             }
 
-            TwitchChat.Instance.SendMessage($"Congratulations @{winner} you won the giveaway for {Settings.Item}!");
+
+            TwitchChat.Instance.SendMessage(Settings.WinMessage.Replace("{USER}",winner).Replace("{ITEM}", Settings.Item));
             previousWinners.Add(winner);
 
             SaveWinnerToFile(winner);
@@ -294,7 +313,7 @@ namespace ChatPager.Actions
             Logger.Instance.LogMessage(TracingLevel.INFO, "OnSendToPlugin called");
             if (payload["property_inspector"] != null)
             {
-                switch (payload["property_inspector"].ToString().ToLower())
+                switch (payload["property_inspector"].ToString().ToLowerInvariant())
                 {
                     case "loadsavepicker":
                         string propertyName = (string)payload["property_name"];
@@ -327,7 +346,15 @@ namespace ChatPager.Actions
                 return;
             }
 
-            File.AppendAllText(Settings.WinnersFileName, $"{DateTime.Now.ToString("yyyy-MM-dd HH:mm")}, Item: {Settings.Item}, Winner: {winner}\n");
+            string contents = $"{DateTime.Now.ToString("yyyy-MM-dd HH:mm")}, Item: {Settings.Item}, Winner: {winner}\n";
+            if (Settings.WinnersFileOverwrite)
+            {
+                File.WriteAllText(Settings.WinnersFileName, contents);
+            }
+            else
+            {
+                File.AppendAllText(Settings.WinnersFileName, contents);
+            }
         }
 
         private async Task EndGiveaway()
@@ -347,10 +374,33 @@ namespace ChatPager.Actions
         private void InitializeSettings()
         {
             SetTimerInterval();
-
+            bool hasChanges = false;
             if (!int.TryParse(Settings.Reminder, out reminderMinutes))
             {
                 Settings.Reminder = DEFAULT_REMINDER_MINUTES.ToString();
+                hasChanges = true;
+            }
+
+            if (String.IsNullOrEmpty(Settings.StartMessage))
+            {
+                Settings.StartMessage = DEFAULT_GIVEAWAY_START_MESSAGE;
+                hasChanges = true;
+            }
+
+            if (String.IsNullOrEmpty(Settings.WinMessage))
+            {
+                Settings.WinMessage = DEFAULT_GIVEAWAY_WIN_MESSAGE;
+                hasChanges = true;
+            }
+
+            if (String.IsNullOrEmpty(Settings.ReminderMessage))
+            {
+                Settings.ReminderMessage = DEFAULT_GIVEAWAY_REMINDER_MESSAGE;
+                hasChanges = true;
+            }
+
+            if (hasChanges)
+            {
                 SaveSettings();
             }
         }
@@ -399,7 +449,7 @@ namespace ChatPager.Actions
             if ((DateTime.Now - lastReminderTime).TotalMinutes >= reminderMinutes)
             {
                 lastReminderTime = DateTime.Now;
-                TwitchChat.Instance.SendMessage($"Giveaway for {Settings.Item} is still active! To enter type: {Settings.Command} in the channel!");
+                TwitchChat.Instance.SendMessage(Settings.ReminderMessage.Replace("{ITEM}", Settings.Item).Replace("{COMMAND}", Settings.Command));
             }
         }
 

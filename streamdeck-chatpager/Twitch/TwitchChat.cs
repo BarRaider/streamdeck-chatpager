@@ -7,6 +7,7 @@ using TwitchLib.Client.Models;
 using System.Linq;
 using ChatPager.Wrappers;
 using System.Drawing;
+using System.Threading;
 
 namespace ChatPager.Twitch
 {
@@ -164,8 +165,14 @@ namespace ChatPager.Twitch
 
             if (!IsConnected)
             {
-                Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchChat SendMessage called but not connected.");
-                return;
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchChat SendMessage called but not connected, attempting to reconnect");
+                Initialize();
+                Thread.Sleep(2000);
+                if (!IsConnected)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchChat failed to reconnect");
+                    return;
+                }
             }
 
             // Attempt to join the channel if we're not in it - before sending the message.
@@ -203,6 +210,7 @@ namespace ChatPager.Twitch
 
         public void RaisePageAlert(string message, string color)
         {
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"Twitch Chat received Page command: {message}");
             PageRaised?.Invoke(this, new PageRaisedEventArgs(message, color));
         }
 

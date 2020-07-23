@@ -9,6 +9,8 @@ namespace ChatPager.Wrappers
 {
     public class TwitchChannelInfo
     {
+        private const string IS_LIVE_TYPE = "live";
+
         [JsonProperty(PropertyName = "id")]
         public string ChannelId { get; private set; }
 
@@ -38,5 +40,13 @@ namespace ChatPager.Wrappers
 
         [JsonProperty(PropertyName = "thumbnail_url")]
         public string ThumbnailUrl { get; private set; }
+
+        public bool IsLive
+        {
+            get
+            {
+                return (Type != null && Type?.ToLowerInvariant() == IS_LIVE_TYPE);
+            }
+        }
     }
 }

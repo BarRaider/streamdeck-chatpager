@@ -32,13 +32,17 @@ namespace ChatPager.Actions
                 PluginSettings instance = new PluginSettings
                 {
                     TokenExists = false,
-                    ChannelName = string.Empty
+                    ChannelName = string.Empty,
+                    DontLoadImages = false
                 };
                 return instance;
             }
 
             [JsonProperty(PropertyName = "channelName")]
             public string ChannelName { get; set; }
+
+            [JsonProperty(PropertyName = "dontLoadImages")]
+            public bool DontLoadImages { get; set; }
         }
 
         protected PluginSettings Settings
@@ -90,16 +94,12 @@ namespace ChatPager.Actions
             List<ChatMessageKey> chatMessages = new List<ChatMessageKey>();
             foreach (string username in viewers.AllViewers)
             {
-                var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(username);
-
-                if (userInfo != null)
+                TwitchUserInfo userInfo = null;
+                if (!Settings.DontLoadImages)
                 {
-                    chatMessages.Add(new ChatMessageKey(userInfo?.Name, userInfo?.ProfileImageUrl, null));
+                    userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(username);
                 }
-                else
-                {
-                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"Could not fetch twitch user info for user: {username}");
-                }
+                chatMessages.Add(new ChatMessageKey(userInfo?.Name ?? username, userInfo?.ProfileImageUrl, null));
             }
             Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {chatMessages?.Count} viewers");
 
@@ -107,7 +107,11 @@ namespace ChatPager.Actions
             if (chatMessages != null && chatMessages.Count > 0)
             {
                 AlertManager.Instance.Initialize(Connection);
-                AlertManager.Instance.ShowChatMessages(chatMessages.OrderBy(c => c.KeyTitle).ToArray(), null);
+                AlertManager.Instance.ShowChatMessages(chatMessages.OrderBy(c => c.KeyTitle.ToLowerInvariant()).ToArray(), null);
+            }
+            else
+            {
+                await Connection.ShowOk();
             }
         }
 

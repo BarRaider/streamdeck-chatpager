@@ -14,13 +14,15 @@ namespace ChatPager
 
         #region Private Members
         private const string DEFAULT_ALERT_COLOR = "#FF0000";
+        private const int MAX_PAGE_LENGTH_MS = 60000;
 
         private static AlertManager instance = null;
         private static readonly object objLock = new object();
 
-        private System.Timers.Timer tmrPage = new System.Timers.Timer();
-        private System.Timers.Timer tmrClearFile = new System.Timers.Timer();
+        private readonly System.Timers.Timer tmrPage = new System.Timers.Timer();
+        private readonly System.Timers.Timer tmrClearFile = new System.Timers.Timer();
         private int alertStage = 0;
+        private DateTime pageStartTime;
         private string currentPageInitialColor = DEFAULT_ALERT_COLOR;
 
         #endregion
@@ -50,13 +52,12 @@ namespace ChatPager
 
         private AlertManager()
         {
-            tmrPage.Interval = 200;
+            tmrPage.Interval = 330;
             tmrPage.Elapsed += TmrPage_Elapsed;
             tmrClearFile.Elapsed += TmrClearFile_Elapsed;
             GlobalSettingsManager.Instance.OnReceivedGlobalSettings += Instance_OnReceivedGlobalSettings;
             GlobalSettingsManager.Instance.RequestGlobalSettings();
             TwitchChat.Instance.PageRaised += Chat_PageRaised;
-            //tmrPage.Start();
         }
 
         #endregion
@@ -92,6 +93,7 @@ namespace ChatPager
         private int numberOfKeys;
         private ActiveStreamersEventArgs streamersEventArgs = null;
         private ChatMessageListEventArgs chatMessageEventArgs = null;
+        private int autoStopSeconds = 0;
 
 
         #endregion
@@ -110,20 +112,27 @@ namespace ChatPager
         public void InitFlash()
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"InitFlash called");
+            pageStartTime = DateTime.Now;
             tmrPage.Start();
         }
 
-        public void StopFlash()
+        public void StopFlashAndReset()
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"StopFlash called");
             tmrPage.Stop();
+
+            if (FlashStatusChanged == null)
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, "StopFlash called but FlashStatusChanged is null");
+            }
             FlashStatusChanged?.Invoke(this, new FlashStatusEventArgs(Color.Empty, null));
+            Thread.Sleep(100);
         }
 
         public async void ShowActiveStreamers(TwitchActiveStreamer[] streamers, TwitchLiveStreamersLongPressAction longPressAction)
         {
-            StopFlash();
             Logger.Instance.LogMessage(TracingLevel.INFO, $"ShowActiveStreamers called");
+            StopFlashAndReset();
 
             switch (connection.DeviceInfo().Type)
             {
@@ -141,13 +150,20 @@ namespace ChatPager
                     break;
             }
 
-            // Wait until the GameUI Action keys have subscribed to get events
+            // Wait until the UI Action keys have subscribed to get events
             int retries = 0;
-            while (!IsReady && retries < 100)
+            while (!IsReady && retries < 60)
             {
                 Thread.Sleep(100);
                 retries++;
             }
+            if (!IsReady)
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, "Could not get full screen ready!");
+                await connection.SwitchProfileAsync(null);
+                return;
+            }
+            StopFlashAndReset();
             streamersEventArgs = new ActiveStreamersEventArgs(streamers, longPressAction, numberOfKeys, 0);
 
             ActiveStreamersChanged?.Invoke(this, streamersEventArgs);
@@ -159,8 +175,26 @@ namespace ChatPager
             {
                 return;
             }
-            StopFlash();
+            StopFlashAndReset();
             chatMessageEventArgs.CurrentPage++;
+            ChatMessageListChanged?.Invoke(this, chatMessageEventArgs);
+        }
+
+        public void MoveToPrevChatPage()
+        {
+            if (chatMessageEventArgs == null)
+            {
+                return;
+            }
+
+            if (chatMessageEventArgs.CurrentPage == 0) // Already on first page
+            {
+                return;
+            }
+
+
+            StopFlashAndReset();
+            chatMessageEventArgs.CurrentPage--;
             ChatMessageListChanged?.Invoke(this, chatMessageEventArgs);
         }
 
@@ -170,14 +204,31 @@ namespace ChatPager
             {
                 return;
             }
-            StopFlash();
+            StopFlashAndReset();
             streamersEventArgs.CurrentPage++;
+            ActiveStreamersChanged?.Invoke(this, streamersEventArgs);
+        }
+
+        public void MoveToPrevStreamersPage()
+        {
+            if (streamersEventArgs == null)
+            {
+                return;
+            }
+
+            if (streamersEventArgs.CurrentPage == 0) // Already on first page
+            {
+                return;
+            }
+
+            StopFlashAndReset();
+            streamersEventArgs.CurrentPage--;
             ActiveStreamersChanged?.Invoke(this, streamersEventArgs);
         }
 
         public async void ShowChatMessages(ChatMessageKey[] chatMessageKeys, string channel)
         {
-            StopFlash();
+            StopFlashAndReset();
             Logger.Instance.LogMessage(TracingLevel.INFO, $"ShowChatMessages called");
 
             switch (connection.DeviceInfo().Type)
@@ -196,13 +247,20 @@ namespace ChatPager
                     break;
             }
 
-            // Wait until the GameUI Action keys have subscribed to get events
+            // Wait until the UI Action keys have subscribed to get events
             int retries = 0;
-            while (!IsReady && retries < 100)
+            while (!IsReady && retries < 60)
             {
                 Thread.Sleep(100);
                 retries++;
             }
+            if (!IsReady)
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, "Could not get full screen ready!");
+                await connection.SwitchProfileAsync(null);
+                return;
+            }
+            StopFlashAndReset();
 
             chatMessageEventArgs = new ChatMessageListEventArgs(chatMessageKeys, channel, numberOfKeys, 0);
             ChatMessageListChanged?.Invoke(this, chatMessageEventArgs);
@@ -215,6 +273,7 @@ namespace ChatPager
 
         private async void Chat_PageRaised(object sender, PageRaisedEventArgs e)
         {
+            Logger.Instance.LogMessage(TracingLevel.INFO, "AlertManager: Page Raised!");
             SavePageToFile($"{global.FilePrefix}{e.Message}");
             if (!global.FullScreenAlert)
             {
@@ -262,12 +321,20 @@ namespace ChatPager
             if (payload?.Settings != null)
             {
                 global = payload.Settings.ToObject<TwitchGlobalSettings>();
-                SetClearTimerInterval();
+                InitializeSettings();
             }
         }
 
         private void TmrPage_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
+            if (autoStopSeconds > 0 && (DateTime.Now - pageStartTime).TotalSeconds > autoStopSeconds)
+            {
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"Auto stopping page after {(DateTime.Now - pageStartTime).TotalSeconds} seconds");
+                StopFlashAndReset();
+                connection.SwitchProfileAsync(null);
+                return;
+            }
+
             if (String.IsNullOrEmpty(currentPageInitialColor))
             {
                 Logger.Instance.LogMessage(TracingLevel.WARN, "TmrPage: No alert color, reverting to default");
@@ -285,11 +352,11 @@ namespace ChatPager
             {
                 if (string.IsNullOrEmpty(global.PageFileName))
                 {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, "SavePageToFile called but PageFileName is empty");
+                    Logger.Instance.LogMessage(TracingLevel.WARN, "AlertManager: SavePageToFile called but PageFileName is empty");
                     return;
                 }
 
-                Logger.Instance.LogMessage(TracingLevel.INFO, $"Saving message {pageMessage} to file {global.PageFileName}");
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"AlertManager: Saving page message {pageMessage} to file {global.PageFileName}. AutoClear is {autoClear}");
                 File.WriteAllText(global.PageFileName, $"{pageMessage}");
 
                 if (autoClearFile)
@@ -298,7 +365,7 @@ namespace ChatPager
                 }
             }
         }
-        private void SetClearTimerInterval()
+        private void InitializeSettings()
         {
             autoClearFile = false;
             if (int.TryParse(global.ClearFileSeconds, out int value))
@@ -308,6 +375,12 @@ namespace ChatPager
                     autoClearFile = true;
                     tmrClearFile.Interval = value * 1000;
                 }
+            }
+
+            if (!Int32.TryParse(global.AutoStopPage, out autoStopSeconds))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"Invalid AutoStopPage value: {global.AutoStopPage}");
+                autoStopSeconds = 0;
             }
         }
 

@@ -6,7 +6,7 @@
     <meta name=apple-mobile-web-app-capable content=yes>
     <meta name=apple-mobile-web-app-status-bar-style content=black>
     <title>Twitch Stream Title</title>
-    <link rel="stylesheet" href="../sdpi.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css">
     <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
     <script src="../setup.js"></script>
     <script src="../StreamTitle.js"></script>
@@ -16,41 +16,42 @@
         <details class="message info">
             <summary>For feedback/suggestions contact me at <span class="linkspan" onclick="openWebsite()">https://BarRaider.com</span> </summary>
         </details>
-        <div class="sdpi-item" id="dvStatusFile">
-            <div class="sdpi-item-label">Status File</div>
-            <div class="sdpi-item-group file" id="filepickergroup">
-                <input class="sdpi-item-value sdProperty sdFile" type="file" id="statusFile" accept=".txt" oninput="setSettings()">
-                <label class="sdpi-file-info " for="statusFile" id="statusFileFilename">No file...</label>
-                <label class="sdpi-file-label" for="statusFile">Choose file...</label>
+        <div id="sdWrapper" style="display:none;">
+            <div class="sdpi-item" id="dvStatusFile">
+                <div class="sdpi-item-label">Status File</div>
+                <div class="sdpi-item-group file" id="filepickergroup">
+                    <input class="sdpi-item-value sdProperty sdFile" type="file" id="statusFile" accept=".txt" oninput="setSettings()">
+                    <label class="sdpi-file-info " for="statusFile" id="statusFileFilename">No file...</label>
+                    <label class="sdpi-file-label" for="statusFile">Choose file...</label>
+                </div>
             </div>
-        </div>
-        <div class="sdpi-item" id="dvGameFile">
-            <div class="sdpi-item-label">Game File</div>
-            <div class="sdpi-item-group file" id="filepickergroup">
-                <input class="sdpi-item-value sdProperty sdFile" type="file" id="gameFile" accept=".txt" oninput="setSettings()">
-                <label class="sdpi-file-info " for="gameFile" id="gameFileFilename">No file...</label>
-                <label class="sdpi-file-label" for="gameFile">Choose file...</label>
+            <div class="sdpi-item" id="dvGameFile">
+                <div class="sdpi-item-label">Game File</div>
+                <div class="sdpi-item-group file" id="filepickergroup">
+                    <input class="sdpi-item-value sdProperty sdFile" type="file" id="gameFile" accept=".txt" oninput="setSettings()">
+                    <label class="sdpi-file-info " for="gameFile" id="gameFileFilename">No file...</label>
+                    <label class="sdpi-file-label" for="gameFile">Choose file...</label>
+                </div>
             </div>
-        </div>
-        <div class="sdpi-item" id="dvTagsFile">
-            <div class="sdpi-item-label">Tags File</div>
-            <div class="sdpi-item-group file" id="filepickergroup">
-                <input class="sdpi-item-value sdProperty sdFile" type="file" id="tagsFile" accept=".txt" oninput="setSettings()">
-                <label class="sdpi-file-info " for="tagsFile" id="tagsFileFilename">No file...</label>
-                <label class="sdpi-file-label" for="tagsFile">Choose file...</label>
+            <div class="sdpi-item" id="dvTagsFile">
+                <div class="sdpi-item-label">Tags File</div>
+                <div class="sdpi-item-group file" id="filepickergroup">
+                    <input class="sdpi-item-value sdProperty sdFile" type="file" id="tagsFile" accept=".txt" oninput="setSettings()">
+                    <label class="sdpi-file-info " for="tagsFile" id="tagsFileFilename">No file...</label>
+                    <label class="sdpi-file-label" for="tagsFile">Choose file...</label>
+                </div>
             </div>
-        </div>
-        <hr />
-        <div class="sdpi-item" id="dvReset">
-            <div class="sdpi-item-label">Revoke Approval</div>
-            <button class="sdpi-item-value max20" onclick="resetPlugin()">Revoke</button>
-            <p>Plugin will no longer communicate with Twitch and will ask for a new Approval Code</p>
-        </div>
+            <hr />
+            <div class="sdpi-item" id="dvReset">
+                <div class="sdpi-item-label">Revoke Approval</div>
+                <button class="sdpi-item-value max20" onclick="resetPlugin()">Revoke</button>
+                <p>Plugin will no longer communicate with Twitch and will ask for a new Approval Code</p>
+            </div>
 
-        <div class="sdpi-item" id="dvHdn">
-            <input value="" type="hidden" id="tokenExists" class="sdProperty" oninput="setSettings()">
+            <div class="sdpi-item" id="dvHdn">
+                <input value="" type="hidden" id="tokenExists" class="sdProperty" oninput="setSettings()">
+            </div>
         </div>
-    </div>
     </div>
 </body>
 </html>

@@ -62,11 +62,13 @@ namespace ChatPager.Twitch
 
         private static TwitchPubSubManager instance = null;
         private static readonly object objLock = new object();
+        private static readonly HashSet<string> pastFollowers = new HashSet<string>();
 
         private TwitchPubSub pubsub;
         private bool isConnected = false;
         private bool connectCalled = false;
         private TwitchGlobalSettings global;
+        private string channelName;
 
         #endregion
 
@@ -103,36 +105,67 @@ namespace ChatPager.Twitch
 
         #region Public Methods
 
-        public event EventHandler<TwitchLib.PubSub.Events.OnBitsReceivedArgs> OnBitsReceived;
-        public event EventHandler<TwitchLib.PubSub.Events.OnChannelPointsRedeemedArgs> OnChannelPointsRedeemed;
-        public event EventHandler<TwitchLib.PubSub.Events.OnFollowArgs> OnNewFollow;
-        public event EventHandler<TwitchLib.PubSub.Events.OnChannelSubscriptionArgs> OnNewSub;
-
-
         public void Initialize()
         {
+            if (global != null && !global.PubsubNotifications)
+            {
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"PubSub Initialize called but PubSub notifications are disabled");
+                return;
+            }
+
             if (pubsub != null)
             {
                 return;
             }
 
+            isConnected = false;
+            connectCalled = false;
             pubsub = new TwitchPubSub(new PSLogger<TwitchPubSub>());
 
             TwitchTokenManager.Instance.TokensChanged += Instance_TokensChanged;
             pubsub.OnPubSubServiceConnected += Pubsub_OnPubSubServiceConnected;
             pubsub.OnListenResponse += Pubsub_OnListenResponse;
             pubsub.OnStreamDown += Pubsub_OnStreamDown;
+            pubsub.OnStreamUp += Pubsub_OnStreamUp;
             pubsub.OnBitsReceived += Pubsub_OnBitsReceived;
             pubsub.OnChannelSubscription += Pubsub_OnChannelSubscription;
             pubsub.OnChannelPoints += Pubsub_OnChannelPoints;
             pubsub.OnFollow += Pubsub_OnFollow;
 
-
             ConnectPubSub();
         }
 
-        #endregion
+        public void Disconnect()
+        {
+            if (pubsub == null)
+            {
+                return;
+            }
 
+            Logger.Instance.LogMessage(TracingLevel.INFO, "PubSub Disconnecting");
+            TwitchTokenManager.Instance.TokensChanged -= Instance_TokensChanged;
+            pubsub.OnPubSubServiceConnected -= Pubsub_OnPubSubServiceConnected;
+            pubsub.OnListenResponse -= Pubsub_OnListenResponse;
+            pubsub.OnStreamDown -= Pubsub_OnStreamDown;
+            pubsub.OnStreamUp -= Pubsub_OnStreamUp;
+            pubsub.OnBitsReceived -= Pubsub_OnBitsReceived;
+            pubsub.OnChannelSubscription -= Pubsub_OnChannelSubscription;
+            pubsub.OnChannelPoints -= Pubsub_OnChannelPoints;
+            pubsub.OnFollow -= Pubsub_OnFollow;
+
+            try
+            {
+                pubsub.Disconnect();
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"PubSub Disconnect Exception: {ex}");
+            }
+            isConnected = false;
+            pubsub = null;
+        }
+
+        #endregion
 
         #region Private Methods
 
@@ -163,22 +196,27 @@ namespace ChatPager.Twitch
             }
             
             isConnected = true;
-            string userId = TwitchTokenManager.Instance.User.UserId;
-            Logger.Instance.LogMessage(TracingLevel.INFO, $"PubSub registering to events for {TwitchTokenManager.Instance.User.UserName} ({userId})");
+            channelName = TwitchTokenManager.Instance.User.UserId;
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"PubSub registering to events for {TwitchTokenManager.Instance.User.UserName} ({channelName})");
             var token = TwitchTokenManager.Instance.GetToken();
 
-            pubsub.ListenToBitsEvents(userId);
-            pubsub.ListenToFollows(userId);
-            pubsub.ListenToSubscriptions(userId);
-            pubsub.ListenToChannelPoints(userId);
+            pubsub.ListenToBitsEvents(channelName);
+            pubsub.ListenToFollows(channelName);
+            pubsub.ListenToSubscriptions(channelName);
+            pubsub.ListenToChannelPoints(channelName);
             pubsub.SendTopics($"{token.Token}");
 
             Logger.Instance.LogMessage(TracingLevel.INFO, $"PubSub SendTopics oauth length {token.Token.Length}");
-
         }
 
         private void ConnectPubSub()
         {
+            if (global != null && !global.PubsubNotifications)
+            {
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"ConnectPubSub called but PubSub notifications are disabled");
+                return;
+            }
+
             if (connectCalled)
             {
                 Logger.Instance.LogMessage(TracingLevel.INFO, $"ConnectPubSub called but already connected");
@@ -195,7 +233,6 @@ namespace ChatPager.Twitch
             pubsub.Connect();
         }
 
-
         private void Global_OnReceivedGlobalSettings(object sender, ReceivedGlobalSettingsPayload payload)
         {
             if (payload?.Settings != null)
@@ -203,8 +240,6 @@ namespace ChatPager.Twitch
                 global = payload.Settings.ToObject<TwitchGlobalSettings>();
             }
         }
-
-
 
         #endregion
 
@@ -224,12 +259,18 @@ namespace ChatPager.Twitch
             Logger.Instance.LogMessage(TracingLevel.INFO, "Stream Down Received");
         }
 
+        private void Pubsub_OnStreamUp(object sender, TwitchLib.PubSub.Events.OnStreamUpArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.INFO, "Stream Up Received");
+        }
+
         private void Instance_TokensChanged(object sender, TwitchTokenEventArgs e)
         {
             if (TwitchTokenManager.Instance.TokenExists)
             {
                 if (connectCalled) // Already connected, try registering for pubsub events
                 {
+                    connectCalled = false; // Reregister if tokens changed
                     RegisterEventsToListenTo();
                 }
                 else // Not connected - start by connecting to pubsub
@@ -239,10 +280,18 @@ namespace ChatPager.Twitch
             }
         }
 
-        private void Pubsub_OnChannelPoints(object sender, TwitchLib.PubSub.Events.OnChannelPointsRedeemedArgs e)
+        private async void Pubsub_OnChannelPoints(object sender, TwitchLib.PubSub.Events.OnChannelPointsRedeemedArgs e)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"{e.DisplayName} redeemed {e.Title} for {e.PointsUsed} points. {(String.IsNullOrEmpty(e.UserInput) ? "" : "Message: " + e.UserInput)}");
             
+            // Check if channel is live
+            var channelInfo = await TwitchChannelInfoManager.Instance.GetChannelInfo(channelName);
+            if (channelInfo != null && !channelInfo.IsLive)
+            {
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"Not raising Channel Points because channel isn't live");
+                return;
+            }
+
             // Send Chat Message
             if (!String.IsNullOrEmpty(global.PointsChatMessage))
             {
@@ -255,9 +304,16 @@ namespace ChatPager.Twitch
             }
         }
 
-        private void Pubsub_OnChannelSubscription(object sender, TwitchLib.PubSub.Events.OnChannelSubscriptionArgs e)
+        private async void Pubsub_OnChannelSubscription(object sender, TwitchLib.PubSub.Events.OnChannelSubscriptionArgs e)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"Sub: {e.Subscription.DisplayName} {(e.Subscription.UserId != e.Subscription.RecipientId ? "gifted to " + e.Subscription.RecipientName : "")}");
+            // Check if channel is live
+            var channelInfo = await TwitchChannelInfoManager.Instance.GetChannelInfo(channelName);
+            if (channelInfo != null && !channelInfo.IsLive)
+            {
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"Not raising On Sub because channel isn't live");
+                return;
+            }
 
             // Send Chat Message
             if (!String.IsNullOrEmpty(global.SubChatMessage))
@@ -271,9 +327,17 @@ namespace ChatPager.Twitch
             }
         }
 
-        private void Pubsub_OnBitsReceived(object sender, TwitchLib.PubSub.Events.OnBitsReceivedArgs e)
+        private async void Pubsub_OnBitsReceived(object sender, TwitchLib.PubSub.Events.OnBitsReceivedArgs e)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"{e.Username} cheered {e.BitsUsed}/{e.TotalBitsUsed} bits. Message: {e.ChatMessage}");
+            
+            // Check if channel is live
+            var channelInfo = await TwitchChannelInfoManager.Instance.GetChannelInfo(channelName);
+            if (channelInfo != null && !channelInfo.IsLive)
+            {
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"Not raising Bits Received because channel isn't live");
+                return;
+            }
 
             // Send Chat Message
             if (!String.IsNullOrEmpty(global.BitsChatMessage))
@@ -288,9 +352,25 @@ namespace ChatPager.Twitch
 
         }
 
-        private void Pubsub_OnFollow(object sender, TwitchLib.PubSub.Events.OnFollowArgs e)
+        private async void Pubsub_OnFollow(object sender, TwitchLib.PubSub.Events.OnFollowArgs e)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"New Follower: {e.DisplayName}");
+
+            string follower = e.DisplayName.ToLowerInvariant();
+            if (pastFollowers.Contains(follower))
+            {
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"Not raising On Follow because {e.DisplayName} already followed recently");
+                return;
+            }
+            pastFollowers.Add(follower);
+
+            // Check if channel is live
+            var channelInfo = await TwitchChannelInfoManager.Instance.GetChannelInfo(channelName);
+            if (channelInfo != null && !channelInfo.IsLive)
+            {
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"Not raising On Follow because channel isn't live");
+                return;
+            }
 
             // Send Chat Message
             if (!String.IsNullOrEmpty(global.FollowChatMessage))
@@ -303,7 +383,6 @@ namespace ChatPager.Twitch
                 TwitchChat.Instance.RaisePageAlert(global.FollowFlashMessage.Replace("{USERNAME}", e.Username).Replace("{DISPLAYNAME}", e.DisplayName), global.FollowFlashColor);
             }
         }
-
 
         #endregion
     }

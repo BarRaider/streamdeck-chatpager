@@ -38,7 +38,8 @@ namespace ChatPager.Actions
                     TokenExists = false,
                     ChatMessage = DEFAULT_CHAT_MESSAGE,
                     Channel = String.Empty,
-                    UsersDisplay = UsersDisplay.ActiveChatters
+                    UsersDisplay = UsersDisplay.ActiveChatters,
+                    DontLoadImages = false
                 };
                 return instance;
             }
@@ -51,6 +52,9 @@ namespace ChatPager.Actions
 
             [JsonProperty(PropertyName = "usersDisplay")]
             public UsersDisplay UsersDisplay { get; set; }
+
+            [JsonProperty(PropertyName = "dontLoadImages")]
+            public bool DontLoadImages { get; set; }
         }
 
         protected PluginSettings Settings
@@ -91,7 +95,7 @@ namespace ChatPager.Actions
 
             Settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
             TwitchChat.Instance.Initialize();
-            SaveSettings();
+            InitializeSettings();
         }
 
         public override void Dispose() { }
@@ -136,16 +140,19 @@ namespace ChatPager.Actions
                     return;
                 }
                 Logger.Instance.LogMessage(TracingLevel.INFO, "Shoutout loading all viewers");
-                userNames = viewers.AllViewers.ToArray();
+                userNames = viewers.AllViewers.OrderBy(u => u.ToLowerInvariant()).ToArray();
             }           
 
             // We have a list of usernames, get some more details on them so we can display their image on the StreamDeck
             List<ChatMessageKey> chatMessages = new List<ChatMessageKey>();
             foreach (string username in userNames)
             {
-                var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(username);
-
-                chatMessages.Add(new ChatMessageKey(userInfo.Name, userInfo.ProfileImageUrl, Settings.ChatMessage.Replace("{USERNAME}", $"{userInfo.Name}")));
+                TwitchUserInfo userInfo = null;
+                if (!Settings.DontLoadImages)
+                {
+                    userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(username);
+                }
+                chatMessages.Add(new ChatMessageKey(userInfo?.Name ?? username, userInfo?.ProfileImageUrl, Settings.ChatMessage.Replace("{USERNAME}", $"{userInfo?.Name ?? username}")));
             }
             Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {chatMessages?.Count} chat messages");
 
@@ -154,12 +161,16 @@ namespace ChatPager.Actions
             {
                 AlertManager.Instance.Initialize(Connection);
                 AlertManager.Instance.ShowChatMessages(chatMessages.ToArray(), Settings.Channel);
-            }           
+            }
+            else
+            {
+                await Connection.ShowOk();
+            }
         }
 
         public override void KeyReleased(KeyPayload payload) { }
 
-        public async override void OnTick()
+        public override void OnTick()
         {
             baseHandledOnTick = false;
             base.OnTick();
@@ -176,12 +187,22 @@ namespace ChatPager.Actions
         public override void ReceivedSettings(ReceivedSettingsPayload payload) 
         {
             Tools.AutoPopulateSettings(Settings, payload.Settings);
-            SaveSettings();
+            InitializeSettings();
         }
 
         #endregion
 
         #region Private Methods
+
+        private void InitializeSettings()
+        {
+            if (!string.IsNullOrEmpty(Settings.Channel) && Settings.UsersDisplay == UsersDisplay.ActiveChatters)
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"Shoutout does not support 'Active Chatters' mode when 'Channel' property is set");
+                Settings.UsersDisplay = UsersDisplay.AllViewers;
+            }
+            SaveSettings();
+        }
 
         protected override Task SaveSettings()
         {

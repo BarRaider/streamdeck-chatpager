@@ -86,5 +86,8 @@ namespace ChatPager.Twitch
 
         [JsonProperty(PropertyName = "pointsChatMessage")]
         public string PointsChatMessage { get; set; }
+
+        [JsonProperty(PropertyName = "autoStopPage")]
+        public string AutoStopPage { get; set; }
     }
 }

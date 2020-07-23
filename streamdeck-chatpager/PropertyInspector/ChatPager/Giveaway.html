@@ -5,8 +5,8 @@
     <meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover">
     <meta name=apple-mobile-web-app-capable content=yes>
     <meta name=apple-mobile-web-app-status-bar-style content=black>
-    <title>Twitch Send Message</title>
-    <link rel="stylesheet" href="../sdpi.css">
+    <title>Twitch Giveaway</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css">
     <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
     <script src="../setup.js"></script>
     <script src="../Giveaway.js"></script>
@@ -16,12 +16,12 @@
         <details class="message info">
             <summary>For feedback/suggestions contact me at <span class="linkspan" onclick="openWebsite()">https://BarRaider.com</span> </summary>
         </details>
-        <div type="range" class="sdpi-item">
-            <details class="message">
-                <summary>First short press will start giveaway. Every additional short press will name a winner. Long press key to reset and end giveaway. Or use the two buttons below</summary>
-            </details>
-        </div>
         <div id="sdWrapper" style="display:none;">
+            <div type="range" class="sdpi-item">
+                <details class="message">
+                    <summary>First short press will start giveaway. Every additional short press will name a winner. Long press key to reset and end giveaway. Or use the two buttons below</summary>
+                </details>
+            </div>
             <div class="sdpi-item" id="dvCommand">
                 <div class="sdpi-item-label">Signup Command</div>
                 <input class="sdpi-item-value sdProperty" placeholder="!giveaway" id="command" oninput="setSettings()">
@@ -30,9 +30,17 @@
                 <div class="sdpi-item-label">Giveaway Item</div>
                 <input class="sdpi-item-value sdProperty" placeholder="a Steam key" id="item" oninput="setSettings()">
             </div>
+            <div class="sdpi-item" id="dvItem">
+                <div class="sdpi-item-label">Start Message</div>
+                <input class="sdpi-item-value sdProperty" placeholder="New giveaway started for {ITEM} to enter type: {COMMAND} in the channel!" id="startMessage" oninput="setSettings()">
+            </div>
             <div class="sdpi-item" id="dvReminder">
                 <div class="sdpi-item-label">Giveaway Reminder every (minutes)</div>
                 <input class="sdpi-item-value sdProperty" id="reminder" inputmode="numeric" pattern="[0-9]*" type="number" placeholder="1" oninput="setSettings()">
+            </div>
+            <div class="sdpi-item" id="dvReminderMessage">
+                <div class="sdpi-item-label">Reminder Message</div>
+                <input class="sdpi-item-value sdProperty" placeholder="Giveaway for {ITEM} is still active! To enter type: {COMMAND} in the channel!" id="reminderMessage" oninput="setSettings()">
             </div>
             <div type="checkbox" class="sdpi-item" id="dvPauseAfterFirstDraw">
                 <div class="sdpi-item-label">Limit Giveaway</div>
@@ -41,10 +49,21 @@
                     <label for="pauseAfterFirstDraw" class="sdpi-item-label"><span></span>Stop new entries after 1st draw</label>
                 </div>
             </div>
+            <div class="sdpi-item" id="dvWinMessage">
+                <div class="sdpi-item-label">Win Message</div>
+                <input class="sdpi-item-value sdProperty" placeholder="Congratulations @{USER} you won the giveaway for {ITEM}!" id="winMessage" oninput="setSettings()">
+            </div>
             <div class="sdpi-item" id="dvWinnersFileName">
                 <div class="sdpi-item-label">Winners File</div>
                 <input class="sdpi-item-value sdProperty hasFileButton" disabled value="" id="winnersFileName">
-                <button class="max100 minmargin" onclick="openSaveFilePicker('Store names of winners in file', 'Text files (*.txt)|*.txt|All files (*.*)|*.*', 'winnersFileName');">...</button>
+                <button class="max100 leftMargin0" onclick="openSaveFilePicker('Store names of winners in file', 'Text files (*.txt)|*.txt|All files (*.*)|*.*', 'winnersFileName');">...</button>
+            </div>
+            <div type="checkbox" class="sdpi-item" id="dvWinnersFileOverwrite">
+                <div class="sdpi-item-label">Overwrite</div>
+                <div class="sdpi-item-value">
+                    <input id="winnersFileOverwrite" type="checkbox" value="" class="sdProperty sdCheckbox" oninput="setSettings()">
+                    <label for="winnersFileOverwrite" class="sdpi-item-label"><span></span>Clear file instead of appending</label>
+                </div>
             </div>
             <div type="checkbox" class="sdpi-item" id="dvAutoDraw">
                 <div class="sdpi-item-label">Auto Draw</div>
@@ -61,7 +80,7 @@
                 <div class="sdpi-item" id="dvTimerFileName">
                     <div class="sdpi-item-label">Timer File</div>
                     <input class="sdpi-item-value sdProperty hasFileButton" disabled value="" id="timerFileName">
-                    <button class="max100 minmargin" onclick="openSaveFilePicker('Store timer in file to show on stream', 'Text files (*.txt)|*.txt|All files (*.*)|*.*', 'timerFileName');">...</button>
+                    <button class="max100 leftMargin0" onclick="openSaveFilePicker('Store timer in file to show on stream', 'Text files (*.txt)|*.txt|All files (*.*)|*.*', 'timerFileName');">...</button>
                 </div>
                 <div type="range" class="sdpi-item">
                     <details class="message">

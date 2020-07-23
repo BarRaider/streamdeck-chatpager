@@ -43,7 +43,8 @@ namespace ChatPager.Actions
                     GrayscaleImageWhenNotLive = false,
                     LiveStreamPreview = true,
                     LiveGameIcon = false,
-                    LiveUserIcon = false
+                    LiveUserIcon = false,
+                    ShowViewersCount = false
                 };
                 return instance;
             }
@@ -82,6 +83,9 @@ namespace ChatPager.Actions
 
             [JsonProperty(PropertyName = "liveUserIcon")]
             public bool LiveUserIcon { get; set; }
+
+            [JsonProperty(PropertyName = "showViewersCount")]
+            public bool ShowViewersCount { get; set; }            
         }
 
         protected PluginSettings Settings
@@ -107,13 +111,13 @@ namespace ChatPager.Actions
         private const int PREVIEW_IMAGE_WIDTH_PIXELS = 144;
         private const string PREVIEW_IMAGE_WIDTH_TOKEN = "{width}";
         private const string PREVIEW_IMAGE_HEIGHT_TOKEN = "{height}";
-        private const string IS_LIVE_TYPE = "live";
 
         private DateTime lastImageUpdate;
         private Image thumbnailImage;
         private bool isLive = false;
         private bool isFirstTimeLoading = true;
         private bool previouslyWasLive = false;
+        private int viewersCount = 0;
 
 
         #endregion
@@ -231,9 +235,9 @@ namespace ChatPager.Actions
             int height = bmp.Height;
             int width = bmp.Width;
 
-            using (Font fontChannel = new Font("Arial", 40, FontStyle.Bold))
+            using (Font fontChannel = new Font("Verdana", 44, FontStyle.Bold, GraphicsUnit.Pixel))
             {
-                using (Font fontIsStreaming = new Font("Webdings", 18, FontStyle.Regular))
+                using (Font fontIsStreaming = new Font("Webdings", 22, FontStyle.Regular, GraphicsUnit.Pixel))
                 {
                     using (GraphicsPath gpath = new GraphicsPath())
                     {
@@ -267,6 +271,24 @@ namespace ChatPager.Actions
                             graphics.DrawPath(Pens.Black, gpath);
                             graphics.FillPath(Brushes.White, gpath);
                         }
+
+                        if (isLive && Settings.ShowViewersCount)
+                        {
+                            using (Font fontViewersCount = new Font("Webdings", 25, FontStyle.Regular, GraphicsUnit.Pixel))
+                            {
+                                // Draw Viewer Count
+                                graphics.DrawString("N", fontViewersCount, Brushes.White, new PointF(3, 8));
+                            }
+                            string viewers = $"{viewersCount}";
+                            gpath.AddString(viewers,
+                                                fontChannel.FontFamily,
+                                                (int)FontStyle.Bold,
+                                                graphics.DpiY * fontChannel.SizeInPoints / width,
+                                                new Point(35, 7),
+                                                new StringFormat());
+                            graphics.DrawPath(Pens.Black, gpath);
+                            graphics.FillPath(Brushes.White, gpath);
+                        }
                     }
                 }
             }
@@ -284,7 +306,8 @@ namespace ChatPager.Actions
                 var channelInfo = await TwitchChannelInfoManager.Instance.GetChannelInfo(Settings.ChannelName);
                 if (channelInfo != null)
                 {
-                    isLive = channelInfo.Type.ToLowerInvariant() == IS_LIVE_TYPE;
+                    isLive = channelInfo.IsLive;
+                    viewersCount = channelInfo.Viewers;
                 }
 
                 // Channel just turned live.  Don't make a sound if we just loaded the plugin for the first time
@@ -439,7 +462,7 @@ namespace ChatPager.Actions
                 return;
             }
 
-            // Should run once when moving to version Twitch Tools 2.3 (backwards compability)
+            // Should run once when moving to version Twitch Tools 2.3 (backwards compatibility)
             if (Settings.HideChannelPreview)
             {
                 Settings.LiveUserIcon = true;

@@ -4,6 +4,18 @@
 
 **Author's website and contact information:** [https://barraider.com](https://barraider.com)
 
+## New in 2.4
+- `Giveaway` action now supports customizable messages (+ support for non-English languages)
+- `Giveaway` action now allows to overwrite the winners file (previously only appended)
+- `Chat Pager` alerts now can be auto stopped after a customizable amount of seconds
+- Added back button to `Viewers`, `Shoutout` and `Live Streamers` actions
+- Users in `Viewers` and `Shoutout` are now sorted alphabetically
+- Improved load times for `ShoutOut` and `Viewers` actions with new option to hide the user avatar images
+- `ShoutOut` and `Send Message` actions now automatically try to reconnect if chat was disconnected due to timeouts.
+- `Channel` action now supports showing the number of viewers when your favorite streamer is live.
+- `Live Streamers` now shows up to 100 streams
+- Fixed multiple full-screen UI issues + improved UI framework
+
 ## New in v2.3
 - `Chat Pager` now supports **Notifications**! Create customizable alerts on your Stream Deck + Auto-Message your chat whenever someone Follows, Subs, Cheers (bits) or Redeems Channel Points!
 - `Shoutout` action now allows you to toggle between showing **Active Chatters** (as before), or **All Viewers** in the channel

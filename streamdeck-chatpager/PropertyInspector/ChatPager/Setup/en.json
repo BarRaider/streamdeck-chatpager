@@ -23,7 +23,7 @@
         "ValidateTitle": "Validating Code",
         "ValidateDescription": "This may take up to one minute...",
         "SuccessTitle": "Code Accepted",
-        "SuccessDescription": "You may now close this window and start using Twitch Pager",
+        "SuccessDescription": "You may now close this window and start using the plugin",
         "FailTitle": "VALIDATION FAILED",
         "FailDescription": "We failed to validate the code. Please try again with a new code. Make sure to copy-paste the code entirely",
         "FailRetry": "Try Again",

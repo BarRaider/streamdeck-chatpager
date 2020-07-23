@@ -13,14 +13,12 @@ namespace ChatPager.Twitch
     public class TwitchTokenManager
     {
         #region Private Members
-        private const string TOKEN_FILE = "twitch.dat";
-
         private static TwitchTokenManager instance = null;
         private static readonly object objLock = new object();
 
         private TwitchToken token;
         private TwitchUserDetails userDetails;
-        private object lockObj = new object();
+        private readonly object lockObj = new object();
         private TwitchGlobalSettings global = null;
 
         #endregion

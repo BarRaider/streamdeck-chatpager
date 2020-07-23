@@ -51,7 +51,8 @@ namespace ChatPager.Actions
                     SubFlashMessage = SUB_FLASH_DEFAULT_MESSAGE,
                     PointsChatMessage = POINTS_CHAT_DEFAULT_MESSAGE,
                     PointsFlashColor = POINTS_FLASH_DEFAULT_COLOR,
-                    PointsFlashMessage = POINTS_FLASH_DEFAULT_MESSAGE
+                    PointsFlashMessage = POINTS_FLASH_DEFAULT_MESSAGE,
+                    AutoStopPage = DEFAULT_AUTO_STOP_SECONDS.ToString()
                 };
                 return instance;
             }
@@ -140,6 +141,11 @@ namespace ChatPager.Actions
             [JsonProperty(PropertyName = "pointsChatMessage")]
             public string PointsChatMessage { get; set; }
 
+            [JsonProperty(PropertyName = "autoStopPage")]
+            public string AutoStopPage { get; set; }
+
+            
+
         }
 
         protected PluginSettings Settings
@@ -178,17 +184,20 @@ namespace ChatPager.Actions
         private const string POINTS_FLASH_DEFAULT_MESSAGE = "Points: {DISPLAYNAME} - {TITLE}";
 
         protected const int DEFAULT_CLEAR_FILE_SECONDS = 5;
-                                 
+        private const int DEFAULT_AUTO_STOP_SECONDS = 0;
+
+
         private bool isPaging = false;
         private readonly System.Timers.Timer tmrPage = new System.Timers.Timer();
         private int alertStage = 0;
         private TwitchStreamInfo streamInfo;
         private string pageMessage = null;
-        private readonly StreamDeckDeviceType deviceType;
         private TwitchGlobalSettings global = null;
         private int previousViewersCount = 0;
         private Brush viewersBrush = Brushes.White;
         private bool globalSettingsLoaded = false;
+        private int autoStopPage = 0;
+        private DateTime pageStartTime;
 
         #endregion     
 
@@ -205,14 +214,12 @@ namespace ChatPager.Actions
             MyTwitchChannelInfo.Instance.TwitchStreamInfoChanged += Instance_TwitchStreamInfoChanged;
             AlertManager.Instance.TwitchPagerShown += Instance_TwitchPagerShown;
             TwitchChat.Instance.PageRaised += Chat_PageRaised;
-            TwitchPubSubManager.Instance.Initialize();
 
             this.Settings.ChatMessage = TwitchChat.Instance.ChatMessage;
             this.Settings.PageCommand = TwitchChat.Instance.PageCommand;
             Settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
             AlertManager.Instance.Initialize(Connection);
             ResetChat();
-            deviceType = Connection.DeviceInfo().Type;
             InitializeStreamInfo();
            
             tmrPage.Interval = 200;
@@ -272,6 +279,7 @@ namespace ChatPager.Actions
             if (isPaging && !tmrPage.Enabled && !Settings.FullScreenAlert)
             {
                 alertStage = 0;
+                pageStartTime = DateTime.Now;
                 tmrPage.Start();
             }
             else if (!isPaging)
@@ -313,6 +321,7 @@ namespace ChatPager.Actions
                 Settings.PointsChatMessage = global.PointsChatMessage;
                 Settings.PointsFlashColor = global.PointsFlashColor;
                 Settings.PointsFlashMessage = global.PointsFlashMessage;
+                Settings.AutoStopPage = global.AutoStopPage;
                 previousViewersCount = global.PreviousViewersCount;
                 if (!String.IsNullOrEmpty(global.ViewersBrush))
                 {
@@ -325,8 +334,17 @@ namespace ChatPager.Actions
                         Logger.Instance.LogMessage(TracingLevel.ERROR, $"Invalid global ViewersBrush {global.ViewersBrush} - {ex}");
                     }
                 }
-                SetClearTimerInterval();
+                InitializeSettings();
                 SaveSettings();
+
+                if (Settings.PubsubNotifications)
+                {
+                    TwitchPubSubManager.Instance.Initialize();
+                }
+                else
+                {
+                    TwitchPubSubManager.Instance.Disconnect();
+                }
             }
             else // Global settings do not exist
             {
@@ -342,7 +360,7 @@ namespace ChatPager.Actions
             bool previousPubsubNotifications = Settings.PubsubNotifications;
             // Populate new values
             Tools.AutoPopulateSettings(Settings, payload.Settings);
-            SetClearTimerInterval();
+            InitializeSettings();
             ResetChat();
 
             if (previousPubsubNotifications != Settings.PubsubNotifications && Settings.PubsubNotifications) // Enabled checkbox
@@ -395,6 +413,7 @@ namespace ChatPager.Actions
             global.PointsChatMessage = Settings.PointsChatMessage;
             global.PointsFlashColor = Settings.PointsFlashColor;
             global.PointsFlashMessage = Settings.PointsFlashMessage;
+            global.AutoStopPage = Settings.AutoStopPage;
             global.ViewersBrush = viewersBrush.ToHex();
             global.PreviousViewersCount = previousViewersCount;
             Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
@@ -404,9 +423,17 @@ namespace ChatPager.Actions
 
         private void TmrPage_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            Bitmap img = Tools.GenerateKeyImage(deviceType, out Graphics graphics);
-            int height = Tools.GetKeyDefaultHeight(deviceType);
-            int width = Tools.GetKeyDefaultWidth(deviceType);
+            if (autoStopPage > 0 && (DateTime.Now - pageStartTime).TotalSeconds > autoStopPage)
+            {
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"Auto stopping page after {(DateTime.Now - pageStartTime).TotalSeconds} seconds");
+                isPaging = false;
+                pageMessage = null;
+                return;
+            }
+
+            Bitmap img = Tools.GenerateGenericKeyImage(out Graphics graphics);
+            int height = img.Height;
+            int width = img.Width;
 
             // Background
             
@@ -419,7 +446,7 @@ namespace ChatPager.Actions
             }
             else
             {
-                var font = new Font("Verdana", 11, FontStyle.Bold);
+                var font = new Font("Verdana", 26, FontStyle.Bold, GraphicsUnit.Pixel);
                 var fgBrush = Brushes.White;
                 SizeF stringSize = graphics.MeasureString(pageMessage, font);
                 float stringPos = 0;
@@ -431,7 +458,7 @@ namespace ChatPager.Actions
                 else // Move to multi line
                 {
                     stringHeight = 0;
-                    pageMessage = pageMessage.Replace(" ", "\n");
+                    pageMessage = Tools.SplitStringToFit(pageMessage, new BarRaider.SdTools.Wrappers.TitleParameters(font.FontFamily, font.Style, font.Size, Color.White, true, BarRaider.SdTools.Wrappers.TitleVerticalAlignment.Top), imageWidthPixels: width);
                 }
                 graphics.DrawString(pageMessage, font, fgBrush, new PointF(stringPos, stringHeight));
                 Connection.SetImageAsync(img);
@@ -450,21 +477,16 @@ namespace ChatPager.Actions
                     return;
                 }
 
-                Bitmap bmp = Tools.GenerateKeyImage(deviceType, out Graphics graphics);
-                int height = Tools.GetKeyDefaultHeight(deviceType);
-                int width = Tools.GetKeyDefaultWidth(deviceType);
+                Bitmap bmp = Tools.GenerateGenericKeyImage(out Graphics graphics);
+                int height = bmp.Height;
+                int width = bmp.Width;
 
-                int fontTitleSize = 8;
-                int fontSecondSize = 10;
+                int fontTitleSize = 24;
+                int fontSecondSize = 26;
+                int heightPadding = 10;
 
-                if (deviceType == StreamDeckDeviceType.StreamDeckXL)
-                {
-                    fontTitleSize = 12;
-                    fontSecondSize = 14;
-                }
-
-                Font fontTitle = new Font("Verdana", fontTitleSize, FontStyle.Bold);
-                var fontSecond = new Font("Verdana", fontSecondSize, FontStyle.Bold);
+                Font fontTitle = new Font("Verdana", fontTitleSize, FontStyle.Bold, GraphicsUnit.Pixel);
+                var fontSecond = new Font("Verdana", fontSecondSize, FontStyle.Bold, GraphicsUnit.Pixel);
 
                 // Background
                 var bgBrush = new SolidBrush(ColorTranslator.FromHtml(BACKGROUND_COLOR));
@@ -473,8 +495,7 @@ namespace ChatPager.Actions
 
                 // Top title
                 string title = $"⚫ {streamInfo.Game}";
-                graphics.DrawString(title, fontTitle, fgBrush, new PointF(3, 10));
-
+                var nextHeight = graphics.DrawAndMeasureString(title, fontTitle, fgBrush, new PointF(3, 10)) + heightPadding;
                 // Figure out which color to use for the viewers
                 if (streamInfo.Viewers != previousViewersCount)
                 {
@@ -496,11 +517,11 @@ namespace ChatPager.Actions
                 }
 
                 title = $"⛑ {streamInfo.Viewers}";
-                graphics.DrawString(title, fontSecond, viewersBrush, new PointF(3, 28));
+                nextHeight = graphics.DrawAndMeasureString(title, fontSecond, viewersBrush, new PointF(3, nextHeight)) + heightPadding;
 
                 var span = DateTime.UtcNow - streamInfo.StreamStart;
                 title = span.Hours > 0 ? $"⛣ {span.Hours}:{span.Minutes.ToString("00")}" : $"⛣ {span.Minutes}m";
-                graphics.DrawString(title, fontSecond, fgBrush, new PointF(3, 50));
+                nextHeight = graphics.DrawAndMeasureString(title, fontSecond, fgBrush, new PointF(3, nextHeight));
                 await Connection.SetImageAsync(bmp);
                 graphics.Dispose();
             }
@@ -552,12 +573,23 @@ namespace ChatPager.Actions
             TwitchChat.Instance.InitializePager(Settings.PageCooldown, allowedPagers, monitoredStreamers);
         }
 
+        private void InitializeSettings()
+        {
+            if (!Int32.TryParse(Settings.AutoStopPage, out autoStopPage))
+            {
+                Settings.AutoStopPage = DEFAULT_AUTO_STOP_SECONDS.ToString();
+                SetGlobalSettings();
+            }
+
+            SetClearTimerInterval();
+        }
+
         private void SetClearTimerInterval()
         {
             if (!int.TryParse(Settings.ClearFileSeconds, out _))
             {
                 Settings.ClearFileSeconds = DEFAULT_CLEAR_FILE_SECONDS.ToString();
-                SaveSettings();
+                SetGlobalSettings();
             }
         }
 
