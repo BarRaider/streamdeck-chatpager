@@ -184,6 +184,12 @@
       "ReadOnly": true,
       "DeviceType": 2,
       "DontAutoSwitchWhenInstalled": true
+    },
+    {
+      "Name": "FullScreenAlertMobile",
+      "ReadOnly": true,
+      "DeviceType": 3,
+      "DontAutoSwitchWhenInstalled": true
     }
   ],
   "SDKVersion": 2,
