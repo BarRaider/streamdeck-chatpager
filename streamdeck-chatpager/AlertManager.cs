@@ -137,6 +137,7 @@ namespace ChatPager
             switch (connection.DeviceInfo().Type)
             {
                 case StreamDeckDeviceType.StreamDeckClassic:
+                case StreamDeckDeviceType.StreamDeckMobile:
                     await connection.SwitchProfileAsync("FullScreenAlert");
                     break;
                 case StreamDeckDeviceType.StreamDeckMini:
@@ -234,6 +235,7 @@ namespace ChatPager
             switch (connection.DeviceInfo().Type)
             {
                 case StreamDeckDeviceType.StreamDeckClassic:
+                case StreamDeckDeviceType.StreamDeckMobile:
                     await connection.SwitchProfileAsync("FullScreenAlert");
                     break;
                 case StreamDeckDeviceType.StreamDeckMini:
@@ -302,6 +304,7 @@ namespace ChatPager
             switch (connection.DeviceInfo().Type)
             {
                 case StreamDeckDeviceType.StreamDeckClassic:
+                case StreamDeckDeviceType.StreamDeckMobile:
                     await connection.SwitchProfileAsync("FullScreenAlert");
                     break;
                 case StreamDeckDeviceType.StreamDeckMini:
