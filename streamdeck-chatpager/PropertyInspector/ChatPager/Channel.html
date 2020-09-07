@@ -81,6 +81,34 @@
                     <label for="grayscaleImageWhenNotLive" class="sdpi-item-label"><span></span>Grayscale logo if stream is not live</label>
                 </div>
             </div>
+            <div type="checkbox" class="sdpi-item" id="dvHideRecording">
+                <div class="sdpi-item-label">Recording</div>
+                <div class="sdpi-item-value">
+                    <input id="hideRecordIcon" type="checkbox" value="" class="sdProperty sdCheckbox" oninput="setSettings()">
+                    <label for="hideRecordIcon" class="sdpi-item-label"><span></span>Hide red 'Record' icon when live</label>
+                </div>
+            </div>
+            <div type="radio" class="sdpi-item" id="rdKeyPress">
+                <div class="sdpi-item-label">Key Press</div>
+                <div class="sdpi-item-value ">
+                    <div class="sdpi-item-child">
+                        <input id="keypressDisabled" class="sdProperty sdCheckbox" type="radio" name="rdKeyPress" oninput="setSettings()">
+                        <label for="keypressDisabled" class="sdpi-item-label"><span></span>Disabled</label>
+                    </div>
+                    <div class="sdpi-item-child">
+                        <input id="keypressStream" class="sdProperty sdCheckbox" type="radio" name="rdKeyPress" checked oninput="setSettings()">
+                        <label for="keypressStream" class="sdpi-item-label"><span></span>Open Stream</label>
+                    </div>
+                    <div class="sdpi-item-child">
+                        <input id="keypressMod" class="sdProperty sdCheckbox" type="radio" name="rdKeyPress" oninput="setSettings()">
+                        <label for="keypressMod" class="sdpi-item-label"><span></span>Open Mod Dashboard</label>
+                    </div>
+                    <div class="sdpi-item-child">
+                        <input id="keypressCreator" class="sdProperty sdCheckbox" type="radio" name="rdKeyPress" oninput="setSettings()">
+                        <label for="keypressCreator" class="sdpi-item-label"><span></span>Open Creator Dashboard</label>
+                    </div>
+                </div>
+            </div>
             <hr />
             <div class="sdpi-item" id="dvReset">
                 <div class="sdpi-item-label">Revoke Approval</div>

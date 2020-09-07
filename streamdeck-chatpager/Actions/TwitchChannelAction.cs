@@ -1,7 +1,6 @@
 ﻿using BarRaider.SdTools;
 using ChatPager.Twitch;
 using ChatPager.Wrappers;
-using NAudio.Wave;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -15,13 +14,14 @@ using System.Threading.Tasks;
 
 namespace ChatPager.Actions
 {
-
     //---------------------------------------------------
     //          BarRaider's Hall Of Fame
     // Subscriber: nubby_ninja
     // 200 Bits: Nachtmeister666
     // Subscriber: icessassin
     // Subscriber: Vedeksu
+    // Subscriber: Vedeksu x2 !!!!!!!
+    // Subscriber: Pr0xity
     //---------------------------------------------------
 
     [PluginActionId("com.barraider.twitchtools.channel")]
@@ -44,7 +44,12 @@ namespace ChatPager.Actions
                     LiveStreamPreview = true,
                     LiveGameIcon = false,
                     LiveUserIcon = false,
-                    ShowViewersCount = false
+                    ShowViewersCount = false,
+                    HideRecordIcon = false,
+                    KeypressDisabled = false,
+                    KeypressCreator = false,
+                    KeypressMod = false,
+                    KeypressStream = false
                 };
                 return instance;
             }
@@ -85,7 +90,25 @@ namespace ChatPager.Actions
             public bool LiveUserIcon { get; set; }
 
             [JsonProperty(PropertyName = "showViewersCount")]
-            public bool ShowViewersCount { get; set; }            
+            public bool ShowViewersCount { get; set; }
+
+            [JsonProperty(PropertyName = "hideRecordIcon")]
+            public bool HideRecordIcon { get; set; }
+
+            [JsonProperty(PropertyName = "keypressDisabled")]
+            public bool KeypressDisabled { get; set; }
+
+            [JsonProperty(PropertyName = "keypressStream")]
+            public bool KeypressStream { get; set; }
+
+            [JsonProperty(PropertyName = "keypressMod")]
+            public bool KeypressMod { get; set; }
+
+            [JsonProperty(PropertyName = "keypressCreator")]
+            public bool KeypressCreator { get; set; }
+
+
+
         }
 
         protected PluginSettings Settings
@@ -106,6 +129,10 @@ namespace ChatPager.Actions
         }
 
         #region Private Members
+
+        private const string URL_STREAM = "https://www.twitch.tv/{0}";
+        private const string URL_MOD = "https://www.twitch.tv/moderator/{0}";
+        private const string URL_CREATOR = "https://dashboard.twitch.tv/u/{0}/stream-manager";
 
         private const int PREVIEW_IMAGE_HEIGHT_PIXELS = 144;
         private const int PREVIEW_IMAGE_WIDTH_PIXELS = 144;
@@ -144,14 +171,35 @@ namespace ChatPager.Actions
         public override async void KeyPressed(KeyPayload payload)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPressed");
-            if (!String.IsNullOrEmpty(Settings.ChannelName))
-            {
-                System.Diagnostics.Process.Start(String.Format("https://www.twitch.tv/{0}", Settings.ChannelName));
-            }
-            else
+
+            if (String.IsNullOrEmpty(Settings.ChannelName) || Settings.KeypressDisabled)
             {
                 await Connection.ShowAlert();
+                return;
             }
+
+            string url = String.Empty;
+
+            if (Settings.KeypressStream)
+            {
+                url = URL_STREAM;
+            }
+            else if (Settings.KeypressMod)
+            {
+                url = URL_MOD;
+            }
+            else if (Settings.KeypressCreator)
+            {
+                url = URL_CREATOR;
+            }
+
+            if (String.IsNullOrEmpty(url))
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"Channel: Invalid Keypress setting, url is null");
+                return;
+            }
+
+            System.Diagnostics.Process.Start(String.Format(url, Settings.ChannelName.ToLowerInvariant()));
 
         }
 
@@ -231,70 +279,72 @@ namespace ChatPager.Actions
                 return;
             }
 
-            Bitmap bmp = Tools.GenerateGenericKeyImage(out Graphics graphics);
-            int height = bmp.Height;
-            int width = bmp.Width;
-
-            using (Font fontChannel = new Font("Verdana", 44, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (Bitmap bmp = Tools.GenerateGenericKeyImage(out Graphics graphics))
             {
-                using (Font fontIsStreaming = new Font("Webdings", 22, FontStyle.Regular, GraphicsUnit.Pixel))
+                int height = bmp.Height;
+                int width = bmp.Width;
+
+                using (Font fontChannel = new Font("Verdana", 44, FontStyle.Bold, GraphicsUnit.Pixel))
                 {
-                    using (GraphicsPath gpath = new GraphicsPath())
+                    using (Font fontIsStreaming = new Font("Webdings", 22, FontStyle.Regular, GraphicsUnit.Pixel))
                     {
-                        int startWidth = 0;
-                        if (thumbnailImage != null)
+                        using (GraphicsPath gpath = new GraphicsPath())
                         {
-                            using (Image img = (Image)thumbnailImage.Clone())
+                            int startWidth = 0;
+                            if (thumbnailImage != null)
                             {
-                                // Draw background
-                                graphics.DrawImage(img, 0, 0, width, height);
+                                using (Image img = (Image)thumbnailImage.Clone())
+                                {
+                                    // Draw background
+                                    graphics.DrawImage(img, 0, 0, width, height);
+                                }
                             }
-                        }
 
-                        // Draw Red Circle
-                        if (isLive)
-                        {
-                            graphics.DrawString("n", fontIsStreaming, Brushes.Red, new Point(3, 110));
-                            startWidth = 30;
-                        }
-
-                        // Draw Channel name
-                        if (!Settings.HideChannelName)
-                        {
-
-                            gpath.AddString(Settings.ChannelName,
-                                                fontChannel.FontFamily,
-                                                (int)FontStyle.Bold,
-                                                graphics.DpiY * fontChannel.SizeInPoints / width,
-                                                new Point(startWidth, 108),
-                                                new StringFormat());
-                            graphics.DrawPath(Pens.Black, gpath);
-                            graphics.FillPath(Brushes.White, gpath);
-                        }
-
-                        if (isLive && Settings.ShowViewersCount)
-                        {
-                            using (Font fontViewersCount = new Font("Webdings", 25, FontStyle.Regular, GraphicsUnit.Pixel))
+                            // Draw Red Circle
+                            if (isLive && !Settings.HideRecordIcon)
                             {
-                                // Draw Viewer Count
-                                graphics.DrawString("N", fontViewersCount, Brushes.White, new PointF(3, 8));
+                                graphics.DrawString("n", fontIsStreaming, Brushes.Red, new Point(3, 110));
+                                startWidth = 30;
                             }
-                            string viewers = $"{viewersCount}";
-                            gpath.AddString(viewers,
-                                                fontChannel.FontFamily,
-                                                (int)FontStyle.Bold,
-                                                graphics.DpiY * fontChannel.SizeInPoints / width,
-                                                new Point(35, 7),
-                                                new StringFormat());
-                            graphics.DrawPath(Pens.Black, gpath);
-                            graphics.FillPath(Brushes.White, gpath);
+
+                            // Draw Channel name
+                            if (!Settings.HideChannelName)
+                            {
+
+                                gpath.AddString(Settings.ChannelName,
+                                                    fontChannel.FontFamily,
+                                                    (int)FontStyle.Bold,
+                                                    graphics.DpiY * fontChannel.SizeInPoints / width,
+                                                    new Point(startWidth, 108),
+                                                    new StringFormat());
+                                graphics.DrawPath(Pens.Black, gpath);
+                                graphics.FillPath(Brushes.White, gpath);
+                            }
+
+                            if (isLive && Settings.ShowViewersCount)
+                            {
+                                using (Font fontViewersCount = new Font("Webdings", 25, FontStyle.Regular, GraphicsUnit.Pixel))
+                                {
+                                    // Draw Viewer Count
+                                    graphics.DrawString("N", fontViewersCount, Brushes.White, new PointF(3, 8));
+                                }
+                                string viewers = $"{viewersCount}";
+                                gpath.AddString(viewers,
+                                                    fontChannel.FontFamily,
+                                                    (int)FontStyle.Bold,
+                                                    graphics.DpiY * fontChannel.SizeInPoints / width,
+                                                    new Point(35, 7),
+                                                    new StringFormat());
+                                graphics.DrawPath(Pens.Black, gpath);
+                                graphics.FillPath(Brushes.White, gpath);
+                            }
                         }
                     }
                 }
-            }
 
-            await Connection.SetImageAsync(bmp);
-            graphics.Dispose();
+                await Connection.SetImageAsync(bmp);
+                graphics.Dispose();
+            }
         }
 
         private async Task RefreshChannelData()
@@ -313,7 +363,7 @@ namespace ChatPager.Actions
                 // Channel just turned live.  Don't make a sound if we just loaded the plugin for the first time
                 if (isLive && isLive != previouslyWasLive && !isFirstTimeLoading)
                 {
-                    PlaySoundOnLive();
+                    await PlaySoundOnLive();
                 }
                 isFirstTimeLoading = false;
 
@@ -376,6 +426,12 @@ namespace ChatPager.Actions
         {
             SetLiveImageSetting();
             PropagatePlaybackDevices();
+
+            // Backwards compatibility
+            if (!Settings.KeypressStream && !Settings.KeypressDisabled && !Settings.KeypressCreator && !Settings.KeypressMod)
+            {
+                Settings.KeypressStream = true;
+            }
         }
 
         private void PropagatePlaybackDevices()
@@ -386,13 +442,7 @@ namespace ChatPager.Actions
             {
                 if (Settings.PlaySoundOnLive)
                 {
-                    for (int idx = -1; idx < WaveOut.DeviceCount; idx++)
-                    {
-                        var currDevice = WaveOut.GetCapabilities(idx);
-                        Settings.PlaybackDevices.Add(new PlaybackDevice() { ProductName = currDevice.ProductName });
-                    }
-
-                    Settings.PlaybackDevices = Settings.PlaybackDevices.OrderBy(p => p.ProductName).ToList();
+                    Settings.PlaybackDevices = AudioUtils.Common.GetAllPlaybackDevices(true).Select(d => new PlaybackDevice() { ProductName = d }).ToList();
                     SaveSettings();
                 }
             }
@@ -402,56 +452,27 @@ namespace ChatPager.Actions
             }
         }
 
-        private void PlaySoundOnLive()
+        private async Task PlaySoundOnLive()
         {
-            Task.Run(() =>
+            if (!Settings.PlaySoundOnLive)
             {
-                if (!Settings.PlaySoundOnLive)
-                {
-                    return;
-                }
-
-                if (String.IsNullOrEmpty(Settings.PlaySoundOnLiveFile) || string.IsNullOrEmpty(Settings.PlaybackDevice))
-                {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"PlaySoundOnLive called but File or Playback device are empty. File: {Settings.PlaySoundOnLiveFile} Device: {Settings.PlaybackDevice}");
-                    return;
-                }
-
-                if (!File.Exists(Settings.PlaySoundOnLiveFile))
-                {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"PlaySoundOnLive called but file does not exist: {Settings.PlaySoundOnLiveFile}");
-                    return;
-                }
-
-                Logger.Instance.LogMessage(TracingLevel.INFO, $"PlaySoundOnLive called. Playing {Settings.PlaySoundOnLiveFile} on device: {Settings.PlaybackDevice}");
-                var deviceNumber = GetPlaybackDeviceFromDeviceName(Settings.PlaybackDevice);
-                using (var audioFile = new AudioFileReader(Settings.PlaySoundOnLiveFile))
-                {
-                    using (var outputDevice = new WaveOutEvent())
-                    {
-                        outputDevice.DeviceNumber = deviceNumber;
-                        outputDevice.Init(audioFile);
-                        outputDevice.Play();
-                        while (outputDevice.PlaybackState == PlaybackState.Playing)
-                        {
-                            System.Threading.Thread.Sleep(1000);
-                        }
-                    }
-                }
-            });
-        }
-
-        private int GetPlaybackDeviceFromDeviceName(string deviceName)
-        {
-            for (int idx = -1; idx < WaveOut.DeviceCount; idx++)
-            {
-                var currDevice = WaveOut.GetCapabilities(idx);
-                if (deviceName == currDevice.ProductName)
-                {
-                    return idx;
-                }
+                return;
             }
-            return -1;
+
+            if (String.IsNullOrEmpty(Settings.PlaySoundOnLiveFile) || string.IsNullOrEmpty(Settings.PlaybackDevice))
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"PlaySoundOnLive called but File or Playback device are empty. File: {Settings.PlaySoundOnLiveFile} Device: {Settings.PlaybackDevice}");
+                return;
+            }
+
+            if (!File.Exists(Settings.PlaySoundOnLiveFile))
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"PlaySoundOnLive called but file does not exist: {Settings.PlaySoundOnLiveFile}");
+                return;
+            }
+
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"PlaySoundOnLive called. Playing {Settings.PlaySoundOnLiveFile} on device: {Settings.PlaybackDevice}");
+            await AudioUtils.Common.PlaySound(Settings.PlaySoundOnLiveFile, Settings.PlaybackDevice);
         }
 
         private void SetLiveImageSetting()

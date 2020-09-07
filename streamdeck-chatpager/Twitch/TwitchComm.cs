@@ -191,7 +191,7 @@ namespace ChatPager.Twitch
             return null;
         }
 
-        public async Task<ClipDetails> CreateClip()
+        public async Task<ClipDetails> CreateClip(string userName)
         {
             if (TwitchTokenManager.Instance.User == null)
             {
@@ -199,7 +199,20 @@ namespace ChatPager.Twitch
                 return null;
             }
 
-            string uri = TWITCH_CREATE_CLIP_URI + TwitchTokenManager.Instance.User?.UserId;
+            string userId = TwitchTokenManager.Instance.User?.UserId;
+            if (userName != TwitchTokenManager.Instance.User.UserName)
+            {
+                // Different user, get the UserId
+                var userInfo = await GetUserInfo(userName);
+                if (userInfo == null)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"Cannot create Twitch clip, Could not retreive info on {userName}");
+                    return null;
+                }
+                userId = userInfo.UserId;
+            }
+
+            string uri = TWITCH_CREATE_CLIP_URI + userId;
             HttpResponseMessage response = await TwitchHelixQuery(uri, SendMethod.POST, null, null);
             if (response.IsSuccessStatusCode)
             {

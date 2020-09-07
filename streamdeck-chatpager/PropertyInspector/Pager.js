@@ -25,6 +25,7 @@ function checkSettings(payload) {
     setSaveToFile("none");
     setMultipleChannels("none");
     setPubSubNotifications("none");
+    setPlaySound("none")
 
     if (payload['fullScreenAlert']) {
         setFullScreenAlert("");
@@ -41,6 +42,11 @@ function checkSettings(payload) {
     if (payload['pubsubNotifications']) {
         setPubSubNotifications("");
     }
+
+    if (payload['playSoundOnChat'] || payload['playSoundOnNotification']) {
+        setPlaySound("");
+    }
+
 }
 
 function setFullScreenAlert(displayValue) {
@@ -61,4 +67,9 @@ function setMultipleChannels(displayValue) {
 function setPubSubNotifications(displayValue) {
     var dvPubsubNotifications = document.getElementById('dvPubsubNotifications');
     dvPubsubNotifications.style.display = displayValue;
+}
+
+function setPlaySound(displayValue) {
+    var dvPlaySoundSettings = document.getElementById('dvPlaySoundSettings');
+    dvPlaySoundSettings.style.display = displayValue;
 }

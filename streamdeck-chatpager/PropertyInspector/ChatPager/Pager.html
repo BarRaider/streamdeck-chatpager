@@ -57,14 +57,14 @@
             </div>
             <div id="dvFullScreenAlertSettings">
                 <div type="checkbox" class="sdpi-item" id="dvTwoLettersPerKey">
-                    <div class="sdpi-item-label"></div>
+                    <div class="sdpi-item-label empty"></div>
                     <div class="sdpi-item-value">
                         <input id="twoLettersPerKey" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
                         <label for="twoLettersPerKey" class="sdpi-item-label"><span></span>Two letters on each key</label>
                     </div>
                 </div>
                 <div type="checkbox" class="sdpi-item" id="dvAlwaysAlert">
-                    <div class="sdpi-item-label"></div>
+                    <div class="sdpi-item-label empty"></div>
                     <div class="sdpi-item-value">
                         <input id="alwaysAlert" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
                         <label for="alwaysAlert" class="sdpi-item-label"><span></span>Alert in all profiles</label>
@@ -161,6 +161,61 @@
                 <div class="sdpi-item" id="dvChatPoints">
                     <div class="sdpi-item-label">Chat</div>
                     <input class="sdpi-item-value sdProperty" id="pointsChatMessage" placeholder="{DISPLAYNAME} redeemed {TITLE} for {POINTS} points. {MESSAGE}" value="" oninput="setSettings()">
+                </div>
+                <hr />
+                <details class="message">
+                    <summary>Raid</summary>
+                </details>
+                <div type="color" class="sdpi-item" id="dvRaid">
+                    <div class="sdpi-item-label">Flash</div>
+                    <input type="color" class="sdpi-item-value sdProperty" value="#FFA500" id="raidFlashColor" oninput="setSettings()">
+                    <input class="sdpi-item-value sdProperty" placeholder="{DISPLAYNAME} raiding with {VIEWERS} viewers" value="" id="raidFlashMessage" oninput="setSettings()">
+                </div>
+                <div class="sdpi-item" id="dvChatRaid">
+                    <div class="sdpi-item-label">Chat</div>
+                    <input class="sdpi-item-value sdProperty" id="raidChatMessage" placeholder="{DISPLAYNAME} just raided with {VIEWERS} viewers!" value="" oninput="setSettings()">
+                </div>
+                <hr />
+            </div>
+            <div type="checkbox" class="sdpi-item">
+                <div class="sdpi-item-label">Audio</div>
+                <div class="sdpi-item-value">
+                    <input id="playSoundOnChat" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
+                    <label for="playSoundOnChat" class="sdpi-item-label"><span></span>Play sound on chat message</label>
+                </div>
+            </div>
+            <div type="checkbox" class="sdpi-item">
+                <div class="sdpi-item-label">Audio</div>
+                <div class="sdpi-item-value">
+                    <input id="playSoundOnNotification" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
+                    <label for="playSoundOnNotification" class="sdpi-item-label"><span></span>Play sound on page/notification</label>
+                </div>
+            </div>
+
+            <div id="dvPlaySoundSettings">
+                <div class="sdpi-item" id="dvPlaybackDevices">
+                    <div class="sdpi-item-label">Playback Device</div>
+                    <select class="sdpi-item-value select sdProperty sdList" id="playbackDevices" oninput="setSettings()" sdListTextProperty="name" sdListValueProperty="name" sdValueField="playbackDevice"></select>
+                </div>
+                <div class="sdpi-item" id="dvSoundFile">
+                    <div class="sdpi-item-label">Sound File</div>
+                    <div class="sdpi-item-group file" id="filepickergroup">
+                        <input class="sdpi-item-value sdProperty sdFile" type="file" id="playSoundFile" accept=".wav, .mp3, .ogg, .wma, .aac, .mp4" oninput="setSettings()">
+                        <label class="sdpi-file-info " for="playSoundFile" id="playSoundFileFilename">No file...</label>
+                        <label class="sdpi-file-label" for="playSoundFile">Choose file...</label>
+                    </div>
+                </div>
+                <div class="sdpi-item" id="anumber">
+                    <div class="sdpi-item-label">Sound Cooldown (seconds)</div>
+                    <input class="sdpi-item-value sdProperty" id="soundCooldown" inputmode="numeric" pattern="[0-9]*" type="number" oninput="setSettings()">
+                </div>
+                <div id="dvMutedUsers">
+                    <div type="textarea" class="sdpi-item" id="inputText_div">
+                        <div class="sdpi-item-label">Muted Users</div>
+                        <span class="sdpi-item-value textarea">
+                            <textarea type="textarea" oninput="setSettings()" class="sdProperty" id="mutedUsers" placeholder="One username per line"></textarea>
+                        </span>
+                    </div>
                 </div>
                 <hr />
             </div>

@@ -67,6 +67,7 @@ namespace ChatPager.Twitch
 
         public event EventHandler<PageRaisedEventArgs> PageRaised;
         public event EventHandler<ChatMessageReceivedEventArgs> OnChatMessageReceived;
+        public event EventHandler<TwitchLib.Client.Events.OnRaidNotificationArgs> OnRaidReceived;
 
         public bool IsConnected
         {
@@ -208,10 +209,10 @@ namespace ChatPager.Twitch
             return null;
         }
 
-        public void RaisePageAlert(string message, string color)
+        public void RaisePageAlert(string author, string message, string color)
         {
-            Logger.Instance.LogMessage(TracingLevel.INFO, $"Twitch Chat received Page command: {message}");
-            PageRaised?.Invoke(this, new PageRaisedEventArgs(message, color));
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"Twitch Chat received Page command: {message} from {author}");
+            PageRaised?.Invoke(this, new PageRaisedEventArgs(author, message, color));
         }
 
         #endregion
@@ -289,7 +290,7 @@ namespace ChatPager.Twitch
                         if (allowedPagers == null || allowedPagers.Count == 0 || allowedPagers.Contains(msg.DisplayName.ToLowerInvariant()))
                         {
                             lastPage = DateTime.Now;
-                            PageRaised?.Invoke(this, new PageRaisedEventArgs(cmd.ArgumentsAsString, null));
+                            PageRaised?.Invoke(this, new PageRaisedEventArgs(cmd.ChatMessage.DisplayName, cmd.ArgumentsAsString, null));
 
                             if (!String.IsNullOrWhiteSpace(ChatMessage))
                             {
@@ -349,6 +350,7 @@ namespace ChatPager.Twitch
                 client.OnChatCommandReceived -= Client_OnChatCommandReceived;
                 client.OnMessageReceived -= Client_OnMessageReceived;
                 client.OnRaidNotification -= Client_OnRaidNotification;
+                client.OnBeingHosted -= Client_OnBeingHosted;
                 client.OnNewSubscriber -= Client_OnNewSubscriber;
                 //client.OnUserJoined -= Client_OnUserJoined;
                 //client.OnUserLeft -= Client_OnUserLeft;
@@ -363,6 +365,7 @@ namespace ChatPager.Twitch
             client.OnChatCommandReceived += Client_OnChatCommandReceived;
             client.OnMessageReceived += Client_OnMessageReceived;
             client.OnRaidNotification += Client_OnRaidNotification;
+            client.OnBeingHosted += Client_OnBeingHosted;
             client.OnNewSubscriber += Client_OnNewSubscriber;
             //client.OnUserJoined += Client_OnUserJoined;
             //client.OnUserLeft += Client_OnUserLeft;
@@ -377,6 +380,11 @@ namespace ChatPager.Twitch
             client.OnUserStateChanged += Client_OnUserStateChanged;
             client.OnWhisperReceived += Client_OnWhisperReceived;
             */
+        }
+
+        private void Client_OnBeingHosted(object sender, TwitchLib.Client.Events.OnBeingHostedArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***Being Hosted: {e.BeingHostedNotification.HostedByChannel}");
         }
 
         private void Client_OnMessageReceived(object sender, TwitchLib.Client.Events.OnMessageReceivedArgs e)
@@ -396,9 +404,11 @@ namespace ChatPager.Twitch
 
         private void Client_OnRaidNotification(object sender, TwitchLib.Client.Events.OnRaidNotificationArgs e)
         {
-            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***Raid: {e.RaidNotification.DisplayName}");
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***Raid: {e.RaidNotification.DisplayName} {e.RaidNotification.MsgParamViewerCount}");
             string userName = e.RaidNotification.DisplayName.ToLowerInvariant();
             dictUserMessages[userName] = DateTime.Now;
+
+            OnRaidReceived?.Invoke(this, e);
         }
 
         private void Client_OnNewSubscriber(object sender, TwitchLib.Client.Events.OnNewSubscriberArgs e)

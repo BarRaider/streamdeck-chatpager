@@ -456,31 +456,35 @@ namespace ChatPager
 
                         if (twoLettersPerKey) // 2 Letters per key
                         {
-                            var font = new Font("Verdana", twoLetterFontSize, FontStyle.Bold, GraphicsUnit.Pixel);
-                            if (pageMessage.Length > stringMessageIndex + 1)
+                            using (Font font = new Font("Verdana", twoLetterFontSize, FontStyle.Bold, GraphicsUnit.Pixel))
                             {
-                                letter = pageMessage.Substring(stringMessageIndex, 2);
-                            }
+                                if (pageMessage.Length > stringMessageIndex + 1)
+                                {
+                                    letter = pageMessage.Substring(stringMessageIndex, 2);
+                                }
 
-                            // Draw first letter
-                            graphics.DrawString(letter[0].ToString(), font, fgBrush, new PointF(1, twoLetterTop));
+                                // Draw first letter
+                                graphics.DrawString(letter[0].ToString(), font, fgBrush, new PointF(1, twoLetterTop));
 
-                            if (letter.Length > 1)
-                            {
-                                graphics.DrawString(letter[1].ToString(), font, fgBrush, new PointF(twoLetterBuffer, twoLetterTop));
+                                if (letter.Length > 1)
+                                {
+                                    graphics.DrawString(letter[1].ToString(), font, fgBrush, new PointF(twoLetterBuffer, twoLetterTop));
+                                }
                             }
                         }
                         else // 1 Letter per key
                         {
-                            var font = new Font("Verdana", oneLetterFontSize, FontStyle.Bold, GraphicsUnit.Pixel);
-                            SizeF stringSize = graphics.MeasureString(letter, font);
-                            float stringPosX = 0;
-                            float stringPosY = oneLetterTop;
-                            if (stringSize.Width < img.Width)
+                            using (Font font = new Font("Verdana", oneLetterFontSize, FontStyle.Bold, GraphicsUnit.Pixel))
                             {
-                                stringPosX = Math.Abs((img.Width - stringSize.Width)) / 2;
+                                SizeF stringSize = graphics.MeasureString(letter, font);
+                                float stringPosX = 0;
+                                float stringPosY = oneLetterTop;
+                                if (stringSize.Width < img.Width)
+                                {
+                                    stringPosX = Math.Abs((img.Width - stringSize.Width)) / 2;
+                                }
+                                graphics.DrawString(letter, font, fgBrush, new PointF(stringPosX, stringPosY));
                             }
-                            graphics.DrawString(letter, font, fgBrush, new PointF(stringPosX, stringPosY));
                         }
                         await Connection.SetImageAsync(img);
                     }

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net472</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
     <RootNamespace>ChatPager</RootNamespace>
     <AssemblyName>com.barraider.twitchtools</AssemblyName>
   </PropertyGroup>
@@ -10,8 +10,11 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <UserSecretsId>20082251-0bfa-41b0-809f-befa2ea5d218</UserSecretsId>
-    <ApplicationIcon />
+    <ApplicationIcon>brlogo.ico</ApplicationIcon>
     <StartupObject />
+    <Authors>BarRaider</Authors>
+    <Copyright>(C) 2020 BarRaider</Copyright>
+    <Version>2.5</Version>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp2.2|AnyCPU'">
     <OutputPath>bin\debug\com.barraider.chatpager.core</OutputPath>
@@ -27,9 +30,17 @@
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net472|AnyCPU'">
     <OutputPath>bin\debug\com.barraider.twitchtools.sdplugin</OutputPath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>bin\Debug\com.barraider.twitchtools.sdplugin\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>bin\Release\com.barraider.twitchtools.sdplugin\</OutputPath>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="HtmlAgilityPack" Version="1.11.24" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.6" />
     <PackageReference Include="NAudio" Version="1.10.0" />
+    <PackageReference Include="NLog" Version="4.7.4" />
     <PackageReference Include="StreamDeck-Tools" Version="2.9.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
     <PackageReference Include="TwitchLib.Api" Version="3.1.3" />
@@ -37,11 +48,17 @@
     <PackageReference Include="TwitchLib.Client" Version="3.1.5" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="AudioUtils">
+      <HintPath>..\..\..\DotNet\StreamDeck\AudioUtils\bin\Release\AudioUtils.dll</HintPath>
+    </Reference>
     <Reference Include="PickersUtil">
       <HintPath>..\..\PickersUtil\PickersUtil\bin\Release\PickersUtil.dll</HintPath>
     </Reference>
     <Reference Include="System">
       <HintPath>System</HintPath>
+    </Reference>
+    <Reference Include="TwitchLib.PubSub">
+      <HintPath>..\..\TwitchLib.PubSub\TwitchLib.PubSub\bin\Release\netstandard2.0\TwitchLib.PubSub.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -57,6 +74,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="FullScreenAlertMini.streamDeckProfile">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="FullScreenAlertMobile.streamDeckProfile">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="FullScreenAlertXL.streamDeckProfile">
@@ -276,9 +296,6 @@
     <None Update="tags.csv">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\TwitchLib.PubSub\TwitchLib.PubSub\TwitchLib.PubSub.csproj" />
   </ItemGroup>
 
 </Project>

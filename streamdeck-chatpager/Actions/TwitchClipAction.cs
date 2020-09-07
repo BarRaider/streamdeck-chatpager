@@ -29,9 +29,13 @@ namespace ChatPager.Actions
                 PluginSettings instance = new PluginSettings
                 {
                     TokenExists = false,
+                    Channel = String.Empty
                 };
                 return instance;
-            }            
+            }
+
+            [JsonProperty(PropertyName = "channel")]
+            public string Channel { get; set; }
         }
 
         protected PluginSettings Settings
@@ -120,11 +124,17 @@ namespace ChatPager.Actions
             {
                 using (TwitchComm comm = new TwitchComm())
                 {
-                    var clip = await comm.CreateClip();
-                    if (clip != null)
+                    string channel = TwitchTokenManager.Instance.User.UserName;
+                    if (!String.IsNullOrEmpty(Settings.Channel))
                     {
+                        channel = Settings.Channel;
+                    }
+
+                    var clip = await comm.CreateClip(channel);
+                    if (clip != null)
+                    {                        
                         string clipUrl = clip.EditURL.Replace("/edit", "");
-                        TwitchChat.Instance.SendMessage(TwitchTokenManager.Instance.User.UserName, clipUrl);
+                        TwitchChat.Instance.SendMessage(channel, clipUrl);
                     }
                 }
             }

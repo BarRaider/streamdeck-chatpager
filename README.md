@@ -4,6 +4,17 @@
 
 **Author's website and contact information:** [https://barraider.com](https://barraider.com)
 
+## New in 2.5
+- :new: **Support for Stream Deck Mobile!**
+- Support for `Raid` notifications (`Twitch Pager` action can now notify on Raids, Bits, Channel Points, Subs, and Follows!)
+- :loud_sound: Audio notification support for both chat messages and notifications in `Twitch Pager` (never miss a chat message/raid again).
+- `Clip-To-Chat` action now supports clipping someone else's channel
+- `Channel Monitor` action now supports customizable Key Press actions (View Stream, Mod Tools, Creator Dashboard)
+- Added option to disable the :red_circle: icon in `Channel Monitor` when someone is live.
+
+#🤝donations are unnecessary but very much appreciated!
+[Please add a reaction (press the heart icon below) when using this version]
+
 ## New in 2.4
 - `Giveaway` action now supports customizable messages (+ support for non-English languages)
 - `Giveaway` action now allows to overwrite the winners file (previously only appended)

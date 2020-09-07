@@ -6,6 +6,7 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace ChatPager
 {
@@ -14,7 +15,6 @@ namespace ChatPager
 
         #region Private Members
         private const string DEFAULT_ALERT_COLOR = "#FF0000";
-        private const int MAX_PAGE_LENGTH_MS = 60000;
 
         private static AlertManager instance = null;
         private static readonly object objLock = new object();
@@ -25,8 +25,16 @@ namespace ChatPager
         private DateTime pageStartTime;
         private string currentPageInitialColor = DEFAULT_ALERT_COLOR;
 
-        #endregion
+        private string pageMessage;
+        private SDConnection connection;
+        private TwitchGlobalSettings global;
+        private bool autoClearFile = false;
+        private int numberOfKeys;
+        private ActiveStreamersEventArgs streamersEventArgs = null;
+        private ChatMessageListEventArgs chatMessageEventArgs = null;
+        private int autoStopSeconds = 0;
 
+        #endregion
 
         #region Constructors
 
@@ -84,20 +92,6 @@ namespace ChatPager
 
         #endregion
 
-        #region Private Members
-
-        private string pageMessage;
-        private SDConnection connection;
-        private TwitchGlobalSettings global;
-        private bool autoClearFile = false;
-        private int numberOfKeys;
-        private ActiveStreamersEventArgs streamersEventArgs = null;
-        private ChatMessageListEventArgs chatMessageEventArgs = null;
-        private int autoStopSeconds = 0;
-
-
-        #endregion
-
         #region Public Methods
         public void Initialize(SDConnection connection)
         {
@@ -134,21 +128,7 @@ namespace ChatPager
             Logger.Instance.LogMessage(TracingLevel.INFO, $"ShowActiveStreamers called");
             StopFlashAndReset();
 
-            switch (connection.DeviceInfo().Type)
-            {
-                case StreamDeckDeviceType.StreamDeckClassic:
-                    await connection.SwitchProfileAsync("FullScreenAlert");
-                    break;
-                case StreamDeckDeviceType.StreamDeckMini:
-                    await connection.SwitchProfileAsync("FullScreenAlertMini");
-                    break;
-                case StreamDeckDeviceType.StreamDeckXL:
-                    await connection.SwitchProfileAsync("FullScreenAlertXL");
-                    break;
-                default:
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"SwitchProfileAsync: Unsupported device type: {connection.DeviceInfo().Type}");
-                    break;
-            }
+            await SwitchToFullScreen();
 
             // Wait until the UI Action keys have subscribed to get events
             int retries = 0;
@@ -231,21 +211,7 @@ namespace ChatPager
             StopFlashAndReset();
             Logger.Instance.LogMessage(TracingLevel.INFO, $"ShowChatMessages called");
 
-            switch (connection.DeviceInfo().Type)
-            {
-                case StreamDeckDeviceType.StreamDeckClassic:
-                    await connection.SwitchProfileAsync("FullScreenAlert");
-                    break;
-                case StreamDeckDeviceType.StreamDeckMini:
-                    await connection.SwitchProfileAsync("FullScreenAlertMini");
-                    break;
-                case StreamDeckDeviceType.StreamDeckXL:
-                    await connection.SwitchProfileAsync("FullScreenAlertXL");
-                    break;
-                default:
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"SwitchProfileAsync: Unsupported device type: {connection.DeviceInfo().Type}");
-                    break;
-            }
+            await SwitchToFullScreen();
 
             // Wait until the UI Action keys have subscribed to get events
             int retries = 0;
@@ -299,21 +265,7 @@ namespace ChatPager
             Logger.Instance.LogMessage(TracingLevel.INFO, $"Full screen alert: {pageMessage ?? String.Empty} Color: {currentPageInitialColor}");
             InitFlash();
 
-            switch (connection.DeviceInfo().Type)
-            {
-                case StreamDeckDeviceType.StreamDeckClassic:
-                    await connection.SwitchProfileAsync("FullScreenAlert");
-                    break;
-                case StreamDeckDeviceType.StreamDeckMini:
-                    await connection.SwitchProfileAsync("FullScreenAlertMini");
-                    break;
-                case StreamDeckDeviceType.StreamDeckXL:
-                    await connection.SwitchProfileAsync("FullScreenAlertXL");
-                    break;
-                default:
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"SwitchProfileAsync: Unsupported device type: {connection.DeviceInfo().Type}");
-                    break;
-            }
+            await SwitchToFullScreen();
         }
 
         private void Instance_OnReceivedGlobalSettings(object sender, ReceivedGlobalSettingsPayload payload)
@@ -388,6 +340,34 @@ namespace ChatPager
         {
             tmrClearFile.Stop();
             SavePageToFile(string.Empty, false);
+        }
+
+        private async Task SwitchToFullScreen()
+        {
+            string profileName = String.Empty;
+            switch (connection.DeviceInfo().Type)
+            {
+                case StreamDeckDeviceType.StreamDeckClassic:
+                    profileName = "FullScreenAlert";
+                    break;
+                case StreamDeckDeviceType.StreamDeckMini:
+                    profileName = "FullScreenAlertMini";
+                    break;
+                case StreamDeckDeviceType.StreamDeckXL:
+                    profileName = "FullScreenAlertXL";
+                    break;
+                case StreamDeckDeviceType.StreamDeckMobile:
+                    profileName = "FullScreenAlertMobile";
+                    break;
+                default:
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"SwitchToFullScreen: Unsupported device type: {connection.DeviceInfo().Type}");
+                    break;
+            }
+
+            if (!String.IsNullOrEmpty(profileName))
+            {
+                await connection.SwitchProfileAsync(profileName);
+            }
         }
 
         #endregion

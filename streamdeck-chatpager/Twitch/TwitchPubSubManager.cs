@@ -97,6 +97,7 @@ namespace ChatPager.Twitch
 
         private TwitchPubSubManager()
         {
+            TwitchChat.Instance.OnRaidReceived += Instance_OnRaidReceived;
             GlobalSettingsManager.Instance.OnReceivedGlobalSettings += Global_OnReceivedGlobalSettings;
             GlobalSettingsManager.Instance.RequestGlobalSettings();
         }
@@ -129,8 +130,11 @@ namespace ChatPager.Twitch
             pubsub.OnStreamUp += Pubsub_OnStreamUp;
             pubsub.OnBitsReceived += Pubsub_OnBitsReceived;
             pubsub.OnChannelSubscription += Pubsub_OnChannelSubscription;
-            pubsub.OnChannelPoints += Pubsub_OnChannelPoints;
+            pubsub.OnRewardRedeemed += Pubsub_OnRewardRedeemed;
             pubsub.OnFollow += Pubsub_OnFollow;
+            pubsub.OnHost += Pubsub_OnHost;
+            pubsub.OnRaidUpdateV2 += Pubsub_OnRaidUpdateV2;
+            pubsub.OnRaidGo += Pubsub_OnRaidGo;
 
             ConnectPubSub();
         }
@@ -150,8 +154,11 @@ namespace ChatPager.Twitch
             pubsub.OnStreamUp -= Pubsub_OnStreamUp;
             pubsub.OnBitsReceived -= Pubsub_OnBitsReceived;
             pubsub.OnChannelSubscription -= Pubsub_OnChannelSubscription;
-            pubsub.OnChannelPoints -= Pubsub_OnChannelPoints;
+            pubsub.OnRewardRedeemed -= Pubsub_OnRewardRedeemed;
             pubsub.OnFollow -= Pubsub_OnFollow;
+            pubsub.OnHost -= Pubsub_OnHost;
+            pubsub.OnRaidUpdateV2 -= Pubsub_OnRaidUpdateV2;
+            pubsub.OnRaidGo -= Pubsub_OnRaidGo;
 
             try
             {
@@ -203,7 +210,8 @@ namespace ChatPager.Twitch
             pubsub.ListenToBitsEvents(channelName);
             pubsub.ListenToFollows(channelName);
             pubsub.ListenToSubscriptions(channelName);
-            pubsub.ListenToChannelPoints(channelName);
+            pubsub.ListenToRewards(channelName);
+            pubsub.ListenToRaid(channelName);
             pubsub.SendTopics($"{token.Token}");
 
             Logger.Instance.LogMessage(TracingLevel.INFO, $"PubSub SendTopics oauth length {token.Token.Length}");
@@ -280,9 +288,9 @@ namespace ChatPager.Twitch
             }
         }
 
-        private async void Pubsub_OnChannelPoints(object sender, TwitchLib.PubSub.Events.OnChannelPointsRedeemedArgs e)
+        private async void Pubsub_OnRewardRedeemed(object sender, TwitchLib.PubSub.Events.OnRewardRedeemedArgs e)
         {
-            Logger.Instance.LogMessage(TracingLevel.INFO, $"{e.DisplayName} redeemed {e.Title} for {e.PointsUsed} points. {(String.IsNullOrEmpty(e.UserInput) ? "" : "Message: " + e.UserInput)}");
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"{e.DisplayName} redeemed {e.RewardTitle} for {e.RewardCost} points. {(String.IsNullOrEmpty(e.Message) ? "" : "Message: " + e.Message)}");
             
             // Check if channel is live
             var channelInfo = await TwitchChannelInfoManager.Instance.GetChannelInfo(channelName);
@@ -295,12 +303,12 @@ namespace ChatPager.Twitch
             // Send Chat Message
             if (!String.IsNullOrEmpty(global.PointsChatMessage))
             {
-                TwitchChat.Instance.SendMessage(global.PointsChatMessage.Replace(@"\n", "\n").Replace("{USERNAME}", e.Username).Replace("{DISPLAYNAME}", e.DisplayName).Replace("{TITLE}", e.Title).Replace("{POINTS}", e.PointsUsed.ToString()).Replace("{MESSAGE}", e.UserInput));
+                TwitchChat.Instance.SendMessage(global.PointsChatMessage.Replace(@"\n", "\n").Replace("{USERNAME}", e.Login).Replace("{DISPLAYNAME}", e.DisplayName).Replace("{TITLE}", e.RewardTitle).Replace("{POINTS}", e.RewardCost.ToString()).Replace("{MESSAGE}", e.Message));
             }
 
             if (!String.IsNullOrEmpty(global.PointsFlashMessage))
             {
-                TwitchChat.Instance.RaisePageAlert(global.PointsFlashMessage.Replace("{USERNAME}", e.Username).Replace("{DISPLAYNAME}", e.DisplayName).Replace("{TITLE}", e.Title).Replace("{POINTS}", e.PointsUsed.ToString()).Replace("{MESSAGE}", e.UserInput), global.PointsFlashColor);
+                TwitchChat.Instance.RaisePageAlert(e.DisplayName, global.PointsFlashMessage.Replace("{USERNAME}", e.Login).Replace("{DISPLAYNAME}", e.DisplayName).Replace("{TITLE}", e.RewardTitle).Replace("{POINTS}", e.RewardCost.ToString()).Replace("{MESSAGE}", e.Message), global.PointsFlashColor);
             }
         }
 
@@ -323,7 +331,7 @@ namespace ChatPager.Twitch
 
             if (!String.IsNullOrEmpty(global.SubFlashMessage))
             {
-                TwitchChat.Instance.RaisePageAlert(global.SubFlashMessage.Replace("{USERNAME}", e.Subscription.Username).Replace("{DISPLAYNAME}", e.Subscription.DisplayName).Replace("{RecipientName}", e.Subscription.RecipientName).Replace("{MESSAGE}", e.Subscription.SubMessage.Message).Replace("{MONTHS}", e.Subscription.Months.ToString()), global.SubFlashColor);
+                TwitchChat.Instance.RaisePageAlert(e.Subscription.DisplayName, global.SubFlashMessage.Replace("{USERNAME}", e.Subscription.Username).Replace("{DISPLAYNAME}", e.Subscription.DisplayName).Replace("{RecipientName}", e.Subscription.RecipientName).Replace("{MESSAGE}", e.Subscription.SubMessage.Message).Replace("{MONTHS}", e.Subscription.Months.ToString()), global.SubFlashColor);
             }
         }
 
@@ -347,7 +355,7 @@ namespace ChatPager.Twitch
 
             if (!String.IsNullOrEmpty(global.BitsFlashMessage))
             {
-                TwitchChat.Instance.RaisePageAlert(global.BitsFlashMessage.Replace("{USERNAME}", e.Username).Replace("{DISPLAYNAME}", e.Username).Replace("{BITS}", e.BitsUsed.ToString()).Replace("{MESSAGE}", e.ChatMessage).Replace("{TOTALBITS}", e.TotalBitsUsed.ToString()), global.BitsFlashColor);
+                TwitchChat.Instance.RaisePageAlert(e.Username, global.BitsFlashMessage.Replace("{USERNAME}", e.Username).Replace("{DISPLAYNAME}", e.Username).Replace("{BITS}", e.BitsUsed.ToString()).Replace("{MESSAGE}", e.ChatMessage).Replace("{TOTALBITS}", e.TotalBitsUsed.ToString()), global.BitsFlashColor);
             }
 
         }
@@ -380,8 +388,47 @@ namespace ChatPager.Twitch
 
             if (!String.IsNullOrEmpty(global.FollowFlashMessage))
             {
-                TwitchChat.Instance.RaisePageAlert(global.FollowFlashMessage.Replace("{USERNAME}", e.Username).Replace("{DISPLAYNAME}", e.DisplayName), global.FollowFlashColor);
+                TwitchChat.Instance.RaisePageAlert(e.DisplayName, global.FollowFlashMessage.Replace("{USERNAME}", e.Username).Replace("{DISPLAYNAME}", e.DisplayName), global.FollowFlashColor);
             }
+        }
+
+        private async void Instance_OnRaidReceived(object sender, TwitchLib.Client.Events.OnRaidNotificationArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"{e.RaidNotification.DisplayName} raided with {e.RaidNotification.MsgParamViewerCount} viewers");
+
+            // Check if channel is live
+            var channelInfo = await TwitchChannelInfoManager.Instance.GetChannelInfo(channelName);
+            if (channelInfo != null && !channelInfo.IsLive)
+            {
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"Not raising Raid event because channel isn't live");
+                return;
+            }
+
+            // Send Chat Message
+            if (!String.IsNullOrEmpty(global.RaidChatMessage))
+            {
+                TwitchChat.Instance.SendMessage(global.RaidChatMessage.Replace(@"\n", "\n").Replace("{USERNAME}", e.RaidNotification.Login).Replace("{DISPLAYNAME}", e.RaidNotification.DisplayName).Replace("{VIEWERS}", e.RaidNotification.MsgParamViewerCount));
+            }
+
+            if (!String.IsNullOrEmpty(global.RaidFlashMessage))
+            {
+                TwitchChat.Instance.RaisePageAlert(e.RaidNotification.DisplayName, global.RaidFlashMessage.Replace("{USERNAME}", e.RaidNotification.Login).Replace("{DISPLAYNAME}", e.RaidNotification.DisplayName).Replace("{VIEWERS}", e.RaidNotification.MsgParamViewerCount), global.RaidFlashColor);
+            }
+        }
+
+        private void Pubsub_OnRaidGo(object sender, TwitchLib.PubSub.Events.OnRaidGoArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"*** OnRaidGo PubSub Target: {e.TargetDisplayName} Source: {e.ChannelId}");
+        }
+
+        private void Pubsub_OnRaidUpdateV2(object sender, TwitchLib.PubSub.Events.OnRaidUpdateV2Args e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"*** OnRaidUpdateV2 PubSub Target: {e.TargetDisplayName} Source: {e.ChannelId}");
+        }
+
+        private void Pubsub_OnHost(object sender, TwitchLib.PubSub.Events.OnHostArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"*** OnHost PubSub Host: {e.HostedChannel} Source: {e.ChannelId}");
         }
 
         #endregion

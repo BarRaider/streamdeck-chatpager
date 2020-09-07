@@ -14,6 +14,11 @@ using ChatPager.Backend;
 
 namespace ChatPager.Actions
 {
+
+    //---------------------------------------------------
+    //          BarRaider's Hall Of Fame
+    // Subscriber: CarstenPet
+    //---------------------------------------------------
     [PluginActionId("com.barraider.twitchtools.twitchpager")]
     public class TwitchPagerAction : ActionBase
     {
@@ -52,7 +57,17 @@ namespace ChatPager.Actions
                     PointsChatMessage = POINTS_CHAT_DEFAULT_MESSAGE,
                     PointsFlashColor = POINTS_FLASH_DEFAULT_COLOR,
                     PointsFlashMessage = POINTS_FLASH_DEFAULT_MESSAGE,
-                    AutoStopPage = DEFAULT_AUTO_STOP_SECONDS.ToString()
+                    RaidChatMessage = RAID_CHAT_DEFAULT_MESSAGE,
+                    RaidFlashColor = RAID_FLASH_DEFAULT_COLOR,
+                    RaidFlashMessage = RAID_FLASH_DEFAULT_MESSAGE,
+                    AutoStopPage = DEFAULT_AUTO_STOP_SECONDS.ToString(),
+                    PlaySoundOnChat = false,
+                    PlaySoundOnNotification = false,
+                    PlaybackDevice = String.Empty,
+                    PlaybackDevices = null,
+                    PlaySoundFile = String.Empty,
+                    SoundCooldown = DEFAULT_SOUND_COOLDOWN_SECONDS.ToString(),
+                    MutedUsers = String.Empty
                 };
                 return instance;
             }
@@ -141,11 +156,40 @@ namespace ChatPager.Actions
             [JsonProperty(PropertyName = "pointsChatMessage")]
             public string PointsChatMessage { get; set; }
 
+            [JsonProperty(PropertyName = "raidFlashColor")]
+            public string RaidFlashColor { get; set; }
+
+            [JsonProperty(PropertyName = "raidFlashMessage")]
+            public string RaidFlashMessage { get; set; }
+
+            [JsonProperty(PropertyName = "raidChatMessage")]
+            public string RaidChatMessage { get; set; }
+
             [JsonProperty(PropertyName = "autoStopPage")]
             public string AutoStopPage { get; set; }
 
-            
+            [JsonProperty(PropertyName = "playSoundOnChat")]
+            public bool PlaySoundOnChat { get; set; }
 
+            [JsonProperty(PropertyName = "playSoundOnNotification")]
+            public bool PlaySoundOnNotification { get; set; }
+
+            [JsonProperty(PropertyName = "playbackDevices")]
+            public List<PlaybackDevice> PlaybackDevices { get; set; }
+
+            [JsonProperty(PropertyName = "playbackDevice")]
+            public string PlaybackDevice { get; set; }
+
+            [FilenameProperty]
+            [JsonProperty(PropertyName = "playSoundFile")]
+            public string PlaySoundFile { get; set; }
+
+            [JsonProperty(PropertyName = "soundCooldown")]
+            public string SoundCooldown { get; set; }
+
+            [JsonProperty(PropertyName = "mutedUsers")]
+            public string MutedUsers { get; set; }
+            
         }
 
         protected PluginSettings Settings
@@ -182,10 +226,13 @@ namespace ChatPager.Actions
         private const string POINTS_CHAT_DEFAULT_MESSAGE = "{DISPLAYNAME} redeemed {TITLE} for {POINTS} points. {MESSAGE}";
         private const string POINTS_FLASH_DEFAULT_COLOR = "#00FF00";
         private const string POINTS_FLASH_DEFAULT_MESSAGE = "Points: {DISPLAYNAME} - {TITLE}";
+        private const string RAID_CHAT_DEFAULT_MESSAGE = "{DISPLAYNAME} just raided with {VIEWERS} viewers!";
+        private const string RAID_FLASH_DEFAULT_COLOR = "#FFA500";
+        private const string RAID_FLASH_DEFAULT_MESSAGE = "{DISPLAYNAME} raiding with {VIEWERS} viewers";
 
         protected const int DEFAULT_CLEAR_FILE_SECONDS = 5;
         private const int DEFAULT_AUTO_STOP_SECONDS = 0;
-
+        private const int DEFAULT_SOUND_COOLDOWN_SECONDS = 10;
 
         private bool isPaging = false;
         private readonly System.Timers.Timer tmrPage = new System.Timers.Timer();
@@ -197,7 +244,10 @@ namespace ChatPager.Actions
         private Brush viewersBrush = Brushes.White;
         private bool globalSettingsLoaded = false;
         private int autoStopPage = 0;
+        private int soundCooldown = DEFAULT_SOUND_COOLDOWN_SECONDS;
         private DateTime pageStartTime;
+        private DateTime lastSoundPlay = DateTime.MinValue;
+        private List<String> mutedUsers;
 
         #endregion     
 
@@ -214,6 +264,7 @@ namespace ChatPager.Actions
             MyTwitchChannelInfo.Instance.TwitchStreamInfoChanged += Instance_TwitchStreamInfoChanged;
             AlertManager.Instance.TwitchPagerShown += Instance_TwitchPagerShown;
             TwitchChat.Instance.PageRaised += Chat_PageRaised;
+            TwitchChat.Instance.OnChatMessageReceived += Instance_OnChatMessageReceived;
 
             this.Settings.ChatMessage = TwitchChat.Instance.ChatMessage;
             this.Settings.PageCommand = TwitchChat.Instance.PageCommand;
@@ -228,6 +279,14 @@ namespace ChatPager.Actions
             Connection.GetGlobalSettingsAsync();
         }
 
+        private async void Instance_OnChatMessageReceived(object sender, ChatMessageReceivedEventArgs e)
+        {
+            if (Settings.PlaySoundOnChat)
+            {
+                await HandleSoundPlay(e.Author);
+            }
+        }
+
         private void Instance_TwitchPagerShown(object sender, EventArgs e)
         {
         }
@@ -236,10 +295,11 @@ namespace ChatPager.Actions
 
         public override void Dispose()
         {
+            tmrPage.Stop();
             MyTwitchChannelInfo.Instance.TwitchStreamInfoChanged -= Instance_TwitchStreamInfoChanged;
+            TwitchChat.Instance.OnChatMessageReceived -= Instance_OnChatMessageReceived;
             TwitchChat.Instance.PageRaised -= Chat_PageRaised;
             AlertManager.Instance.TwitchPagerShown -= Instance_TwitchPagerShown;
-            tmrPage.Stop();
             Logger.Instance.LogMessage(TracingLevel.INFO, "Destructor Called");
         }
 
@@ -321,7 +381,16 @@ namespace ChatPager.Actions
                 Settings.PointsChatMessage = global.PointsChatMessage;
                 Settings.PointsFlashColor = global.PointsFlashColor;
                 Settings.PointsFlashMessage = global.PointsFlashMessage;
+                Settings.RaidChatMessage = global.RaidChatMessage;
+                Settings.RaidFlashColor = global.RaidFlashColor;
+                Settings.RaidFlashMessage = global.RaidFlashMessage;
                 Settings.AutoStopPage = global.AutoStopPage;
+                Settings.PlaybackDevice = global.PlaybackDevice;
+                Settings.PlaySoundOnChat = global.PlaySoundOnChat;
+                Settings.PlaySoundOnNotification = global.PlaySoundOnNotification;
+                Settings.PlaySoundFile = global.PlaySoundFile;
+                Settings.SoundCooldown = global.SoundCooldown.ToString();
+                Settings.MutedUsers = global.MutedUsers;
                 previousViewersCount = global.PreviousViewersCount;
                 if (!String.IsNullOrEmpty(global.ViewersBrush))
                 {
@@ -413,9 +482,18 @@ namespace ChatPager.Actions
             global.PointsChatMessage = Settings.PointsChatMessage;
             global.PointsFlashColor = Settings.PointsFlashColor;
             global.PointsFlashMessage = Settings.PointsFlashMessage;
+            global.RaidChatMessage = Settings.RaidChatMessage;
+            global.RaidFlashColor = Settings.RaidFlashColor;
+            global.RaidFlashMessage = Settings.RaidFlashMessage;
             global.AutoStopPage = Settings.AutoStopPage;
+            global.PlaybackDevice = Settings.PlaybackDevice;
+            global.PlaySoundOnChat = Settings.PlaySoundOnChat;
+            global.PlaySoundOnNotification = Settings.PlaySoundOnNotification;
+            global.PlaySoundFile = Settings.PlaySoundFile;
             global.ViewersBrush = viewersBrush.ToHex();
             global.PreviousViewersCount = previousViewersCount;
+            global.SoundCooldown = soundCooldown;
+            global.MutedUsers = Settings.MutedUsers;
             Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
 
             return true;
@@ -431,40 +509,44 @@ namespace ChatPager.Actions
                 return;
             }
 
-            Bitmap img = Tools.GenerateGenericKeyImage(out Graphics graphics);
-            int height = img.Height;
-            int width = img.Width;
-
-            // Background
-            
-            var bgBrush = new SolidBrush(GraphicsTools.GenerateColorShades(Settings.AlertColor, alertStage, Constants.ALERT_TOTAL_SHADES));
-            graphics.FillRectangle(bgBrush, 0, 0, width, height);
-
-            if (String.IsNullOrEmpty(pageMessage))
+            using (Bitmap img = Tools.GenerateGenericKeyImage(out Graphics graphics))
             {
-                Connection.SetImageAsync(img);
-            }
-            else
-            {
-                var font = new Font("Verdana", 26, FontStyle.Bold, GraphicsUnit.Pixel);
-                var fgBrush = Brushes.White;
-                SizeF stringSize = graphics.MeasureString(pageMessage, font);
-                float stringPos = 0;
-                float stringHeight = Math.Abs((height - stringSize.Height)) / 2;
-                if (stringSize.Width < width)
+                int height = img.Height;
+                int width = img.Width;
+
+                // Background
+
+                var bgBrush = new SolidBrush(GraphicsTools.GenerateColorShades(Settings.AlertColor, alertStage, Constants.ALERT_TOTAL_SHADES));
+                graphics.FillRectangle(bgBrush, 0, 0, width, height);
+
+                if (String.IsNullOrEmpty(pageMessage))
                 {
-                    stringPos = Math.Abs((width - stringSize.Width)) / 2;
+                    Connection.SetImageAsync(img);
                 }
-                else // Move to multi line
+                else
                 {
-                    stringHeight = 0;
-                    pageMessage = Tools.SplitStringToFit(pageMessage, new BarRaider.SdTools.Wrappers.TitleParameters(font.FontFamily, font.Style, font.Size, Color.White, true, BarRaider.SdTools.Wrappers.TitleVerticalAlignment.Top), imageWidthPixels: width);
+                    using (Font font = new Font("Verdana", 26, FontStyle.Bold, GraphicsUnit.Pixel))
+                    {
+                        var fgBrush = Brushes.White;
+                        SizeF stringSize = graphics.MeasureString(pageMessage, font);
+                        float stringPos = 0;
+                        float stringHeight = Math.Abs((height - stringSize.Height)) / 2;
+                        if (stringSize.Width < width)
+                        {
+                            stringPos = Math.Abs((width - stringSize.Width)) / 2;
+                        }
+                        else // Move to multi line
+                        {
+                            stringHeight = 0;
+                            pageMessage = Tools.SplitStringToFit(pageMessage, new BarRaider.SdTools.Wrappers.TitleParameters(font.FontFamily, font.Style, font.Size, Color.White, true, BarRaider.SdTools.Wrappers.TitleVerticalAlignment.Top), imageWidthPixels: width);
+                        }
+                        graphics.DrawString(pageMessage, font, fgBrush, new PointF(stringPos, stringHeight));
+                        Connection.SetImageAsync(img);
+                    }
                 }
-                graphics.DrawString(pageMessage, font, fgBrush, new PointF(stringPos, stringHeight));
-                Connection.SetImageAsync(img);
+                alertStage = (alertStage + 1) % Constants.ALERT_TOTAL_SHADES;
+                graphics.Dispose();
             }
-            alertStage = (alertStage + 1) % Constants.ALERT_TOTAL_SHADES;
-            graphics.Dispose();
         }
 
         private async void DrawStreamData()
@@ -477,53 +559,57 @@ namespace ChatPager.Actions
                     return;
                 }
 
-                Bitmap bmp = Tools.GenerateGenericKeyImage(out Graphics graphics);
-                int height = bmp.Height;
-                int width = bmp.Width;
-
-                int fontTitleSize = 24;
-                int fontSecondSize = 26;
-                int heightPadding = 10;
-
-                Font fontTitle = new Font("Verdana", fontTitleSize, FontStyle.Bold, GraphicsUnit.Pixel);
-                var fontSecond = new Font("Verdana", fontSecondSize, FontStyle.Bold, GraphicsUnit.Pixel);
-
-                // Background
-                var bgBrush = new SolidBrush(ColorTranslator.FromHtml(BACKGROUND_COLOR));
-                var fgBrush = Brushes.White;
-                graphics.FillRectangle(bgBrush, 0, 0, width, height);
-
-                // Top title
-                string title = $"⚫ {streamInfo.Game}";
-                var nextHeight = graphics.DrawAndMeasureString(title, fontTitle, fgBrush, new PointF(3, 10)) + heightPadding;
-                // Figure out which color to use for the viewers
-                if (streamInfo.Viewers != previousViewersCount)
+                using (Bitmap bmp = Tools.GenerateGenericKeyImage(out Graphics graphics))
                 {
-                    if (streamInfo.Viewers < previousViewersCount)
+                    int height = bmp.Height;
+                    int width = bmp.Width;
+
+                    int fontTitleSize = 24;
+                    int fontSecondSize = 26;
+                    int heightPadding = 10;
+
+                    Font fontTitle = new Font("Verdana", fontTitleSize, FontStyle.Bold, GraphicsUnit.Pixel);
+                    Font fontSecond = new Font("Verdana", fontSecondSize, FontStyle.Bold, GraphicsUnit.Pixel);
+
+                    // Background
+                    var bgBrush = new SolidBrush(ColorTranslator.FromHtml(BACKGROUND_COLOR));
+                    var fgBrush = Brushes.White;
+                    graphics.FillRectangle(bgBrush, 0, 0, width, height);
+
+                    // Top title
+                    string title = $"⚫ {streamInfo.Game}";
+                    var nextHeight = graphics.DrawAndMeasureString(title, fontTitle, fgBrush, new PointF(3, 10)) + heightPadding;
+                    // Figure out which color to use for the viewers
+                    if (streamInfo.Viewers != previousViewersCount)
                     {
-                        viewersBrush = Brushes.Red;
+                        if (streamInfo.Viewers < previousViewersCount)
+                        {
+                            viewersBrush = Brushes.Red;
+                        }
+                        else
+                        {
+                            viewersBrush = new SolidBrush(ColorTranslator.FromHtml(GREEN_COLOR));
+                        }
+                        previousViewersCount = streamInfo.Viewers;
+                        Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchPagerAction DrawStreamData calling SetGlobalSettings");
+
+                        if (!SetGlobalSettings()) // Reset this so it will push the valid value when Global Settings exist
+                        {
+                            previousViewersCount = 0;
+                        }
                     }
-                    else
-                    {
-                        viewersBrush = new SolidBrush(ColorTranslator.FromHtml(GREEN_COLOR));
-                    }
-                    previousViewersCount = streamInfo.Viewers;
-                    Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchPagerAction DrawStreamData calling SetGlobalSettings");
-                    
-                    if (!SetGlobalSettings()) // Reset this so it will push the valid value when Global Settings exist
-                    {
-                        previousViewersCount = 0;
-                    }
+
+                    title = $"⛑ {streamInfo.Viewers}";
+                    nextHeight = graphics.DrawAndMeasureString(title, fontSecond, viewersBrush, new PointF(3, nextHeight)) + heightPadding;
+
+                    var span = DateTime.UtcNow - streamInfo.StreamStart;
+                    title = span.Hours > 0 ? $"⛣ {span.Hours}:{span.Minutes.ToString("00")}" : $"⛣ {span.Minutes}m";
+                    nextHeight = graphics.DrawAndMeasureString(title, fontSecond, fgBrush, new PointF(3, nextHeight));
+                    await Connection.SetImageAsync(bmp);
+                    fontTitle.Dispose();
+                    fontSecond.Dispose();
+                    graphics.Dispose();
                 }
-
-                title = $"⛑ {streamInfo.Viewers}";
-                nextHeight = graphics.DrawAndMeasureString(title, fontSecond, viewersBrush, new PointF(3, nextHeight)) + heightPadding;
-
-                var span = DateTime.UtcNow - streamInfo.StreamStart;
-                title = span.Hours > 0 ? $"⛣ {span.Hours}:{span.Minutes.ToString("00")}" : $"⛣ {span.Minutes}m";
-                nextHeight = graphics.DrawAndMeasureString(title, fontSecond, fgBrush, new PointF(3, nextHeight));
-                await Connection.SetImageAsync(bmp);
-                graphics.Dispose();
             }
             catch (Exception ex)
             {
@@ -531,11 +617,15 @@ namespace ChatPager.Actions
             }
         }
 
-        private void Chat_PageRaised(object sender, PageRaisedEventArgs e)
+        private async void Chat_PageRaised(object sender, PageRaisedEventArgs e)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"Received a page! Message: {e.Message?? String.Empty}");
             pageMessage = e.Message;
             isPaging = true;
+            if (Settings.PlaySoundOnNotification)
+            {
+                await HandleSoundPlay(e.Author);
+            }
         }
 
         private void Instance_TwitchStreamInfoChanged(object sender, TwitchStreamInfoEventArgs e)
@@ -555,7 +645,7 @@ namespace ChatPager.Actions
 
             if (!String.IsNullOrWhiteSpace(Settings.AllowedPagers))
             {
-                allowedPagers = Settings.AllowedPagers?.Replace("\r\n", "\n").Split('\n').ToList();
+                allowedPagers = Settings.AllowedPagers?.Replace("\r\n", "\n").Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).ToList();
             }
 
             if (Settings.MultipleChannels)
@@ -581,6 +671,20 @@ namespace ChatPager.Actions
                 SetGlobalSettings();
             }
 
+            if (!Int32.TryParse(Settings.SoundCooldown, out soundCooldown))
+            {
+                Settings.SoundCooldown = DEFAULT_SOUND_COOLDOWN_SECONDS.ToString();
+                soundCooldown = DEFAULT_SOUND_COOLDOWN_SECONDS;
+                SetGlobalSettings();
+            }
+
+            mutedUsers = null;
+            if (!String.IsNullOrEmpty(Settings.MutedUsers))
+            {
+                mutedUsers = Settings.MutedUsers?.Replace("\r\n", "\n").ToLowerInvariant().Split('\n').ToList();
+            }
+
+            PropagatePlaybackDevices();
             SetClearTimerInterval();
         }
 
@@ -616,6 +720,61 @@ namespace ChatPager.Actions
             Settings.PointsChatMessage = POINTS_CHAT_DEFAULT_MESSAGE;
             Settings.PointsFlashColor = POINTS_FLASH_DEFAULT_COLOR;
             Settings.PointsFlashMessage = POINTS_FLASH_DEFAULT_MESSAGE;
+            Settings.RaidChatMessage = RAID_CHAT_DEFAULT_MESSAGE;
+            Settings.RaidFlashColor = RAID_FLASH_DEFAULT_COLOR;
+            Settings.RaidFlashMessage = RAID_FLASH_DEFAULT_MESSAGE;
+        }
+
+        private void PropagatePlaybackDevices()
+        {
+            Settings.PlaybackDevices = new List<PlaybackDevice>();
+
+            try
+            {
+                if (Settings.PlaySoundOnChat || Settings.PlaySoundOnNotification)
+                {
+                    Settings.PlaybackDevices = AudioUtils.Common.GetAllPlaybackDevices(true).Select(d => new PlaybackDevice() { ProductName = d }).ToList();
+                    SaveSettings();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"Error propagating playback devices {ex}");
+            }
+        }
+
+        private async Task HandleSoundPlay(string triggeredUser)
+        {
+            if (String.IsNullOrEmpty(Settings.PlaySoundFile) || string.IsNullOrEmpty(Settings.PlaybackDevice))
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"HandleSoundPlay called but File or Playback device are empty. File: {Settings.PlaySoundFile} Device: {Settings.PlaybackDevice}");
+                return;
+            }
+
+            if (!File.Exists(Settings.PlaySoundFile))
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"HandleSoundPlay called but file does not exist: {Settings.PlaySoundFile}");
+                return;
+            }
+
+            if (mutedUsers != null && mutedUsers.Contains(triggeredUser.ToLowerInvariant()))
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"HandleSoundPlay called but {triggeredUser} is muted");
+                return;
+            }
+
+            if ((DateTime.Now - lastSoundPlay).TotalSeconds < soundCooldown)
+            {
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"HandleSoundPlay in cooldown");
+                return;
+            }
+
+            
+
+
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"HandleSoundPlay called. Playing {Settings.PlaySoundFile} on device: {Settings.PlaybackDevice}");
+            lastSoundPlay = DateTime.Now;
+            await AudioUtils.Common.PlaySound(Settings.PlaySoundFile, Settings.PlaybackDevice);
         }
 
         #endregion

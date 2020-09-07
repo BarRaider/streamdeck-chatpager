@@ -12,8 +12,11 @@ namespace ChatPager.Wrappers
         public string Color { get; private set; }
         public string Message { get; private set; }
 
-        public PageRaisedEventArgs(string message, string color)
+        public string Author { get; private set; }
+
+        public PageRaisedEventArgs(string author, string message, string color)
         {
+            Author = author;
             Message = message;
             Color = color;
         }

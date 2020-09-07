@@ -87,7 +87,34 @@ namespace ChatPager.Twitch
         [JsonProperty(PropertyName = "pointsChatMessage")]
         public string PointsChatMessage { get; set; }
 
+        [JsonProperty(PropertyName = "raidFlashColor")]
+        public string RaidFlashColor { get; set; }
+
+        [JsonProperty(PropertyName = "raidFlashMessage")]
+        public string RaidFlashMessage { get; set; }
+
+        [JsonProperty(PropertyName = "raidChatMessage")]
+        public string RaidChatMessage { get; set; }
+
         [JsonProperty(PropertyName = "autoStopPage")]
         public string AutoStopPage { get; set; }
+
+        [JsonProperty(PropertyName = "playSoundOnChat")]
+        public bool PlaySoundOnChat { get; set; }
+
+        [JsonProperty(PropertyName = "playSoundOnNotification")]
+        public bool PlaySoundOnNotification { get; set; }
+
+        [JsonProperty(PropertyName = "playbackDevice")]
+        public string PlaybackDevice { get; set; }
+
+        [JsonProperty(PropertyName = "playSoundFile")]
+        public string PlaySoundFile { get; set; }
+
+        [JsonProperty(PropertyName = "soundCooldown")]
+        public int SoundCooldown { get; set; }
+
+        [JsonProperty(PropertyName = "mutedUsers")]
+        public string MutedUsers { get; set; }
     }
 }

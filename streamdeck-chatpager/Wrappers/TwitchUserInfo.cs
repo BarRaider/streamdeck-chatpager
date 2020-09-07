@@ -9,7 +9,7 @@ namespace ChatPager.Wrappers
 {
     public class TwitchUserInfo
     {
-        [JsonProperty(PropertyName = "user_id")]
+        [JsonProperty(PropertyName = "id")]
         public string UserId { get; private set; }
 
         [JsonProperty(PropertyName = "login")]
