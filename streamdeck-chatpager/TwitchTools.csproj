@@ -38,7 +38,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="HtmlAgilityPack" Version="1.11.24" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.6" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
     <PackageReference Include="NAudio" Version="1.10.0" />
     <PackageReference Include="NLog" Version="4.7.4" />
     <PackageReference Include="StreamDeck-Tools" Version="2.9.0" />
