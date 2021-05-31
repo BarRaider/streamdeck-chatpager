@@ -35,8 +35,8 @@ namespace ChatPager.Actions
                     TokenExists = false,
                     StatusFile = String.Empty,
                     GameFile = String.Empty,
-                    TagsFile = String.Empty
-
+                    TagsFile = String.Empty,
+                    LanaguageFile = String.Empty
                 };
                 return instance;
             }
@@ -52,6 +52,10 @@ namespace ChatPager.Actions
             [FilenameProperty]
             [JsonProperty(PropertyName = "tagsFile")]
             public string TagsFile { get; set; }
+
+            [FilenameProperty]
+            [JsonProperty(PropertyName = "languageFile")]
+            public string LanaguageFile { get; set; }
         }
 
         protected PluginSettings Settings
@@ -70,14 +74,6 @@ namespace ChatPager.Actions
                 settings = value;
             }
         }
-
-        #region Private Members
-
-        private const string ALL_TAGS_FILE = "tags.csv";
-
-        private Dictionary<string, string> dicTags;
-
-        #endregion
 
         #region Public Methods
 
@@ -108,8 +104,22 @@ namespace ChatPager.Actions
                 return;
             }
 
-            await UpdateStatus();
-            await UpdateTags();
+            // Added as booleans otherwise it will short circuit the second call
+            bool statusResult = false;
+            if (!String.IsNullOrEmpty(Settings.GameFile) || !String.IsNullOrEmpty(Settings.StatusFile) || !String.IsNullOrEmpty(Settings.LanaguageFile))
+            {
+                statusResult = await UpdateStatus();
+            }
+            bool tagsResult = await UpdateTags();
+
+            if (statusResult || tagsResult)
+            {
+                await Connection.ShowOk();
+            }
+            else
+            {
+                await Connection.ShowAlert();
+            }
         }
 
         public override void KeyReleased(KeyPayload payload) { }
@@ -137,19 +147,20 @@ namespace ChatPager.Actions
 
         #region Private Methods
 
-        public async Task UpdateStatus()
+        public async Task<bool> UpdateStatus()
         {
             try
             {
-                string status = String.Empty;
-                string game = String.Empty;
+                string status = null;
+                string game = null;
+                string language = null;
 
                 // Read Status from File
                 if (!string.IsNullOrEmpty(Settings.StatusFile))
                 {
                     if (!File.Exists(Settings.StatusFile))
                     {
-                        Logger.Instance.LogMessage(TracingLevel.WARN, $"Status file does not exists: {Settings.StatusFile}");
+                        Logger.Instance.LogMessage(TracingLevel.WARN, $"Title file does not exists: {Settings.StatusFile}");
                     }
                     else
                     {
@@ -176,7 +187,7 @@ namespace ChatPager.Actions
                 {
                     if (!File.Exists(Settings.GameFile))
                     {
-                        Logger.Instance.LogMessage(TracingLevel.WARN, $"Game file does not exists: {Settings.GameFile}");
+                        Logger.Instance.LogMessage(TracingLevel.WARN, $"Category file does not exists: {Settings.GameFile}");
                     }
                     else
                     {
@@ -184,122 +195,80 @@ namespace ChatPager.Actions
                     }
                 }
 
-                if (String.IsNullOrEmpty(status) && String.IsNullOrEmpty(game))
+                // Read Language from File
+                if (!string.IsNullOrEmpty(Settings.LanaguageFile))
                 {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"UpdateStatus called but both status and game are empty");
-                    return;
+                    if (!File.Exists(Settings.LanaguageFile))
+                    {
+                        Logger.Instance.LogMessage(TracingLevel.WARN, $"Language file does not exists: {Settings.LanaguageFile}");
+                    }
+                    else
+                    {
+                        language = File.ReadAllText(Settings.LanaguageFile);
+                    }
+                }
+
+                if (String.IsNullOrEmpty(status) && String.IsNullOrEmpty(game) && String.IsNullOrEmpty(language))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"UpdateStatus called but status, game and language are all empty");
+                    return false;
                 }
 
                 using (TwitchComm comm = new TwitchComm())
                 {
-                    if (await comm.UpdateChannelStatus(status, game))
-                    {
-                        await Connection.ShowOk();
-                    }
-                    else
-                    {
-                        await Connection.ShowAlert();
-                    }
+                    return await comm.UpdateChannelStatus(status, game, language);
                 }
             }
             catch (Exception ex)
             {
                 Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateStatus Exception: {ex}");
             }
+            return false;
         }
 
-        private async Task UpdateTags()
+        private async Task<bool> UpdateTags()
         {
             try
             {
                 if (string.IsNullOrEmpty(Settings.TagsFile))
                 {
                     Logger.Instance.LogMessage(TracingLevel.WARN, "UpdateTags called but not tags file set");
-                    return;
+                    return false;
                 }
 
                 if (!File.Exists(Settings.TagsFile))
                 {
                     Logger.Instance.LogMessage(TracingLevel.WARN, $"Tags file does not exists: {Settings.TagsFile}");
-                    return;
+                    return false;
                 }
 
                 string[] tags = File.ReadAllLines(Settings.TagsFile);
                 if (tags.Length == 0)
                 {
                     Logger.Instance.LogMessage(TracingLevel.WARN, $"Tags file is empty: {Settings.TagsFile}");
-                    return;
+                    return false;
                 }
 
-                string[] tagIds = GetTagIdsFromTagNames(tags);
+                string[] tagIds = await TagsManager.Instance.GetTagIdsFromTagNames(tags);
                 if (tagIds == null)
                 {
-                    await Connection.ShowAlert();
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} GetTagIdsFromTagNames failed!");
+                    return false;
                 }
 
                 if (tagIds.Length > 0)
                 {
                     using (TwitchComm comm = new TwitchComm())
                     {
-                        if (await comm.UpdateChannelTags(tagIds))
-                        {
-                            await Connection.ShowOk();
-                        }
-                        else
-                        {
-                            await Connection.ShowAlert();
-                        }
+                        return await comm.UpdateChannelTags(tagIds);
                     }
-                }
-                    
+                }                  
             }
-
             catch (Exception ex) 
             {
                 Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateTags Exception: {ex}");
             }
-        }
-
-
-        private string[] GetTagIdsFromTagNames(string[] tagNames)
-        {
-            if (dicTags == null)
-            {
-                if (!File.Exists(ALL_TAGS_FILE))
-                {
-                    Logger.Instance.LogMessage(TracingLevel.ERROR, "Could not load All Tags File");
-                    return null;
-                }
-
-                string[] lines = File.ReadAllLines(ALL_TAGS_FILE);
-                dicTags = new Dictionary<string, string>();
-
-                foreach (var line in lines)
-                {
-                    var tag = line.Split(',');
-                    if (tag.Length == 2)
-                    {
-                        dicTags[tag[0].ToLowerInvariant()] = tag[1];
-                    }
-                    else
-                    {
-                        Logger.Instance.LogMessage(TracingLevel.WARN, $"Invalid Tag Line: {line}");
-                    }
-                }
-            }
-
-            List<string> tagIds = new List<string>();
-            foreach (string tagName in tagNames)
-            {
-                if (!dicTags.ContainsKey(tagName.ToLowerInvariant()))
-                {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"Tag not found: {tagName}");
-                    continue;
-                }
-                tagIds.Add(dicTags[tagName.ToLowerInvariant()]);
-            }
-
-            return tagIds.ToArray();
+            return false;
         }
 
         protected override Task SaveSettings()

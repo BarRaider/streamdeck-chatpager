@@ -26,7 +26,7 @@ namespace ChatPager
         private string currentPageInitialColor = DEFAULT_ALERT_COLOR;
 
         private string pageMessage;
-        private SDConnection connection;
+        private ISDConnection connection;
         private TwitchGlobalSettings global;
         private bool autoClearFile = false;
         private int numberOfKeys;
@@ -93,7 +93,7 @@ namespace ChatPager
         #endregion
 
         #region Public Methods
-        public void Initialize(SDConnection connection)
+        public void Initialize(ISDConnection connection)
         {
             this.connection = connection;
             if (connection != null)
@@ -298,7 +298,7 @@ namespace ChatPager
             alertStage = (alertStage + 1) % Constants.ALERT_TOTAL_SHADES;
         }
 
-        private void SavePageToFile(string pageMessage, bool autoClear = true)
+        private void SavePageToFile(string pageMessage)
         {
             if (global.SaveToFile)
             {
@@ -308,10 +308,10 @@ namespace ChatPager
                     return;
                 }
 
-                Logger.Instance.LogMessage(TracingLevel.INFO, $"AlertManager: Saving page message {pageMessage} to file {global.PageFileName}. AutoClear is {autoClear}");
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"AlertManager: Saving page message {pageMessage} to file {global.PageFileName}. AutoClearFile is {autoClearFile}");
                 File.WriteAllText(global.PageFileName, $"{pageMessage}");
 
-                if (autoClearFile)
+                if (autoClearFile && !String.IsNullOrEmpty(pageMessage))
                 {
                     tmrClearFile.Start();
                 }
@@ -339,7 +339,7 @@ namespace ChatPager
         private void TmrClearFile_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             tmrClearFile.Stop();
-            SavePageToFile(string.Empty, false);
+            SavePageToFile(String.Empty);
         }
 
         private async Task SwitchToFullScreen()

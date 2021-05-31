@@ -46,6 +46,21 @@
       "PropertyInspectorPath": "PropertyInspector/ChatPager/ClipToChat.html"
     },
     {
+      "Icon": "Images/markerIcon",
+      "Name": "Create Stream Marker",
+      "States": [
+        {
+          "Image": "Images/markerAction",
+          "TitleAlignment": "middle",
+          "FontSize": "11"
+        }
+      ],
+      "SupportedInMultiActions": true,
+      "Tooltip": "Creates a Stream Marker in the live stream",
+      "UUID": "com.barraider.twitchtools.marker",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/Marker.html"
+    },
+    {
       "Icon": "Images/giveawayIcon",
       "Name": "Giveaway",
       "States": [
@@ -74,6 +89,21 @@
       "Tooltip": "Shows you which of the streamers you follow are currently live.",
       "UUID": "com.barraider.twitchtools.livestreamers",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/LiveStreamers.html"
+    },
+    {
+      "Icon": "Images/adIcon",
+      "Name": "Run Ad",
+      "States": [
+        {
+          "Image": "Images/adAction",
+          "TitleAlignment": "middle",
+          "FontSize": "11"
+        }
+      ],
+      "SupportedInMultiActions": true,
+      "Tooltip": "Run an twitch ad and see both the time left and cooldown till next ad",
+      "UUID": "com.barraider.twitchtools.runad",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/RunAd.html"
     },
     {
       "Icon": "Images/messageIcon",
@@ -156,7 +186,8 @@
   "Name": "Twitch Tools",
   "Icon": "Images/pluginIcon",
   "URL": "https://BarRaider.com/",
-  "Version": "2.5",
+  "Version": "2.6",
+  "DefaultWindowSize": [ 620, 750 ],
   "CodePath": "com.barraider.twitchtools",
   "Category": "Twitch Tools [BarRaider]",
   "CategoryIcon": "Images/categoryIcon",
@@ -194,6 +225,6 @@
   ],
   "SDKVersion": 2,
   "Software": {
-    "MinimumVersion": "4.8"
+    "MinimumVersion": "4.9"
   }
 }

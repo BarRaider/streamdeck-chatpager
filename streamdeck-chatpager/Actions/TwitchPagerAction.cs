@@ -603,7 +603,7 @@ namespace ChatPager.Actions
                     nextHeight = graphics.DrawAndMeasureString(title, fontSecond, viewersBrush, new PointF(3, nextHeight)) + heightPadding;
 
                     var span = DateTime.UtcNow - streamInfo.StreamStart;
-                    title = span.Hours > 0 ? $"⛣ {span.Hours}:{span.Minutes.ToString("00")}" : $"⛣ {span.Minutes}m";
+                    title = span.Hours > 0 ? $"⛣ {span.Hours}:{span.Minutes:00}" : $"⛣ {span.Minutes}m";
                     nextHeight = graphics.DrawAndMeasureString(title, fontSecond, fgBrush, new PointF(3, nextHeight));
                     await Connection.SetImageAsync(bmp);
                     fontTitle.Dispose();

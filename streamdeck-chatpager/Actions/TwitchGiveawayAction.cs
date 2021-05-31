@@ -218,7 +218,7 @@ namespace ChatPager.Actions
                         seconds = secondsLeft % 60;
                         minutes %= 60;
 
-                        string timeRemaining = $"{minutes.ToString("00") }:{ seconds.ToString("00")}";
+                        string timeRemaining = $"{minutes:00}:{ seconds:00}";
                         title += $"\n{timeRemaining}";
                         HandleTimerFile(timeRemaining);
                     }
@@ -346,7 +346,7 @@ namespace ChatPager.Actions
                 return;
             }
 
-            string contents = $"{DateTime.Now.ToString("yyyy-MM-dd HH:mm")}, Item: {Settings.Item}, Winner: {winner}\n";
+            string contents = $"{DateTime.Now:yyyy-MM-dd HH:mm}, Item: {Settings.Item}, Winner: {winner}\n";
             if (Settings.WinnersFileOverwrite)
             {
                 File.WriteAllText(Settings.WinnersFileName, contents);

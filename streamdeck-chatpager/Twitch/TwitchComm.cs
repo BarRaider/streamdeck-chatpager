@@ -3,6 +3,7 @@ using ChatPager.Wrappers;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -31,9 +32,13 @@ namespace ChatPager.Twitch
         private const string TWITCH_URL_GAME_INFO = "/games";
         private const string TWITCH_URL_ACTIVE_STREAMERS = "/streams/followed";
         private const string TWITCH_CREATE_CLIP_URI = "/clips?broadcaster_id=";
+        private const string TWITCH_CREATE_MARKER_URI = "/streams/markers";
         private const string TWITCH_URI_MODIFY_CHANNEL_STATUS = "/channels/{0}";
+        private const string TWITCH_URI_RUN_COMMERCIAL = "/channels/commercial";
         private const string TWITCH_CHANNEL_VIEWERS = "https://tmi.twitch.tv/group/user/{0}/chatters";
         private const string TWITCH_URL_MODIFY_TAGS = "/streams/tags?broadcaster_id={0}";
+
+        private readonly int[] VALID_AD_LENGTHS = new int[] { 30, 60, 90, 120, 150, 180 };
 
         private TwitchToken token;
 
@@ -117,13 +122,23 @@ namespace ChatPager.Twitch
         
         public async Task<TwitchChannelViewers> GetChannelViewers(string channel)
         {
+            if (string.IsNullOrEmpty(channel))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} GetChannelViewers called but channel is null!");
+                return null;
+            }
+
             string url = TWITCH_CHANNEL_VIEWERS.Replace("{0}", channel);
             using (var client = new HttpClient())
             {
                 HttpResponseMessage response = await client.GetAsync(url);
                 if (!response.IsSuccessStatusCode)
                 {
-                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetChannelViewers failed - StatusCode: {response.StatusCode}");
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetChannelViewers failed - StatusCode: {response.StatusCode} for Channel {channel}");
+                    if (channel != channel.Trim().ToLowerInvariant())
+                    {
+                        return await GetChannelViewers(channel.Trim().ToLowerInvariant());
+                    }
                     return null;
                 }
 
@@ -234,19 +249,31 @@ namespace ChatPager.Twitch
             return null;
         }
 
-        public async Task<bool> UpdateChannelStatus(string statusMessage, string currentGame)
+        public async Task<bool> UpdateChannelStatus(string statusMessage, string currentGame, string language)
         {
             string uri = String.Format(TWITCH_URI_MODIFY_CHANNEL_STATUS, TwitchTokenManager.Instance.User.UserId);
-            if (string.IsNullOrEmpty(statusMessage) && string.IsNullOrEmpty(currentGame))
+            if (string.IsNullOrEmpty(statusMessage) && string.IsNullOrEmpty(currentGame) && string.IsNullOrEmpty(language))
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateChannelStatus called with empty status and game");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateChannelStatus called with empty status, game and language");
                 return false;
             }
 
             JObject body = new JObject();
             JObject channelBody = new JObject();
-            channelBody.Add("status", statusMessage);
-            channelBody.Add("game", currentGame);
+            if (!String.IsNullOrEmpty(statusMessage))
+            {
+                channelBody.Add("status", statusMessage);
+            }
+
+            if (!String.IsNullOrWhiteSpace(currentGame))
+            {
+                channelBody.Add("game", currentGame);
+            }
+
+            if (!String.IsNullOrWhiteSpace(language))
+            {
+                channelBody.Add("broadcaster_language", language);
+            }
 
             body.Add("channel", channelBody);
             HttpResponseMessage response = await TwitchKrakenQuery(uri, SendMethod.PUT, null, body);
@@ -262,10 +289,17 @@ namespace ChatPager.Twitch
                 return false;
             }
 
-            JObject body = new JObject();
-            body.Add("tag_ids", JToken.FromObject(tagIds));
+            JObject body = new JObject
+            {
+                { "tag_ids", JToken.FromObject(tagIds) }
+            };
 
             HttpResponseMessage response = await TwitchHelixQuery(uri, SendMethod.PUT, null, body);
+            
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} UpdateChannelTags return Forbidden - Check if an invalid tag (such as 'Language' tag) was used");
+            }
             return response.IsSuccessStatusCode;
         }
 
@@ -296,11 +330,73 @@ namespace ChatPager.Twitch
             }
             else
             {
-                Logger.Instance.LogMessage(TracingLevel.WARN, $"GetGameInfo Fetch Failed. Response: {response.StatusCode} Reason: {response.ReasonPhrase}");
+                string res = await response.Content.ReadAsStringAsync();
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"GetGameInfo Fetch Failed. Response: {response.StatusCode} Reason: {response.ReasonPhrase} Error: {res}");
             }
             return null;
         }
 
+        public async Task<AdDetails> RunAd(int adLength)
+        {
+            if (!VALID_AD_LENGTHS.Contains(adLength))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"RunAd called with invalid Ad Length: {adLength}");
+                return null;
+            }
+
+            string userId = TwitchTokenManager.Instance.User?.UserId;
+            JObject req = new JObject()
+            {
+                { "broadcaster_id", userId },
+                { "length", adLength }
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_RUN_COMMERCIAL, SendMethod.POST, null, req);
+            if (response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    string body = await response.Content.ReadAsStringAsync();
+                    JObject json = JObject.Parse(body);
+                    if (json != null && json["data"].HasValues)
+                    {
+                        AdDetails details = json["data"][0].ToObject<AdDetails>();
+                        if (details != null)
+                        {
+                            if (!String.IsNullOrEmpty(details.ErrorMessage))
+                            {
+                                Logger.Instance.LogMessage(TracingLevel.WARN, $"RunAd returned message: {details.ErrorMessage}");
+                            }
+                            details.CalculateAdInfo();
+                        }
+                        return details;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"RunAd Exception: {ex}");
+                }
+            }
+            else
+            {
+                string res = await response.Content.ReadAsStringAsync();
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"RunAd Failed. StatusCode: {response.StatusCode} Error: {res}");
+            }
+            return null;
+        }
+
+        public async Task<bool> CreateMarker()
+        {
+            string userId = TwitchTokenManager.Instance.User?.UserId;
+            JObject req = new JObject
+            {
+                { "user_id", userId },
+                { "description", "Marker created from BarRaider's Twitch Tools"}
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_CREATE_MARKER_URI, SendMethod.POST, null, req);
+            return response.IsSuccessStatusCode;
+        }
 
         #endregion
 
@@ -316,7 +412,6 @@ namespace ChatPager.Twitch
                     string body = await response.Content.ReadAsStringAsync();
                     JObject json = JObject.Parse(body);
                     TwitchUserDetails userDetails = json["token"].ToObject<TwitchUserDetails>();
-                    //userDetails = new TwitchUserDetails() { UserName = "KayRaid", UserId = "86502273" };
                     return userDetails;
                 }
                 catch (Exception ex)
@@ -326,7 +421,8 @@ namespace ChatPager.Twitch
             }
             else
             {
-                Logger.Instance.LogMessage(TracingLevel.WARN, "GetUserDetails Fetch Failed");
+                string res = await response.Content.ReadAsStringAsync();
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"GetUserDetails Fetch Failed. Error {res}");
             }
             return null;
         }
@@ -339,20 +435,26 @@ namespace ChatPager.Twitch
             {
                 if (token == null || String.IsNullOrEmpty(token.Token))
                 {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, "TwitchQuery called without a valid token");
+                    Logger.Instance.LogMessage(TracingLevel.WARN, "TwitchKrakenQuery called without a valid token");
                     return new HttpResponseMessage() { StatusCode = HttpStatusCode.Conflict };
                 }
 
                 HttpResponseMessage response = await TwitchKrakenQueryInternal(uriPath, sendMethod, optionalContent, body);
                 if (response == null)
                 {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchQueryInternal returned null");
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchKrakenQueryInternal returned null");
                     return response;
                 }
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchQueryInternal  returned with StatusCode: {response.StatusCode}");
+                    string res = await response.Content.ReadAsStringAsync();
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchKrakenQueryInternal returned with StatusCode: {response.StatusCode}. Error: {res}");
+                    if (response.StatusCode == HttpStatusCode.Unauthorized)
+                    {
+                        Logger.Instance.LogMessage(TracingLevel.WARN, "TwitchKrakenQueryInternal returned unauthorized, revoking tokens");
+                        TwitchTokenManager.Instance.RevokeToken();
+                    }
                 }
 
                 return response;
@@ -439,7 +541,8 @@ namespace ChatPager.Twitch
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchHelixQueryInternal returned with StatusCode: {response.StatusCode}");
+                    string res = await response.Content.ReadAsStringAsync();
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"TwitchHelixQueryInternal returned with StatusCode: {response.StatusCode} Error: {res}");
                     if (response.StatusCode == HttpStatusCode.Unauthorized)
                     {
                         Logger.Instance.LogMessage(TracingLevel.WARN, "TwitchHelixQueryInternal returned unauthorized, revoking tokens");
@@ -483,6 +586,10 @@ namespace ChatPager.Twitch
                     else if (optionalContent != null && sendMethod == SendMethod.POST_QUERY_PARAMS)
                     {
                         queryParams = "?" + CreateQueryString(optionalContent);
+                    }
+                    else if (body != null)
+                    {
+                        content = new StringContent(body.ToString(), Encoding.UTF8, "application/json");
                     }
                     return await client.PostAsync($"{TWITCH_HELIX_URI_PREFIX}{uriPath}{queryParams}", content);
                 case SendMethod.PUT:

@@ -1,4 +1,5 @@
 ﻿using BarRaider.SdTools;
+using ChatPager.Backend;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,7 @@ namespace ChatPager.Twitch
         #region Private Members
         private static TwitchTokenManager instance = null;
         private static readonly object objLock = new object();
+        private const string OAUTH_KEY_NAME = "access_token";
 
         private TwitchToken token;
         private TwitchUserDetails userDetails;
@@ -48,7 +50,25 @@ namespace ChatPager.Twitch
         private TwitchTokenManager()
         {
             GlobalSettingsManager.Instance.OnReceivedGlobalSettings += Instance_OnReceivedGlobalSettings;
+            OAuthTokenListener.Instance.OnReceivedTokenData += OAuthTokenListener_OnReceivedTokenData;
             GlobalSettingsManager.Instance.RequestGlobalSettings();
+        }
+
+        private void OAuthTokenListener_OnReceivedTokenData(object sender, System.Collections.Specialized.NameValueCollection e)
+        {
+            if (e == null)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} OAuthTokenListener_OnReceivedTokenData returned null collection");
+                return;
+            }
+
+            if (String.IsNullOrEmpty(e[OAUTH_KEY_NAME]))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} OAuthTokenListener_OnReceivedTokenData did not return an access token");
+                return;
+            }
+
+            SetToken(new TwitchToken() { Token = e[OAUTH_KEY_NAME], TokenLastRefresh = DateTime.Now });
         }
 
         #endregion
@@ -137,6 +157,7 @@ namespace ChatPager.Twitch
                 if (globalToken == null)
                 {
                     Logger.Instance.LogMessage(TracingLevel.ERROR, "Failed to load tokens, deserialized globalToken is null");
+                    OAuthTokenListener.Instance.StartListener(Constants.OAUTH_PORT, Constants.OAUTH_REDIRECT_URL);
                     return;
                 }
 
@@ -210,15 +231,17 @@ namespace ChatPager.Twitch
         {
 
             TokenStatusChanged?.Invoke(this, EventArgs.Empty);
-            if (token != null)
+            if (TokenExists)
             {
                 Logger.Instance.LogMessage(TracingLevel.INFO, $"TwitchTokenManager raising new token change. Token Size: {token?.Token?.Length}");
                 TokensChanged?.Invoke(this, new TwitchTokenEventArgs(new TwitchToken() { Token = token.Token, TokenLastRefresh = token.TokenLastRefresh }));
+                OAuthTokenListener.Instance.StopListener();
             }
             else
             {
                 Logger.Instance.LogMessage(TracingLevel.WARN, "TwitchTokenManager raising EMPTY token change");
                 TokensChanged?.Invoke(this, new TwitchTokenEventArgs(null));
+                OAuthTokenListener.Instance.StartListener(Constants.OAUTH_PORT, Constants.OAUTH_REDIRECT_URL);
             }
         }
 
@@ -234,6 +257,10 @@ namespace ChatPager.Twitch
             {
                 global = payload.Settings.ToObject<TwitchGlobalSettings>();
                 LoadToken(global.Token);
+            }
+            else
+            {
+                OAuthTokenListener.Instance.StartListener(Constants.OAUTH_PORT, Constants.OAUTH_REDIRECT_URL);
             }
         }
 

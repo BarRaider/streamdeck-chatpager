@@ -1,6 +1,5 @@
 ﻿using BarRaider.SdTools;
 using ChatPager.Twitch;
-using ChatPager.Wrappers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -15,15 +14,13 @@ using System.Threading.Tasks;
 
 namespace ChatPager.Actions
 {
-
     //---------------------------------------------------
     //          BarRaider's Hall Of Fame
-    // Subscriber: KreatureOfHaviQ
-    // Quote of the day: "Bots have feelings too..." 1/29 - BarRaider
+    // 500 Bits: Nachtmeister666
     //---------------------------------------------------
 
-    [PluginActionId("com.barraider.twitchtools.channelviewers")]
-    public class TwitchChannelViewersAction : ActionBase
+    [PluginActionId("com.barraider.twitchtools.marker")]
+    public class TwitchMarkerAction : ActionBase
     {
         protected class PluginSettings : PluginSettingsBase
         {
@@ -32,17 +29,9 @@ namespace ChatPager.Actions
                 PluginSettings instance = new PluginSettings
                 {
                     TokenExists = false,
-                    ChannelName = string.Empty,
-                    DontLoadImages = false
                 };
                 return instance;
             }
-
-            [JsonProperty(PropertyName = "channelName")]
-            public string ChannelName { get; set; }
-
-            [JsonProperty(PropertyName = "dontLoadImages")]
-            public bool DontLoadImages { get; set; }
         }
 
         protected PluginSettings Settings
@@ -68,7 +57,7 @@ namespace ChatPager.Actions
 
         #region Public Methods
 
-        public TwitchChannelViewersAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
+        public TwitchMarkerAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
         {
             if (payload.Settings == null || payload.Settings.Count == 0)
             {
@@ -88,42 +77,29 @@ namespace ChatPager.Actions
         public override async void KeyPressed(KeyPayload payload)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPressed");
-            var viewers = await TwitchChannelInfoManager.Instance.GetChannelViewers(Settings.ChannelName);
-            if (viewers == null)
+            if (!TwitchTokenManager.Instance.TokenExists)
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} GetChannelViewers returned null!");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"Key Pressed called without a valid token");
                 await Connection.ShowAlert();
                 return;
             }
 
-            // We have a list of usernames, get some more details on them so we can display their image on the StreamDeck
-            List<ChatMessageKey> chatMessages = new List<ChatMessageKey>();
-            foreach (string username in viewers?.AllViewers)
+            using (TwitchComm comm = new TwitchComm())
             {
-                TwitchUserInfo userInfo = null;
-                if (!Settings.DontLoadImages)
+                if (await comm.CreateMarker())
                 {
-                    userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(username);
+                    await Connection.ShowOk();
                 }
-                chatMessages.Add(new ChatMessageKey(userInfo?.Name ?? username, userInfo?.ProfileImageUrl, null));
-            }
-            Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {chatMessages?.Count} viewers");
-
-            // Show the active chatters on the StreamDeck
-            if (chatMessages != null && chatMessages.Count > 0)
-            {
-                AlertManager.Instance.Initialize(Connection);
-                AlertManager.Instance.ShowChatMessages(chatMessages.OrderBy(c => c.KeyTitle.ToLowerInvariant()).ToArray(), null);
-            }
-            else
-            {
-                await Connection.ShowOk();
+                else
+                {
+                    await Connection.ShowAlert();
+                }
             }
         }
 
         public override void KeyReleased(KeyPayload payload) { }
 
-        public async override void OnTick()
+        public override void OnTick()
         {
             baseHandledOnTick = false;
             base.OnTick();
@@ -131,12 +107,6 @@ namespace ChatPager.Actions
             if (baseHandledOnTick)
             {
                 return;
-            }
-
-            if (TwitchTokenManager.Instance.TokenExists && !String.IsNullOrEmpty(Settings.ChannelName))
-            {
-                var viewers = await TwitchChannelInfoManager.Instance.GetChannelViewers(Settings.ChannelName);
-                await Connection.SetTitleAsync($"👀 {viewers?.TotalViewers}");
             }
         }
 

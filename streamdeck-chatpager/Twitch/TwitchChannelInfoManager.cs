@@ -22,7 +22,6 @@ namespace ChatPager.Twitch
         private const int CHANNEL_REFRESH_TIME_SEC = 60;
         private const int ACTIVE_STREAMERS_REFRESH_TIME_SEC = 60;
         private const int CHANNEL_VIEWERS_REFRESH_TIME_SEC = 60;
-
         private static TwitchChannelInfoManager instance = null;
         private static readonly object objLock = new object();
         private readonly TwitchComm comm;
@@ -63,6 +62,9 @@ namespace ChatPager.Twitch
             comm = new TwitchComm();
             dicViewers = new Dictionary<string, TwitchChannelViewers>();
         }
+
+        public DateTime NextAdTime { get; private set; } = DateTime.MinValue;
+        public DateTime AdEndTime { get; private set; } = DateTime.MinValue;
 
         public async Task<TwitchChannelInfo> GetChannelInfo(string channelName)
         {
@@ -199,6 +201,34 @@ namespace ChatPager.Twitch
             {
                 gameInfoLock.Release();
             }
+        }
+
+        public async Task<bool> RunAd(int adLength)
+        {
+            if (!TwitchTokenManager.Instance.TokenExists)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, "RunAd called without a valid token");
+                return false;
+            }
+
+            var details = await comm.RunAd(adLength);
+            if (details == null)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, "RunAd returned null!");
+                return false;
+            }
+
+            if (details.NextAdTime > NextAdTime)
+            {
+                NextAdTime = details.NextAdTime;
+            }
+
+            if (details.AdEndTime > DateTime.Now)
+            {
+                AdEndTime = details.AdEndTime;
+            }
+
+            return true;
         }
 
         #endregion

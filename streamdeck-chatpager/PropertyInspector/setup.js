@@ -62,7 +62,31 @@ function openTwitchAuth() {
         const json = {
             'event': 'openUrl',
             'payload': {
-                'url': 'https://id.twitch.tv/oauth2/authorize?client_id=on7mw688hvmsx4q8kykvk0b5bne9tf&redirect_uri=https://BarRaider.com/twitchauth&response_type=token&scope=channel_feed_read%20chat:read%20chat:edit%20whispers:read%20whispers:edit%20clips:edit%20channel_editor%20channel:moderate%20channel_commercial%20user:edit:broadcast%20bits:read%20channel_subscriptions%20channel:read:redemptions'
+                'url': 'https://id.twitch.tv/oauth2/authorize?client_id=o02y5mq522n0qaphd6yasbhyfplye3&redirect_uri=https://barraider.com/twitchredir&response_type=token&scope=channel_feed_read%20chat:read%20chat:edit%20whispers:read%20whispers:edit%20clips:edit%20channel_editor%20channel:moderate%20channel_commercial%20user:edit:broadcast%20bits:read%20channel_subscriptions%20channel:read:redemptions%20channel:manage:broadcast%20channel:edit:commercial'
+            }
+        };
+        websocket.send(JSON.stringify(json));
+    }
+}
+
+function openTwitter() {
+    if (websocket && (websocket.readyState === 1)) {
+        const json = {
+            'event': 'openUrl',
+            'payload': {
+                'url': 'https://buz.bz/barT'
+            }
+        };
+        websocket.send(JSON.stringify(json));
+    }
+}
+
+function openDiscord() {
+    if (websocket && (websocket.readyState === 1)) {
+        const json = {
+            'event': 'openUrl',
+            'payload': {
+                'url': 'https://buz.bz/d'
             }
         };
         websocket.send(JSON.stringify(json));
