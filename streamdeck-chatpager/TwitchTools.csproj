@@ -44,7 +44,7 @@
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="5.0.0" />
     <PackageReference Include="TwitchLib.Api" Version="3.2.3" />
     <PackageReference Include="TwitchLib.Api.Core" Version="3.2.3" />
-    <PackageReference Include="TwitchLib.Client" Version="3.2.2" />
+    <PackageReference Include="TwitchLib.Client" Version="3.2.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\DotNet\StreamDeck\AudioUtils\AudioUtils.csproj" />
