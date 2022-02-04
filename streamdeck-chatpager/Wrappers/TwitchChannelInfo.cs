@@ -10,42 +10,65 @@ namespace ChatPager.Wrappers
     public class TwitchChannelInfo
     {
         private const string IS_LIVE_TYPE = "live";
-
-        [JsonProperty(PropertyName = "id")]
-        public string ChannelId { get; private set; }
+        private int? gameId;
 
         [JsonProperty(PropertyName = "user_id")]
         public string UserId { get; private set; }
 
         [JsonProperty(PropertyName = "user_name")]
-        public string UserName { get; private set; }
+        public string UserDisplayName { get; private set; }
 
         [JsonProperty(PropertyName = "game_id")]
-        public string GameId { get; private set; }
+        public string GameIdAsString { get; private set; }
+
+        [JsonProperty(PropertyName = "game_name")]
+        public string GameName { get; private set; }
+
+        [JsonProperty(PropertyName = "id")]
+        public string StreamId { get; private set; }
 
         [JsonProperty(PropertyName = "type")]
-        public string Type { get; private set; }
+        public string StreamType { get; private set; }
 
         [JsonProperty(PropertyName = "title")]
-        public string Title { get; private set; }
+        public string StreamTitle { get; private set; }
 
         [JsonProperty(PropertyName = "viewer_count")]
         public int Viewers { get; private set; }
 
         [JsonProperty(PropertyName = "started_at")]
-        public DateTime Started { get; private set; }
+        public DateTime StreamStart { get; private set; }
 
         [JsonProperty(PropertyName = "language")]
         public string Language { get; private set; }
 
         [JsonProperty(PropertyName = "thumbnail_url")]
-        public string ThumbnailUrl { get; private set; }
+        public string ThumbnailURL { get; private set; }
 
         public bool IsLive
         {
             get
             {
-                return (Type != null && Type?.ToLowerInvariant() == IS_LIVE_TYPE);
+                return (StreamType != null && StreamType?.ToLowerInvariant() == IS_LIVE_TYPE);
+            }
+        }
+
+        public int GameId
+        {
+            get
+            {
+                if (gameId.HasValue)
+                {
+                    return gameId.Value;
+                }
+
+                if (Int32.TryParse(GameIdAsString, out int parsedGameId))
+                {
+                    gameId = parsedGameId;
+                    return parsedGameId;
+                }
+
+                return -1;
             }
         }
     }

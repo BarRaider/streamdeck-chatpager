@@ -8,7 +8,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ChatPager
+namespace ChatPager.Backend
 {
     public class AlertManager
     {
@@ -123,7 +123,7 @@ namespace ChatPager
             Thread.Sleep(100);
         }
 
-        public async void ShowActiveStreamers(TwitchActiveStreamer[] streamers, TwitchLiveStreamersLongPressAction longPressAction)
+        public async void ShowActiveStreamers(TwitchChannelInfo[] streamers, TwitchLiveStreamersLongPressAction longPressAction)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"ShowActiveStreamers called");
             StopFlashAndReset();

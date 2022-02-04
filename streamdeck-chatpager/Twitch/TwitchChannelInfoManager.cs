@@ -26,11 +26,11 @@ namespace ChatPager.Twitch
         private static readonly object objLock = new object();
         private readonly TwitchComm comm;
         private readonly Dictionary<string, TwitchChannelUpdateInfo> dicChannelInfo = new Dictionary<string, TwitchChannelUpdateInfo>();
-        private readonly Dictionary<string, TwitchGameInfo> dicGameInfo = new Dictionary<string, TwitchGameInfo>();
+        private readonly Dictionary<int, TwitchGameInfo> dicGameInfo = new Dictionary<int, TwitchGameInfo>();
         private readonly SemaphoreSlim channelInfoLock = new SemaphoreSlim(1, 1);
         private readonly SemaphoreSlim gameInfoLock = new SemaphoreSlim(1, 1);
         private DateTime lastActiveStreamers;
-        private TwitchActiveStreamer[] activeStreamers;
+        private TwitchChannelInfo[] activeStreamers;
         private readonly Dictionary<string, TwitchChannelViewers> dicViewers;
 
         #endregion
@@ -136,7 +136,7 @@ namespace ChatPager.Twitch
             return null;
         }
 
-        public async Task<TwitchActiveStreamer[]> GetActiveStreamers()
+        public async Task<TwitchChannelInfo[]> GetActiveStreamers()
         {
             try
             {
@@ -161,9 +161,9 @@ namespace ChatPager.Twitch
             return null;
         }
 
-        public async Task<TwitchGameInfo> GetGameInfo(string gameId)
+        public async Task<TwitchGameInfo> GetGameInfo(int gameId)
         {
-            if (String.IsNullOrEmpty(gameId))
+            if (gameId <= 0)
             {
                 return null;
             }
@@ -171,7 +171,6 @@ namespace ChatPager.Twitch
             await gameInfoLock.WaitAsync();
             try
             {
-                gameId = gameId.ToLowerInvariant();
                 // Check if we already cached the information on this game
                 if (dicGameInfo.ContainsKey(gameId))
                 {
@@ -201,6 +200,54 @@ namespace ChatPager.Twitch
             {
                 gameInfoLock.Release();
             }
+        }
+
+        public async Task<int?> GetGameId(string gameName)
+        {
+            if (String.IsNullOrWhiteSpace(gameName))
+            {
+                return null;
+            }
+
+            var existingItem = dicGameInfo.FirstOrDefault(x => x.Value?.Name == gameName);
+            if (existingItem.Value != null)
+            {
+                return Int32.Parse(existingItem.Value.GameId);
+            }
+
+            await gameInfoLock.WaitAsync();
+            try
+            {
+                if (!TwitchTokenManager.Instance.TokenExists)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, "GetGameInfo called without a valid token");
+                    return null;
+                }
+                var gameInfo = await comm.GetGameInfo(System.Net.WebUtility.UrlEncode(gameName));
+                if (gameInfo == null)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"GetGameInfo returned null for Game: {gameName}");
+                }
+
+                if (!Int32.TryParse(gameInfo?.GameId, out int gameId))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"GetGameInfo returned invalid GameId for Game: {gameName} ({gameInfo?.GameId})");
+                    return null;
+                }
+
+                dicGameInfo[gameId] = gameInfo;
+                return gameId;
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetGameInfo Exception: {ex}");
+                return null;
+            }
+            finally
+            {
+                gameInfoLock.Release();
+            }
+
         }
 
         public async Task<bool> RunAd(int adLength)

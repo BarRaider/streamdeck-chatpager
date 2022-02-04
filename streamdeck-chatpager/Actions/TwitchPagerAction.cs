@@ -237,7 +237,7 @@ namespace ChatPager.Actions
         private bool isPaging = false;
         private readonly System.Timers.Timer tmrPage = new System.Timers.Timer();
         private int alertStage = 0;
-        private TwitchStreamInfo streamInfo;
+        private TwitchChannelInfo streamInfo;
         private string pageMessage = null;
         private TwitchGlobalSettings global = null;
         private int previousViewersCount = 0;
@@ -577,7 +577,7 @@ namespace ChatPager.Actions
                     graphics.FillRectangle(bgBrush, 0, 0, width, height);
 
                     // Top title
-                    string title = $"⚫ {streamInfo.Game}";
+                    string title = $"⚫ {streamInfo.GameName}";
                     var nextHeight = graphics.DrawAndMeasureString(title, fontTitle, fgBrush, new PointF(3, 10)) + heightPadding;
                     // Figure out which color to use for the viewers
                     if (streamInfo.Viewers != previousViewersCount)
@@ -613,7 +613,7 @@ namespace ChatPager.Actions
             }
             catch (Exception ex)
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"Error drawing currency data {ex}");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"Error drawing stream data {ex}");
             }
         }
 

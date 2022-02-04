@@ -1,4 +1,5 @@
 ﻿using BarRaider.SdTools;
+using ChatPager.Backend;
 using ChatPager.Twitch;
 using ChatPager.Wrappers;
 using Newtonsoft.Json;
@@ -39,7 +40,8 @@ namespace ChatPager.Actions
                     ChatMessage = DEFAULT_CHAT_MESSAGE,
                     Channel = String.Empty,
                     UsersDisplay = UsersDisplay.ActiveChatters,
-                    DontLoadImages = false
+                    DontLoadImages = false,
+                    Suffix = String.Empty
                 };
                 return instance;
             }
@@ -55,6 +57,9 @@ namespace ChatPager.Actions
 
             [JsonProperty(PropertyName = "dontLoadImages")]
             public bool DontLoadImages { get; set; }
+
+            [JsonProperty(PropertyName = "suffix")]
+            public string Suffix { get; set; }
         }
 
         protected PluginSettings Settings
@@ -110,8 +115,14 @@ namespace ChatPager.Actions
                 return;
             }
 
-            string[] userNames;
+            if (String.IsNullOrEmpty(Settings.ChatMessage))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} called without a valid message/action");
+                await Connection.ShowAlert();
+                return;
+            }
 
+            string[] userNames;
             if (Settings.UsersDisplay == UsersDisplay.ActiveChatters)
             {
                 var chatters = TwitchChat.Instance.GetLastChatters();
@@ -152,7 +163,7 @@ namespace ChatPager.Actions
                 {
                     userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(username);
                 }
-                chatMessages.Add(new ChatMessageKey(userInfo?.Name ?? username, userInfo?.ProfileImageUrl, Settings.ChatMessage.Replace("{USERNAME}", $"{userInfo?.Name ?? username}")));
+                chatMessages.Add(new ChatMessageKey(userInfo?.Name ?? username, userInfo?.ProfileImageUrl, Settings.ChatMessage.Replace("{USERNAME}", $"{userInfo?.Name ?? username}").Replace("{SUFFIX}", Settings.Suffix)));
             }
             Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {chatMessages?.Count} chat messages");
 
@@ -194,7 +205,7 @@ namespace ChatPager.Actions
 
         #region Private Methods
 
-        private void InitializeSettings()
+        protected virtual void InitializeSettings()
         {
             if (!string.IsNullOrEmpty(Settings.Channel) && Settings.UsersDisplay == UsersDisplay.ActiveChatters)
             {

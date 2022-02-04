@@ -1,4 +1,5 @@
 ﻿using BarRaider.SdTools;
+using ChatPager.Wrappers;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -19,7 +20,7 @@ namespace ChatPager.Twitch
         private const int DEFAULT_REFRESH_MS = 60000; // 60 seconds
         private const int MAX_REFRESH_MS     = 300000; // 300 seconds = 5 min
 
-        private TwitchStreamInfo lastStreamInfo;
+        private TwitchChannelInfo lastStreamInfo;
         private DateTime lastStreamInfoRefresh;
         private readonly TwitchComm comm;
         private readonly System.Timers.Timer tmrFetchStreamInfo;
@@ -77,7 +78,7 @@ namespace ChatPager.Twitch
 
         #region Public Methods
 
-        public TwitchStreamInfo StreamInfo
+        public TwitchChannelInfo StreamInfo
         {
             get
             {

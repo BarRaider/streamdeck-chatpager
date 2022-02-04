@@ -38,9 +38,12 @@
                     </div>
                 </div>
             </div>
-            <div class="sdpi-item" id="dvChatMessage">
-                <div class="sdpi-item-label">Chat Message</div>
-                <input class="sdpi-item-value sdProperty" placeholder="Hello world" id="chatMessage" oninput="setSettings()">
+            <div type="textarea" class="sdpi-item" id="dvChatMessage">
+                <div class="sdpi-item-label up20">Message</div>
+                <div class="sdpi-item-value textarea">
+                    <textarea type="textarea" class="sdProperty" maxlength="500" id="chatMessage" placeholder="Hello world" oninput="setSettings()"></textarea>
+                    <label for="chatMessage" id="chatMessage_counter">0/500</label>
+                </div>
             </div>
             <hr />
             <div class="sdpi-item" id="dvReset">
