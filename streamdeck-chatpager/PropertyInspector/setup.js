@@ -12,7 +12,7 @@ document.addEventListener('websocketCreate', function () {
 
         if (jsonObj.event === 'sendToPropertyInspector') {
             var payload = jsonObj.payload;
-            checkToken(payload);
+            checkStatus(payload);
         }
         else if (jsonObj.event === 'didReceiveSettings') {
             var payload = jsonObj.payload;
@@ -20,6 +20,20 @@ document.addEventListener('websocketCreate', function () {
         }
     });
 });
+
+function checkStatus(payload) {
+    console.log("Received status update...");
+    if (!authWindow) {
+        console.log("authWindow does not exist, exiting");
+        return;
+    }
+
+    if (payload['PONG']) {
+        let status = payload['PONG']['datetime'];
+        console.log("Got PONG", status);
+        authWindow.gotPong();
+    }
+}
 
 function checkToken(payload) {
     console.log("Checking Token...");
@@ -101,6 +115,14 @@ function updateApprovalCode(val) {
     payload.approvalCode = approvalCode;
     sendPayloadToPlugin(payload);
     console.log("Approving code");
+}
+
+function sendPing() {
+    console.log("Sending Ping");
+
+    var payload = {};
+    payload.property_inspector = 'PING';
+    sendPayloadToPlugin(payload);
 }
 
 function sendPayloadToPlugin(payload) {

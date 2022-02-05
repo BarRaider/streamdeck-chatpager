@@ -1,3 +1,5 @@
+var failReason = null;
+
 function loadFailedView() {
     if (timerPairingTimeout) {
         clearTimeout(timerPairingTimeout);
@@ -16,6 +18,12 @@ function loadFailedView() {
                    <br/><br/> \
                    <div class='button' id='failRetry'>" + localization['Result']['FailRetry'] + "</div> \
                    <div class='button-transparent' id='close'>" + localization['Result']['Close'] + "</div>";
+
+    // Append fail reason
+    if (failReason) {
+        content = "<p class='error bold'>" + failReason + "</p>" + content;
+    }
+
     document.getElementById('content').innerHTML = content;
 
     document.getElementById("close").addEventListener("click", close);
@@ -38,6 +46,11 @@ function loadFailedView() {
     function discord() {
         window.opener.openDiscord();
     }
+}
+
+function setFailReason(reason) {
+    console.log("setFailReason called", reason);
+    failReason = reason;
 }
 
 // Load the results view
