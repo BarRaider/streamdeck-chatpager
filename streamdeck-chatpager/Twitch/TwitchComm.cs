@@ -26,7 +26,6 @@ namespace ChatPager.Twitch
     {
         #region Private Members
 
-        private const string TWITCH_KRAKEN_URI_PREFIX = "https://api.twitch.tv/kraken";
         private const string TWITCH_HELIX_URI_PREFIX = "https://api.twitch.tv/helix";
         private const string TWITCH_ACCEPT_HEADER = "application/vnd.twitchtv.v5+json";
         private const string TWITCH_URI_CHANNEL_INFO = "/streams";
