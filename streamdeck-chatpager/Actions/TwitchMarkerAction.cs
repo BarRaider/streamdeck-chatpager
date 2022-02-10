@@ -29,10 +29,14 @@ namespace ChatPager.Actions
                 PluginSettings instance = new PluginSettings
                 {
                     TokenExists = false,
+                    Channel = String.Empty
                 };
                 return instance;
             }
-        }
+
+            [JsonProperty(PropertyName = "channel")]
+            public string Channel { get; set; }
+        };
 
         protected PluginSettings Settings
         {
@@ -86,7 +90,13 @@ namespace ChatPager.Actions
 
             using (TwitchComm comm = new TwitchComm())
             {
-                if (await comm.CreateMarker())
+                string channel = TwitchTokenManager.Instance.User.UserName;
+                if (!String.IsNullOrEmpty(Settings.Channel))
+                {
+                    channel = Settings.Channel;
+                }
+
+                if (await comm.CreateMarker(channel))
                 {
                     await Connection.ShowOk();
                 }

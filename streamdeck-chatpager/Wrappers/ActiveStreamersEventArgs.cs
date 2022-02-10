@@ -9,13 +9,13 @@ namespace ChatPager.Wrappers
 {
     public class ActiveStreamersEventArgs : EventArgs
     {
-        public TwitchActiveStreamer [] ActiveStreamers { get; private set; }
+        public TwitchChannelInfo[] ActiveStreamers { get; private set; }
         public int NumberOfKeys { get; private set; }
         public int CurrentPage { get; set; }
 
         public TwitchLiveStreamersLongPressAction LongPressAction { get; private set; }
 
-        public ActiveStreamersEventArgs(TwitchActiveStreamer[] activeStreamers, TwitchLiveStreamersLongPressAction longPressAction, int numberOfKeys, int currentPage)
+        public ActiveStreamersEventArgs(TwitchChannelInfo[] activeStreamers, TwitchLiveStreamersLongPressAction longPressAction, int numberOfKeys, int currentPage)
         {
             ActiveStreamers = activeStreamers;
             NumberOfKeys = numberOfKeys;

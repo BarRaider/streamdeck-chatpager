@@ -17,9 +17,16 @@
         </details>
         <hr />
         <div id="sdWrapper" style="display:none;">
-            <details class="message info">
+            <div class="sdpi-item" id="dvChannel">
+                <div class="sdpi-item-label">Channel (optional)</div>
+                <input class="sdpi-item-value sdProperty" placeholder="barraider" id="channel" oninput="setSettings()">
+            </div>
+            <details class="message">
+                <summary>* Empty 'Channel' sets marker on your own channel.</summary>
+            </details>
+            <details class="message">
                 <summary>
-                    Only works when you're live and 'Store past broadcasts' is enabled in Twitch settings.
+                    * Only works when stream is live and 'Store past broadcasts' is enabled in Twitch settings.
                 </summary>
             </details>
             <hr />

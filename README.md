@@ -4,16 +4,12 @@
 
 **Author's website and contact information:** [https://barraider.com](https://barraider.com)
 
-# New in v2.6
-- New `Run Ad` action allows you to start a Twitch ad, see how much time is left till it ends AND see the cooldown time left until you can run another ad. :pogchamp: 
-- New `Create Stream Marker` allows you to create markers while you're streaming, to easily highlight important parts in your VOD.
-- Automated the setup wizard so you no longer need to manually enter the Auth Token :pogchamp: 
-- Multiple updates to the `Change Stream Title/Game/..` action:
-    - Now supports only modifying a subset of those fields (e.g. you can now only modify the tags without changing the category).
-    - You can now set the `Language` you're streaming in (English/French/etc)
-    - Added instructions on how to use this action inside the Property Inspector
-    - Support for all the new #twitch tags
-- Improved stability and logging
+# New in v2.8
+- :new: `Ban/Timeout` action to quickly ban/timeout/untimeout users directly from the Stream Deck
+- `Create Stream Marker` now allows creating markers on others' channels (As long as they set you as an Editor)
+- The `Change Stream Title/Game/Tags` action no longer requires files to set the settings
+- Both `Send Message` and `ShoutOut`  now show max length of message field.
+- Migrated all the code to use Twitch's new APIs
 
 ## Features
 
@@ -21,8 +17,33 @@
 The Twitch Chat Pager plugin listens to your Twitch chat and gives you a visual alert if someone uses the !page command.  
 [Demo](https://streamable.com/1wxjh)
 
+**Ban/Timeout**
+Lets you quickly ban/timeout/untimeout users directly from the Stream Deck
+
 **Channel Monitor**  
 Shows you when your favorite streamer is live. Clicking the button will take you to their stream.
+
+**Change Title/Game/Tags**  
+Allows you to load the Stream's title, game, and tags from a file. Works along with the Text File Tools to dynamically modify what game/title you want shown.
+    - Adding multiple lines in the "Title" file will cause the plugin to randomly choose one (allowing you to generate multiple similar titles for the same game).  
+New: No longer requires files - Also supports the same features but straight from the Stream Deck settings section
+
+**Clip-To-Chat**  
+Allows you to clip the last few seconds of your stream and automatically post it in your chat.
+
+**Create Stream Marker** 
+Allows you to create markers while you're streaming, to easily highlight important parts in your VOD.  
+Now allows creating markers on others' channels (As long as they set you as an Editor)
+
+**GiveAway**
+Control your Stream giveaways from the Stream Deck. 
+    - Customizable registration command and giveaway title
+    - Shows number of people currently entered on the key
+    - Randomly selects the winner
+    - Saves winners to file (so you don't have to deal with the who won what while streaming)
+    - Shows winner's name on stream
+    - `Auto-Draw` feature sets a countdown and automatically selects a winner when time is up
+    - Auto-Reminders in chat that giveaway is active
 
 **Live Streamers**  
 Pressing this action will use all your Stream Deck keys to shows you which of the streamers you follow are currently live + viewer count. Clicking the button will take you to their stream.
@@ -36,28 +57,11 @@ Shows you a list of the latest people that chatted/raided/subscribed to your cha
 
 * Both `Shoutout` and `Send Message` now support sending `/commands`. (Try writing a message starting with `/me`). Create a Shoutout with `/ban {USERNAME}` to choose which username to ban.
 
-**Change Title/Game/Tags**  
-Allows you to load the Stream's title, game, and tags from a file. Works along with the Text File Tools to dynamically modify what game/title you want shown.
-    - Adding multiple lines in the "Title" file will cause the plugin to randomly choose one (allowing you to generate multiple similar titles for the same game).
 
-**Clip-To-Chat**  
-Allows you to clip the last few seconds of your stream and automatically post it in your chat.
-
-**GiveAway**
-Control your Stream giveaways from the Stream Deck. 
-    - Customizable registration command and giveaway title
-    - Shows number of people currently entered on the key
-    - Randomly selects the winner
-    - Saves winners to file (so you don't have to deal with the who won what while streaming)
-    - Shows winner's name on stream
-    - `Auto-Draw` feature sets a countdown and automatically selects a winner when time is up
-    - Auto-Reminders in chat that giveaway is active
 
 **Run Ad**
 Allows you to start a Twitch ad, see how much time is left till it ends AND see the cooldown time left until you can run another ad.
 
-**Create Stream Marker** 
-Allows you to create markers while you're streaming, to easily highlight important parts in your VOD.
 
 ### Current Twitch Chat Pager features
 - Shows you live information on your stream, including number of viewers and streaming time
@@ -90,6 +94,18 @@ Please contact the developer. Contact information is available at https://barrai
 * Uses [Easy-PI](https://github.com/BarRaider/streamdeck-easypi) by BarRaider - Provides seamless integration with the Stream Deck PI (Property Inspector) 
 
 ## Change Log
+# New in v2.6
+- New `Run Ad` action allows you to start a Twitch ad, see how much time is left till it ends AND see the cooldown time left until you can run another ad. :pogchamp: 
+- New `Create Stream Marker` allows you to create markers while you're streaming, to easily highlight important parts in your VOD.
+- Automated the setup wizard so you no longer need to manually enter the Auth Token :pogchamp: 
+- Multiple updates to the `Change Stream Title/Game/..` action:
+    - Now supports only modifying a subset of those fields (e.g. you can now only modify the tags without changing the category).
+    - You can now set the `Language` you're streaming in (English/French/etc)
+    - Added instructions on how to use this action inside the Property Inspector
+    - Support for all the new #twitch tags
+- Improved stability and logging
+
+
 ## New in 2.5
 - :new: **Support for Stream Deck Mobile!**
 - Support for `Raid` notifications (`Twitch Pager` action can now notify on Raids, Bits, Channel Points, Subs, and Follows!)
@@ -131,3 +147,4 @@ Please contact the developer. Contact information is available at https://barrai
 - **Support for the Stream Deck Mini!**
 
 For more information see: https://github.com/BarRaider/streamdeck-chatpager/
+

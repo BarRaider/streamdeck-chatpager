@@ -1,4 +1,5 @@
 ﻿using BarRaider.SdTools;
+using ChatPager.Backend;
 using ChatPager.Twitch;
 using ChatPager.Wrappers;
 using System;
@@ -58,6 +59,7 @@ namespace ChatPager
         private bool keyPressed = false;
         private bool longKeyPressed = false;
         private DateTime keyPressStart;
+        private Image currentDrawnImage = null;
 
 
         #endregion
@@ -132,10 +134,12 @@ namespace ChatPager
                     if (!String.IsNullOrEmpty(channelName))
                     {
                         TwitchChat.Instance.SendMessage(channelName, chatMessage);
+                        ConfirmCurrentImage();
                     }
                     else
                     {
                         TwitchChat.Instance.SendMessage(chatMessage);
+                        ConfirmCurrentImage();
                     }
 
                 }
@@ -154,6 +158,7 @@ namespace ChatPager
                 else if (!String.IsNullOrEmpty(channelName)) // Normal key
                 {
                     System.Diagnostics.Process.Start(String.Format("https://twitch.tv/{0}", channelName));
+                    ConfirmCurrentImage();
                 }
             }
         }
@@ -237,11 +242,11 @@ namespace ChatPager
             {
                 await Connection.SetTitleAsync(null);
                 var streamerInfo = e.ActiveStreamers[pagedSequentialKey - 1];
-                using (Image image = FetchImage(streamerInfo.PreviewImages.Template.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString())))
+                using (Image image = FetchImage(streamerInfo.ThumbnailURL.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString())))
                 {
                     await DrawStreamerImage(streamerInfo, image);
                 }
-                channelName = streamerInfo?.Channel?.Name;
+                channelName = streamerInfo?.UserDisplayName;
             }
         }
 
@@ -357,13 +362,14 @@ namespace ChatPager
                     graphics.FillPath(Brushes.White, gpath);
 
                     await Connection.SetImageAsync(bmp);
+                    BackupCurrentImage(bmp);
                     fontChannel.Dispose();
                     graphics.Dispose();
                 }
             }
         }
 
-        private async Task DrawStreamerImage(TwitchActiveStreamer streamerInfo, Image background)
+        private async Task DrawStreamerImage(TwitchChannelInfo streamerInfo, Image background)
         {
             using (Bitmap bmp = Tools.GenerateGenericKeyImage(out Graphics graphics))
             {
@@ -399,7 +405,7 @@ namespace ChatPager
                     int startWidth = 30;
 
                     // Set Streamer Name
-                    gpath.AddString(streamerInfo.Channel.DisplayName,
+                    gpath.AddString(streamerInfo.UserDisplayName,
                                         fontChannel.FontFamily,
                                         (int)FontStyle.Bold,
                                         graphics.DpiY * fontChannel.SizeInPoints / width,
@@ -409,12 +415,27 @@ namespace ChatPager
                     graphics.FillPath(Brushes.White, gpath);
 
                     await Connection.SetImageAsync(bmp);
+                    BackupCurrentImage(bmp);
                     fontChannel.Dispose();
                     fontViewers.Dispose();
                     fontIsStreaming.Dispose();
                     fontViewerCount.Dispose();
                     graphics.Dispose();
                 }
+            }
+        }
+
+        private void BackupCurrentImage(Image img)
+        {
+            if (currentDrawnImage != null)
+            {
+                currentDrawnImage.Dispose();
+                currentDrawnImage = null;
+            }
+
+            if (img != null)
+            {
+                currentDrawnImage = (Image) img.Clone();
             }
         }
 
@@ -509,12 +530,33 @@ namespace ChatPager
                     if (liveStreamersLongPressAction == TwitchLiveStreamersLongPressAction.Raid)
                     {
                         TwitchChat.Instance.SendMessage(RAID_COMMAND + channelName);
+                        ConfirmCurrentImage();
                     }
                     else
                     {
                         TwitchChat.Instance.SendMessage(HOST_COMMAND + channelName);
+                        ConfirmCurrentImage();
                     }
                 }
+            }
+        }
+
+        private void ConfirmCurrentImage()
+        {
+            if (currentDrawnImage == null)
+            {
+
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"{this.GetType()} ConfirmCurrentImage: Current drawn image is null!");
+                return;
+            }
+
+            using (Graphics g = Graphics.FromImage(currentDrawnImage))
+            {
+                using (Image imgCheckBox = Tools.Base64StringToImage(Properties.Settings.Default.ImageGreenCheckbox))
+                {
+                    g.DrawImage(imgCheckBox, new Rectangle(new Point((currentDrawnImage.Width / 2) - (imgCheckBox.Width / 2), (currentDrawnImage.Height / 2) - (imgCheckBox.Height / 2)), new Size(imgCheckBox.Width, imgCheckBox.Height)));
+                }
+                Connection.SetImageAsync(currentDrawnImage).GetAwaiter().GetResult();
             }
         }
     }

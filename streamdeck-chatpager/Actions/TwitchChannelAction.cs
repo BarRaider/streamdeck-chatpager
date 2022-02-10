@@ -60,10 +60,6 @@ namespace ChatPager.Actions
             [JsonProperty(PropertyName = "hideChannelName")]
             public bool HideChannelName { get; set; }
 
-            [Obsolete("Should no longer be used")]
-            [JsonProperty(PropertyName = "hideChannelPreview")]
-            public bool HideChannelPreview { get; set; }
-
             [JsonProperty(PropertyName = "playSoundOnLive")]
             public bool PlaySoundOnLive { get; set; }
 
@@ -393,12 +389,12 @@ namespace ChatPager.Actions
                     // Only switch to stream preview if channelInfo is not null AND user wants the stream preview
                     if (channelInfo != null && Settings.LiveStreamPreview)
                     {
-                        thumbnailImage = FetchImage(channelInfo.ThumbnailUrl.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString()));
+                        thumbnailImage = FetchImage(channelInfo.ThumbnailURL.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString()));
                         lastImageUpdate = DateTime.Now;
                     }
                     else if (channelInfo != null && Settings.LiveGameIcon) // User wants to see the game icon
                     {
-                        if (!String.IsNullOrEmpty(channelInfo.GameId))
+                        if (channelInfo.GameId > 0)
                         {
                             var gameInfo = await TwitchChannelInfoManager.Instance.GetGameInfo(channelInfo.GameId);
                             if (gameInfo != null)
@@ -424,7 +420,6 @@ namespace ChatPager.Actions
 
         private void InitializeSettings()
         {
-            SetLiveImageSetting();
             PropagatePlaybackDevices();
 
             // Backwards compatibility
@@ -473,26 +468,6 @@ namespace ChatPager.Actions
 
             Logger.Instance.LogMessage(TracingLevel.INFO, $"PlaySoundOnLive called. Playing {Settings.PlaySoundOnLiveFile} on device: {Settings.PlaybackDevice}");
             await AudioUtils.Common.PlaySound(Settings.PlaySoundOnLiveFile, Settings.PlaybackDevice);
-        }
-
-        private void SetLiveImageSetting()
-        {
-            // Check if at least one of these settings are enabled, if it is - no need to do anything
-            if (Settings.LiveUserIcon || Settings.LiveStreamPreview || Settings.LiveGameIcon)
-            {
-                return;
-            }
-
-            // Should run once when moving to version Twitch Tools 2.3 (backwards compatibility)
-            if (Settings.HideChannelPreview)
-            {
-                Settings.LiveUserIcon = true;
-            }
-            else
-            {
-                Settings.LiveStreamPreview = true;
-            }
-            SaveSettings();
         }
 
         #endregion

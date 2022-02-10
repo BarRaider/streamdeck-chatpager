@@ -82,6 +82,9 @@ namespace ChatPager.Actions
                         TwitchTokenManager.Instance.RevokeToken();
                         await SaveSettings();
                         break;
+                    case "ping":
+                        await SendPongToPI();
+                        break;
                 }
             }
         }
@@ -94,6 +97,16 @@ namespace ChatPager.Actions
                 await Connection.SetImageAsync((String)null);
             }
             await SaveSettings();
+        }
+        private async Task SendPongToPI()
+        {
+            JObject obj = new JObject()
+                {
+                    new JProperty("PONG", new JObject() {
+                                                    new JProperty("datetime", DateTime.Now)
+                    })
+                };
+            await Connection.SendToPropertyInspectorAsync(obj);
         }
 
         #endregion

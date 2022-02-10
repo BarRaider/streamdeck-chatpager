@@ -16,47 +16,78 @@
         <details class="message info">
             <summary>For feedback/suggestions contact me at <span class="linkspan" onclick="openWebsite()">https://BarRaider.com</span> </summary>
         </details>
-        <hr/>
+        <hr />
         <div id="sdWrapper" style="display:none;">
             <details class="message info">
                 <summary>For usage instructions <span class="linkspan">Click here</span> </summary>
-                <p>Each setting requires a separate text file that you should create and edit beforehand.</p>
+                <p>When using files, each setting requires a separate text file that you should create and edit beforehand.</p>
                 <p><b>Title: </b> The title of your stream. <b>Pro-Tip: </b>Write multiple statuses, one on each line and the plugin will randomly choose one of them.</p>
-                <p><b>Category: </b> The "category" you're streaming under. File should only have one line with the name of the category. Examples: <b>VALORANT</b> or <b>Scrap Mechanic</b> or <b>Science & Technology</b> ...</p>
+                <p><b>Category: </b> The "category/game" you're streaming under. File should only have one line with the name of the category. Examples: <b>VALORANT</b> or <b>Scrap Mechanic</b> or <b>Science & Technology</b> ...</p>
                 <p><b>Tags: </b> Write one tag on each line (up to 5 overall). <b>NOTE: </b> If you write an invalid tag all tags will fail updating. Make sure you type it exactly as shown in Twitch.</p>
                 <p><b>Language: </b> Two-Letter language code (based on ISO 639-1). Examples:  <b>en</b> for English, or <b>ja</b> for Japanese.</p>
-                <p><b>*** Tip:</b> You do not need to set ALL of the files. Setting only the 'Category file' and 'Tags file' will only modify them and keep the Title and Language as is</p>
+                <p><b>*** Tip:</b> You do not need to set ALL of the settings. Setting only the 'Category' and 'Tags' will only modify them and keep the Title and Language as is</p>
             </details>
-            <div class="sdpi-item" id="dvStatusFile">
-                <div class="sdpi-item-label">Title File</div>
-                <div class="sdpi-item-group file" id="filepickergroup">
-                    <input class="sdpi-item-value sdProperty sdFile" type="file" id="statusFile" accept=".txt" oninput="setSettings()">
-                    <label class="sdpi-file-info " for="statusFile" id="statusFileFilename">No file...</label>
-                    <label class="sdpi-file-label" for="statusFile">Choose file...</label>
+            <div type="checkbox" class="sdpi-item" id="dvLoadFromFile">
+                <div class="sdpi-item-label">Message</div>
+                <div class="sdpi-item-value">
+                    <input id="loadFromFile" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
+                    <label for="loadFromFile" class="sdpi-item-label"><span></span>Load settings from files</label>
                 </div>
             </div>
-            <div class="sdpi-item" id="dvGameFile">
-                <div class="sdpi-item-label">Category File</div>
-                <div class="sdpi-item-group file" id="filepickergroup">
-                    <input class="sdpi-item-value sdProperty sdFile" type="file" id="gameFile" accept=".txt" oninput="setSettings()">
-                    <label class="sdpi-file-info " for="gameFile" id="gameFileFilename">No file...</label>
-                    <label class="sdpi-file-label" for="gameFile">Choose file...</label>
+            <div id="dvLoadFromFiles" style="display:none;">
+                <div class="sdpi-item" id="dvStatusFile">
+                    <div class="sdpi-item-label">Title File</div>
+                    <div class="sdpi-item-group file" id="filepickergroup">
+                        <input class="sdpi-item-value sdProperty sdFile" type="file" id="statusFile" accept=".txt" oninput="setSettings()">
+                        <label class="sdpi-file-info " for="statusFile" id="statusFileFilename">No file...</label>
+                        <label class="sdpi-file-label" for="statusFile">Choose file...</label>
+                    </div>
+                </div>
+                <div class="sdpi-item" id="dvGameFile">
+                    <div class="sdpi-item-label">Category File</div>
+                    <div class="sdpi-item-group file" id="filepickergroup">
+                        <input class="sdpi-item-value sdProperty sdFile" type="file" id="gameFile" accept=".txt" oninput="setSettings()">
+                        <label class="sdpi-file-info " for="gameFile" id="gameFileFilename">No file...</label>
+                        <label class="sdpi-file-label" for="gameFile">Choose file...</label>
+                    </div>
+                </div>
+                <div class="sdpi-item" id="dvTagsFile">
+                    <div class="sdpi-item-label">Tags File</div>
+                    <div class="sdpi-item-group file" id="filepickergroup">
+                        <input class="sdpi-item-value sdProperty sdFile" type="file" id="tagsFile" accept=".txt" oninput="setSettings()">
+                        <label class="sdpi-file-info " for="tagsFile" id="tagsFileFilename">No file...</label>
+                        <label class="sdpi-file-label" for="tagsFile">Choose file...</label>
+                    </div>
+                </div>
+                <div class="sdpi-item" id="dvLanguageFile">
+                    <div class="sdpi-item-label">Language File</div>
+                    <div class="sdpi-item-group file" id="filepickergroup">
+                        <input class="sdpi-item-value sdProperty sdFile" type="file" id="languageFile" accept=".txt" oninput="setSettings()">
+                        <label class="sdpi-file-info " for="languageFile" id="languageFileFilename">No file...</label>
+                        <label class="sdpi-file-label" for="languageFile">Choose file...</label>
+                    </div>
                 </div>
             </div>
-            <div class="sdpi-item" id="dvTagsFile">
-                <div class="sdpi-item-label">Tags File</div>
-                <div class="sdpi-item-group file" id="filepickergroup">
-                    <input class="sdpi-item-value sdProperty sdFile" type="file" id="tagsFile" accept=".txt" oninput="setSettings()">
-                    <label class="sdpi-file-info " for="tagsFile" id="tagsFileFilename">No file...</label>
-                    <label class="sdpi-file-label" for="tagsFile">Choose file...</label>
+            <div id="dvLoadFromPI">
+                <div type="textarea" class="sdpi-item" id="dvStatus">
+                    <div class="sdpi-item-label up20">Status</div>
+                    <div class="sdpi-item-value textarea">
+                        <textarea type="textarea" class="sdProperty" id="status" placeholder="One status per line" oninput="setSettings()"></textarea>
+                    </div>
                 </div>
-            </div>
-            <div class="sdpi-item" id="dvLanguageFile">
-                <div class="sdpi-item-label">Language File</div>
-                <div class="sdpi-item-group file" id="filepickergroup">
-                    <input class="sdpi-item-value sdProperty sdFile" type="file" id="languageFile" accept=".txt" oninput="setSettings()">
-                    <label class="sdpi-file-info " for="languageFile" id="languageFileFilename">No file...</label>
-                    <label class="sdpi-file-label" for="languageFile">Choose file...</label>
+                <div class="sdpi-item" id="dvGame">
+                    <div class="sdpi-item-label">Category</div>
+                    <input class="sdpi-item-value sdProperty" placeholder="Fortnite" id="game" oninput="setSettings()">
+                </div>
+                <div type="textarea" class="sdpi-item" id="dvTags">
+                    <div class="sdpi-item-label up20">Tags</div>
+                    <div class="sdpi-item-value textarea">
+                        <textarea type="textarea" class="sdProperty" id="tags" placeholder="One tag per line" oninput="setSettings()"></textarea>
+                    </div>
+                </div>
+                <div class="sdpi-item" id="dvLanguage">
+                    <div class="sdpi-item-label">Language</div>
+                    <input class="sdpi-item-value sdProperty" placeholder="en" id="language" oninput="setSettings()">
                 </div>
             </div>
             <hr />

@@ -12,7 +12,7 @@ namespace ChatPager.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "16.1.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "16.10.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -260,6 +260,66 @@ namespace ChatPager.Properties {
         public string TwitchNoToken {
             get {
                 return ((string)(this["TwitchNoToken"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAL30lEQVR4nN2" +
+            "be4xU1R3HP/cxj53dZZeXLCxsFZCAihCLsaTRaChFKlXbahMT/aNUQCvyxrUYLIKABK0Ntv+QGDW1xjQ" +
+            "VBQtiUmOTatKYligIC8tjebksuy7sa9733tPcc2dm78zOXXaXHXbsN7nZnZkz557v9/c4v3PuGYUNo8i" +
+            "CSL0wFFCwr9GKovwIhbtRmY5CFQpapqXC0EJk7q4gMBE0YXEIwT+FEP9A0CLb6IJ8480vgH1Zyhg0VqI" +
+            "rj+FTxqGDpK2YoFjZnQmGBrn3FyoIDUzbgEBSNGKIP2PyKqq4mDLoFQRwuP0Cv/p7gkoNARV0A9Qw6Ar" +
+            "4QgR8ATRFRQy5+R1I0wuLeDIOyQgYAqxSMHSIWxATZ0lYq4D3ULO/q2e9ssmr/JaguoWQCiW21TugpIR" +
+            "bRs5i+vCbGB+qZpivDE1VEWKoTJ8NRVEwLYuOZBffhL/hYNsRvm49AtEOCJaDX6khwt+IWeuw2OoWQeG" +
+            "FUSmXly7ukC/XoCQJvjBTrruVBybcx7TKKQRUP4YwsYQ5ZF7vBdsXVUVDRyMuEtS11bP73F7qmw9CshS" +
+            "iPug0kSKYKRFkmls/yvm2zv0Eld2UaVCahGCMOTXz+PmEBQS0AG1GBwmRlGoXM2yv9Cs+KvVhxM0Eu85" +
+            "9yCdnP4ZYEMI+6LJFEA9gsMe2oi5NqTCcoLKTchXKLAjEmXP9fB6svpd2s4OIGUORcimuhFeMPuAgakV" +
+            "pS7QTUoI8WPMT0FQ+Ob0fVA0U2/TWTrrEvxBc1uX04FPWUqKMoVSFQCc3j7uNu8fM5pvEBelOxW51L4R" +
+            "FmA6zU3JpSjRzuPEAiHI7SY4hKdaSFOt0fGIEAWWxTHiBGKFhI5k96ja+TbYSFpHvLPk0OoUgqkQlp4a" +
+            "uM0SEndR9EGcxiJd1VOYRYCRBwG8xtXIyiqpwwWimGLn3VnooHu93iC4q1HLJ7UD0P0iuNuck8+ykeQ8" +
+            "Bh7xWEmJEcBjfmq3S9T3vNASwc5BQBF1amKRIouapQexaQLd0KihPVQcio1hSJCQ3m6OZTCI5R7lHx8e" +
+            "t+OxZwKTMX4GpmFwyLiNSFVHRQFFkSE68MIGq2GgSWiJ7ZEJQooYIjSrl38H/ErPickpMI4yKqiiU+UO" +
+            "065fAp2Fz19HE6HSZq2sqYSuMIYzi4o7CJa2dsZ2j2VhZy+TrJhEllt1IQHlwGG9F3uEvre9RqQ1Dyyn" +
+            "7dKFLjlIXyVmM1lHQUYVdAWJi0ml2Ydj1fhHNcqZq0RJtYTVLmDpjmiRQjr9Huyaa2fzVq8SNGFHhy6a" +
+            "g2AJokqPURZXhodvkRboqSpKky+qimOo82/qNookfRm/nV1MexeXVPbC8/jmOdx5jfLCGLivS43MNRXJ" +
+            "0ykYpgtBRbCWEjDFDChBxkkdRQJFTmIgYPFOxlNC4Us9Bvd+6l782vUnIP4YuM+wppiEFUEjz1u3kgbD" +
+            "kx4ZpyKqvWPzfktm7iZ+Zj/DTifd57j1ErCgrTj0DliFL4agVy98wxVHyE86ld28AOLsJlrCKhL5tpQ4" +
+            "CkQo2VNdCpXfLDWc2c7b9CJSMIGbFPMfv1AmWewPBLYDzsRDm0O/ySFiQTPJk4HFunTjDs9WRSB2vnH3" +
+            "ZmdZk8HpP39mrd+ESQLpD+r1iYG9nqHbGxMZTe+Map3LzwKqTtViJOIQqU6HcCwQurhkBcLmEVzF5LWG" +
+            "PIWbX6qwuW0lVTZXnvXe37uHj5g8hGMwQ6hu62+pOqlFc11DDXnJHmWZM5zc3LM7ds8rA3ptYe6o2ZTe" +
+            "7JjD7MW7hCgHpEkp2GAyl9ZWIdIANI9ZTOq7Ms+W2s9s4fvkolNjW7yN50TMMsmaBooh/w+THzOeXkx7" +
+            "2bHIqeorNp7cg1zAyX/Rj3SLISvqpJGi5Z4Yhgm39KHrMz+bxG2GE9yiWnVhOPBaFUPDKia8HeTI1QHc" +
+            "IFAVMSMATgSXMmjTLc0AffLubvU1/h6CaO6/1AyIjhF4EgZ+CwbhkNc9NWedsx+dBxIqw7Pgy5wNF62f" +
+            "iyw89Ez8Cby3SbuaRkTPft9ReGvQGS1q/try212lv0+lNnGs7CyGl74kvd4w5HPW+JJCQHmJyfDLNl5p" +
+            "JYvTYJ/RZPlpKmjHKjYE5lIAZ5gwWT1zkKXJ9pJ7tp7fjrIIHz2v19AAyfwXZ5YD9lMmweLb6WeZXz+d" +
+            "M9EyWAPb/5VY5n1/+nEejjzru29+xxeCFURsJjvUu+ZafWI4ZNyHUz77dEPRI9npeB8ghEEvE2Nq1lUd" +
+            "mPUKlx6rk+sj1fPHZF+yI7nD22/oqggn3qQt44Mb7PZu83/I++xv396/fvsAitWeUq0zu5YNDzYdYeHS" +
+            "hd68h2Dx1M9MT07ujKl9fOXHoj/t5sXoTVOTvNmpGWVW/ynmh9qHPPtzT/X921upN3QC8cfoNdrfs9mx" +
+            "SVlPGH8f+CT3cW7Z0IQFLgk8wc9JMzyZ24jvddnrwrJ/TR9/TdqrlosOLaE20eja76+Y7WRt8Ri5mrjS" +
+            "QqmQV625Y57naqwvXsb1he6riKwzUfrmPH1o6W1hav9R7MEF4ftp6ZiZnktl7yHfFoLailqrvjfHsavX" +
+            "x1RgxwxHgal3f4+r/xF0C7555l10tu7w1qA6yY+wO1Iiaf4Ep4GZxC0smP+E5AjvUPmr8yPGOAtZpfUu" +
+            "C7iu1g7z08FLajDbPju+cdicrgyvJbN+77xGFDdf9jpKq/L5vP/lZc2xN9wgH0+o5Y+nWv6+1hXAS4oW" +
+            "OC6w8ttK7XQien/o80xLTsmstA+aqc3lo8kOeX93WsI0TbScGf9qjJ081rzJ9UTEIbza8yb6WfZ73GjZ" +
+            "hGK9Vv2Y/l8pAi2lsmrAJhuf/TkO0gRdPvthdERYi9l39Dqx4F+kTY7Dk8BI6jU7PpnNumsOy4DJnVkj" +
+            "CopJF3DH5Ds/2Tx99mngs3p34CoyBrl4yoXC+7TzL6pZ5t7MLpJs2MzY2Fi2isn7Ses/V3q6Lu9h7fm9" +
+            "hXN8DGvNYQZBKeVN9AJLo8GXrl9w+4namlE7J28Rf4aems4bZ2mzmzpybd2YIm2EWHFhAR6KjcNYXdJ8" +
+            "hjMupuL1nySb6efozJdjjhx6n7q46KvX8a4WHv/+wc3MPgTec2MD5S+ehrIDWz9Ovmm9q6HdSCUBTRxM" +
+            "r6lZ431yDPA90Jeq66njl5CvO5wUqeLx49qwDBiIAjghvNbzFnuY9/bGJxKqjqxBxUdCKLy+/LA9wf9h" +
+            "fiO6C5clDT9KebO9zBx9c/ID95/cXvOKTyMO151qAq1A4AI1tjSw90stawYW4FWfNkTXdz+sLaX0PbgO" +
+            "fBr0QhLdPvc2ei1cOhS0nt3Dy0slrOu3lIjsH5MbKQJAqkBZ9tYi2pPda4XjXcV6qf8kzMRYEeXjm94C" +
+            "rdbUgNLc389TXT3nSsGeMRDRR+MR3BcNmH/ofDA9I91MC75x6h91NPXeQ7Pf2nds3sA3Uqx1X9mwgf/V" +
+            "g9LpxMdArFQpyVjC6ZwU78a08klpFXovE53U5nA17CC3yxWCLYKWWzZcvsPrw6owAW49vpaG1wUl8hRC" +
+            "+r2NzlugtKhYHMwNxH58ZLATh9ROvc6DtgFw1bq3fWtA9vl7h5uiIcNB+LvApgkUFOxmrOwuQhV8tZGx" +
+            "gLAkjMaTTnkS3CJ8qbGYEJdRTwUhKHbeVgx7sowLJ1E2v5bTnhnCtAsPyCFIrUabYIXCJJDvtPXrZwCh" +
+            "QbOpc2ykvX9yn+SWkQXba3BU2yow9nFLqKGeMfPYW6M7i/xcQqX0A2/r2CdpOLhJmGiaX1RTRyyRYbO/" +
+            "Wpreu5BeGMk4HC2nyyRS3qPSAxZKzZtv53sxxmWNYJFCY4xwkdnlA7t9ihnuMlsv109aPYv9s7nXJTwr" +
+            "woyxyn0kRBHOyOvouhUJuzCd7kN/qbq4x1/XKqcw+w+RrLH6AoKJH8TBUxUtfkpzputLJLibJnyXGrzH" +
+            "ZmXsWVGFbjgBKZolUhcYK/DyGn3EyV2hFdqbSDbcYaSESNJLA/vH0H+TvKdxFUAr5BUifP3JywWhUmRf" +
+            "uQcv5+XyxiOBYNP3z+YuYsrr9FItPsFKlfpqTWwDgf79msWszTHanAAAAAElFTkSuQmCC")]
+        public string ImageGreenCheckbox {
+            get {
+                return ((string)(this["ImageGreenCheckbox"]));
             }
         }
     }

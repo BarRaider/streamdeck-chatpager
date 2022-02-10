@@ -37,14 +37,14 @@
     <OutputPath>bin\Release\com.barraider.twitchtools.sdplugin\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.34" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
-    <PackageReference Include="NAudio" Version="2.0.0" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.41" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
+    <PackageReference Include="NAudio" Version="2.0.1" />
     <PackageReference Include="StreamDeck-Tools" Version="3.2.0" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="5.0.0" />
-    <PackageReference Include="TwitchLib.Api" Version="3.2.3" />
-    <PackageReference Include="TwitchLib.Api.Core" Version="3.2.3" />
-    <PackageReference Include="TwitchLib.Client" Version="3.2.2" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0" />
+    <PackageReference Include="TwitchLib.Api" Version="3.4.1" />
+    <PackageReference Include="TwitchLib.Api.Core" Version="3.4.1" />
+    <PackageReference Include="TwitchLib.Client" Version="3.2.4" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\DotNet\StreamDeck\AudioUtils\AudioUtils.csproj" />
@@ -98,6 +98,18 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Images\adIcon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\banAction%402x.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\banAction.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\banIcon%402x.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Images\banIcon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Images\bg%402x.png">
@@ -246,6 +258,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="PropertyInspector\ChatPager\Marker.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="PropertyInspector\ChatPager\BanTimeout.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="PropertyInspector\ChatPager\testcommon.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="PropertyInspector\ChatPager\TwitchTools.html">

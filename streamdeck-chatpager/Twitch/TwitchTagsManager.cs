@@ -9,12 +9,12 @@ using System.Threading.Tasks;
 namespace ChatPager.Twitch
 {
 
-    public class TagsManager
+    public class TwitchTagsManager
     {
         #region Private Members
         private const string TAGS_LIST_URL = "https://barraider.com/resources/twitch_tags.csv";
 
-        private static TagsManager instance = null;
+        private static TwitchTagsManager instance = null;
         private static readonly object objLock = new object();
 
         private Dictionary<string, string> dicTags;
@@ -23,7 +23,7 @@ namespace ChatPager.Twitch
 
         #region Constructors
 
-        public static TagsManager Instance
+        public static TwitchTagsManager Instance
         {
             get
             {
@@ -36,14 +36,14 @@ namespace ChatPager.Twitch
                 {
                     if (instance == null)
                     {
-                        instance = new TagsManager();
+                        instance = new TwitchTagsManager();
                     }
                     return instance;
                 }
             }
         }
 
-        private TagsManager()
+        private TwitchTagsManager()
         {
         }
 

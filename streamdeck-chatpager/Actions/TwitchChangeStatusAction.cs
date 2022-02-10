@@ -13,6 +13,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Windows.Forms.LinkLabel;
 
 namespace ChatPager.Actions
 {
@@ -33,29 +34,53 @@ namespace ChatPager.Actions
                 PluginSettings instance = new PluginSettings
                 {
                     TokenExists = false,
+                    Version = CURRENT_VERSION,
+                    LoadFromFile = false,
+                    Status = String.Empty,
                     StatusFile = String.Empty,
+                    Game = String.Empty,
                     GameFile = String.Empty,
+                    Tags = String.Empty,
                     TagsFile = String.Empty,
-                    LanaguageFile = String.Empty
+                    Language = String.Empty,
+                    LanguageFile = String.Empty
                 };
                 return instance;
             }
+
+            [JsonProperty(PropertyName = "version")]
+            public int Version { get; set; }
+
+            [JsonProperty(PropertyName = "loadFromFile")]
+            public bool LoadFromFile { get; set; }
+
+            [JsonProperty(PropertyName = "status")]
+            public string Status { get; set; }
 
             [FilenameProperty]
             [JsonProperty(PropertyName = "statusFile")]
             public string StatusFile { get; set; }
 
+            [JsonProperty(PropertyName = "game")]
+            public string Game { get; set; }
+
             [FilenameProperty]
             [JsonProperty(PropertyName = "gameFile")]
             public string GameFile { get; set; }
+
+            [JsonProperty(PropertyName = "tags")]
+            public string Tags { get; set; }
 
             [FilenameProperty]
             [JsonProperty(PropertyName = "tagsFile")]
             public string TagsFile { get; set; }
 
+            [JsonProperty(PropertyName = "language")]
+            public string Language { get; set; }
+
             [FilenameProperty]
             [JsonProperty(PropertyName = "languageFile")]
-            public string LanaguageFile { get; set; }
+            public string LanguageFile { get; set; }
         }
 
         protected PluginSettings Settings
@@ -75,6 +100,13 @@ namespace ChatPager.Actions
             }
         }
 
+        #region Private Members
+
+        private const int CURRENT_VERSION = 1;
+
+        #endregion
+
+
         #region Public Methods
 
         public TwitchChangeStatusAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
@@ -89,6 +121,7 @@ namespace ChatPager.Actions
             }
 
             Settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
+            InitializeSettings();
             SaveSettings();
         }
 
@@ -105,11 +138,7 @@ namespace ChatPager.Actions
             }
 
             // Added as booleans otherwise it will short circuit the second call
-            bool statusResult = false;
-            if (!String.IsNullOrEmpty(Settings.GameFile) || !String.IsNullOrEmpty(Settings.StatusFile) || !String.IsNullOrEmpty(Settings.LanaguageFile))
-            {
-                statusResult = await UpdateStatus();
-            }
+            bool statusResult = await UpdateStatus();
             bool tagsResult = await UpdateTags();
 
             if (statusResult || tagsResult)
@@ -140,6 +169,7 @@ namespace ChatPager.Actions
         public override void ReceivedSettings(ReceivedSettingsPayload payload)
         {
             Tools.AutoPopulateSettings(Settings, payload.Settings);
+            InitializeSettings();
             SaveSettings();
         }
 
@@ -151,62 +181,10 @@ namespace ChatPager.Actions
         {
             try
             {
-                string status = null;
-                string game = null;
-                string language = null;
-
-                // Read Status from File
-                if (!string.IsNullOrEmpty(Settings.StatusFile))
-                {
-                    if (!File.Exists(Settings.StatusFile))
-                    {
-                        Logger.Instance.LogMessage(TracingLevel.WARN, $"Title file does not exists: {Settings.StatusFile}");
-                    }
-                    else
-                    {
-                        string[] lines = File.ReadAllLines(Settings.StatusFile);
-                        if (lines.Length > 1) // There are multiple lines in the file, choose a random one.
-                        {
-                            int retries = 0;
-                            do
-                            {
-                                // Choose a random one
-                                status = lines[RandomGenerator.Next(lines.Length)];
-                                retries++;
-                            } while (String.IsNullOrEmpty(status) && retries < 5);
-                        }
-                        else if (lines.Length == 1)
-                        {
-                            status = lines[0];
-                        }
-                    }
-                }
-
-                // Read Game from File
-                if (!string.IsNullOrEmpty(Settings.GameFile))
-                {
-                    if (!File.Exists(Settings.GameFile))
-                    {
-                        Logger.Instance.LogMessage(TracingLevel.WARN, $"Category file does not exists: {Settings.GameFile}");
-                    }
-                    else
-                    {
-                        game = File.ReadAllText(Settings.GameFile);
-                    }
-                }
-
-                // Read Language from File
-                if (!string.IsNullOrEmpty(Settings.LanaguageFile))
-                {
-                    if (!File.Exists(Settings.LanaguageFile))
-                    {
-                        Logger.Instance.LogMessage(TracingLevel.WARN, $"Language file does not exists: {Settings.LanaguageFile}");
-                    }
-                    else
-                    {
-                        language = File.ReadAllText(Settings.LanaguageFile);
-                    }
-                }
+                string status = GetStatus();
+                string game = GetGame(); ;
+                string language = GetLanguage();
+                int? gameId = null;
 
                 if (String.IsNullOrEmpty(status) && String.IsNullOrEmpty(game) && String.IsNullOrEmpty(language))
                 {
@@ -214,9 +192,14 @@ namespace ChatPager.Actions
                     return false;
                 }
 
+                if (!string.IsNullOrWhiteSpace(game))
+                {
+                    gameId = await TwitchChannelInfoManager.Instance.GetGameId(game);
+                }
+
                 using (TwitchComm comm = new TwitchComm())
                 {
-                    return await comm.UpdateChannelStatus(status, game, language);
+                    return await comm.UpdateChannelStatus(status, gameId, language);
                 }
             }
             catch (Exception ex)
@@ -226,30 +209,143 @@ namespace ChatPager.Actions
             return false;
         }
 
-        private async Task<bool> UpdateTags()
+        private string GetStatus()
+        {
+            string[] lines = null;
+            if (!Settings.LoadFromFile)
+            {
+                lines = Settings.Status.Replace("\r", "").Split('\n');
+            }
+            else if (!string.IsNullOrEmpty(Settings.StatusFile)) // Read Status from File
+            {
+                if (!File.Exists(Settings.StatusFile))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"Status file does not exists: {Settings.StatusFile}");
+                    return null;
+                }
+                else
+                {
+                    lines = File.ReadAllLines(Settings.StatusFile);
+                }
+            }
+
+            if (lines != null)
+            {
+                if (lines.Length == 1)
+                {
+                    return lines[0];
+                }
+
+                if (lines.Length > 1) // There are multiple lines in the file, choose a random one.
+                {
+                    int retries = 0;
+                    string status;
+                    do
+                    {
+                        // Choose a random one
+                        status = lines[RandomGenerator.Next(lines.Length)];
+                        retries++;
+                    } while (String.IsNullOrEmpty(status) && retries < 5);
+                    return status;
+                }
+            }
+            return null;
+        }
+
+        private string GetGame()
+        {
+            if (!Settings.LoadFromFile)
+            {
+                return Settings.Game;
+            }
+
+            // Read Game from File
+            if (!string.IsNullOrEmpty(Settings.GameFile))
+            {
+                if (!File.Exists(Settings.GameFile))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"Game file does not exists: {Settings.GameFile}");
+                }
+                else
+                {
+                    return File.ReadAllText(Settings.GameFile);
+                }
+            }
+            return null;
+        }
+
+        private string GetLanguage()
+        {
+            if (!Settings.LoadFromFile)
+            {
+                return Settings.Language;
+            }
+
+
+            // Read Language from File
+            if (!string.IsNullOrEmpty(Settings.LanguageFile))
+            {
+                if (!File.Exists(Settings.LanguageFile))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"Language file does not exists: {Settings.LanguageFile}");
+                }
+                else
+                {
+                    return File.ReadAllText(Settings.LanguageFile);
+                }
+            }
+            return null;
+        }
+
+        private string[] GetTags()
         {
             try
             {
+                if (!Settings.LoadFromFile)
+                {
+                    return Settings.Tags.Replace("\r", "").Split('\n');
+                }
+
                 if (string.IsNullOrEmpty(Settings.TagsFile))
                 {
                     Logger.Instance.LogMessage(TracingLevel.WARN, "UpdateTags called but not tags file set");
-                    return false;
+                    return null;
                 }
 
                 if (!File.Exists(Settings.TagsFile))
                 {
                     Logger.Instance.LogMessage(TracingLevel.WARN, $"Tags file does not exists: {Settings.TagsFile}");
+                    return null;
+                }
+
+                return File.ReadAllLines(Settings.TagsFile);
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} GetTags Exception: {ex}");
+            }
+
+            return null;
+        }
+
+        private async Task<bool> UpdateTags()
+        {
+            try
+            {
+                string[] tags = GetTags();
+                if (tags == null)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"GetTags returned null!");
                     return false;
                 }
 
-                string[] tags = File.ReadAllLines(Settings.TagsFile);
                 if (tags.Length == 0)
                 {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"Tags file is empty: {Settings.TagsFile}");
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"Tags is empty. LoadFromFile: {Settings.LoadFromFile} {Settings.TagsFile}");
                     return false;
                 }
 
-                string[] tagIds = await TagsManager.Instance.GetTagIdsFromTagNames(tags);
+                string[] tagIds = await TwitchTagsManager.Instance.GetTagIdsFromTagNames(tags);
                 if (tagIds == null)
                 {
                     Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} GetTagIdsFromTagNames failed!");
@@ -262,9 +358,9 @@ namespace ChatPager.Actions
                     {
                         return await comm.UpdateChannelTags(tagIds);
                     }
-                }                  
+                }
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateTags Exception: {ex}");
             }
@@ -274,6 +370,25 @@ namespace ChatPager.Actions
         protected override Task SaveSettings()
         {
             return Connection.SetSettingsAsync(JObject.FromObject(Settings));
+        }
+
+        private void InitializeSettings()
+        {
+            CheckBackwardCompatibility();
+        }
+
+        [Obsolete("Remove in next major release")]
+        private void CheckBackwardCompatibility()
+        {
+            if (Settings.Version == CURRENT_VERSION)
+            {
+                return;
+            }
+
+            // Version 0
+            Settings.LoadFromFile = true;
+            Settings.Version = 1;
+            SaveSettings();
         }
 
         #endregion

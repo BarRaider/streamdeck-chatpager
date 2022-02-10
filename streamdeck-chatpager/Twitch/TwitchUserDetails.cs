@@ -7,10 +7,10 @@ namespace ChatPager.Twitch
 {
     public class TwitchUserDetails
     {
-        [JsonProperty(PropertyName = "user_id")]
+        [JsonProperty(PropertyName = "id")]
         public string UserId { get; internal set; }
 
-        [JsonProperty(PropertyName = "user_name")]
+        [JsonProperty(PropertyName = "login")]
         public string UserName { get; internal set; }
     }
 }

@@ -1,6 +1,21 @@
 {
   "Actions": [
     {
+      "Icon": "Images/banIcon",
+      "Name": "Ban / Timeout",
+      "States": [
+        {
+          "Image": "Images/banAction",
+          "TitleAlignment": "middle",
+          "FontSize": "12"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Shows list of viewers you can ban/timeout.",
+      "UUID": "com.barraider.twitchtools.bantimeout",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/BanTimeout.html"
+    },
+    {
       "Icon": "Images/streamTitleIcon",
       "Name": "Change Stream Title/Game/Tags",
       "States": [
@@ -131,7 +146,7 @@
         }
       ],
       "SupportedInMultiActions": false,
-      "Tooltip": "Shows you a list of people who just chatted and let's you send them a \"shoutout\".",
+      "Tooltip": "Shows viewers and let's you send them a \"shoutout\".",
       "UUID": "com.barraider.twitchtools.shoutout",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/Shoutout.html"
     },
@@ -186,7 +201,7 @@
   "Name": "Twitch Tools",
   "Icon": "Images/pluginIcon",
   "URL": "https://BarRaider.com/",
-  "Version": "2.7",
+  "Version": "2.8",
   "DefaultWindowSize": [ 620, 750 ],
   "CodePath": "com.barraider.twitchtools",
   "Category": "Twitch Tools [BarRaider]",

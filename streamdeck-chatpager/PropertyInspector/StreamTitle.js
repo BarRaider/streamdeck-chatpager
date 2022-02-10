@@ -8,11 +8,7 @@
         // Received message from Stream Deck
         var jsonObj = JSON.parse(event.data);
 
-        if (jsonObj.event === 'sendToPropertyInspector') {
-            var payload = jsonObj.payload;
-            checkSettings(payload);
-        }
-        else if (jsonObj.event === 'didReceiveSettings') {
+        if (jsonObj.event === 'didReceiveSettings') {
             var payload = jsonObj.payload;
             checkSettings(payload.settings);
         }
@@ -21,4 +17,22 @@
 
 function checkSettings(payload) {
     console.log("Checking Settings");
+    showHideLoadFromFiles("none");
+    showHideLoadFromPI("");
+
+    if (payload['loadFromFile']) {
+        showHideLoadFromFiles("");
+        showHideLoadFromPI("none");
+    }
+
+}
+
+function showHideLoadFromFiles(displayValue) {
+    var dvLoadFromFiles = document.getElementById('dvLoadFromFiles');
+    dvLoadFromFiles.style.display = displayValue;
+}
+
+function showHideLoadFromPI(displayValue) {
+    var dvLoadFromPI = document.getElementById('dvLoadFromPI');
+    dvLoadFromPI.style.display = displayValue;
 }
