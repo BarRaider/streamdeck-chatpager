@@ -15,6 +15,9 @@ namespace ChatPager.Wrappers
         [JsonProperty(PropertyName = "user_id")]
         public string UserId { get; private set; }
 
+        [JsonProperty(PropertyName = "user_login")]
+        public string UserName { get; private set; }
+
         [JsonProperty(PropertyName = "user_name")]
         public string UserDisplayName { get; private set; }
 

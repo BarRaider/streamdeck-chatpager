@@ -246,7 +246,7 @@ namespace ChatPager
                 {
                     await DrawStreamerImage(streamerInfo, image);
                 }
-                channelName = streamerInfo?.UserDisplayName;
+                channelName = streamerInfo?.UserName;
             }
         }
 
