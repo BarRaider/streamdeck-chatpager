@@ -262,6 +262,11 @@ namespace ChatPager.Backend
             }
             pageMessage = e.Message;
 
+            if (global.ShowUsername)
+            {
+                pageMessage = $"{e.Author}: {pageMessage}";
+            }
+
             Logger.Instance.LogMessage(TracingLevel.INFO, $"Full screen alert: {pageMessage ?? String.Empty} Color: {currentPageInitialColor}");
             InitFlash();
 
