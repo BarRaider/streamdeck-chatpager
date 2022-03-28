@@ -30,7 +30,7 @@ namespace ChatPager.Backend
         private TwitchGlobalSettings global;
         private bool autoClearFile = false;
         private int numberOfKeys;
-        private ActiveStreamersEventArgs streamersEventArgs = null;
+        private TwitchLiveStreamersEventArgs streamersEventArgs = null;
         private ChatMessageListEventArgs chatMessageEventArgs = null;
         private int autoStopSeconds = 0;
 
@@ -73,7 +73,7 @@ namespace ChatPager.Backend
         #region Public Members
 
         public event EventHandler<FlashStatusEventArgs> FlashStatusChanged;
-        public event EventHandler<ActiveStreamersEventArgs> ActiveStreamersChanged;
+        public event EventHandler<TwitchLiveStreamersEventArgs> ActiveStreamersChanged;
         public event EventHandler<ChatMessageListEventArgs> ChatMessageListChanged;
         public event EventHandler TwitchPagerShown;
 
@@ -123,7 +123,7 @@ namespace ChatPager.Backend
             Thread.Sleep(100);
         }
 
-        public async void ShowActiveStreamers(TwitchChannelInfo[] streamers, TwitchLiveStreamersLongPressAction longPressAction)
+        public async void ShowActiveStreamers(TwitchLiveStreamersDisplaySettings settings)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"ShowActiveStreamers called");
             StopFlashAndReset();
@@ -144,7 +144,7 @@ namespace ChatPager.Backend
                 return;
             }
             StopFlashAndReset();
-            streamersEventArgs = new ActiveStreamersEventArgs(streamers, longPressAction, numberOfKeys, 0);
+            streamersEventArgs = new TwitchLiveStreamersEventArgs(settings, numberOfKeys, 0);
 
             ActiveStreamersChanged?.Invoke(this, streamersEventArgs);
         }
