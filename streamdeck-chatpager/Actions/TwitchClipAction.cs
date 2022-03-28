@@ -29,13 +29,17 @@ namespace ChatPager.Actions
                 PluginSettings instance = new PluginSettings
                 {
                     TokenExists = false,
-                    Channel = String.Empty
+                    Channel = String.Empty,
+                    ChatMessage = String.Empty
                 };
                 return instance;
             }
 
             [JsonProperty(PropertyName = "channel")]
             public string Channel { get; set; }
+
+            [JsonProperty(PropertyName = "chatMessage")]
+            public string ChatMessage { get; set; }            
         }
 
         protected PluginSettings Settings
@@ -89,8 +93,14 @@ namespace ChatPager.Actions
                 return;
             }
 
-            await CreateClip();
-            await Connection.ShowOk();
+            if (await CreateClip())
+            {
+                await Connection.ShowOk();
+            }
+            else
+            {
+                await Connection.ShowAlert();
+            }
         }
 
         public override void KeyReleased(KeyPayload payload) { }
@@ -118,7 +128,7 @@ namespace ChatPager.Actions
 
         #region Private Methods
 
-        public async Task CreateClip()
+        public async Task<bool> CreateClip()
         {
             try
             {
@@ -134,7 +144,8 @@ namespace ChatPager.Actions
                     if (clip != null)
                     {                        
                         string clipUrl = clip.EditURL.Replace("/edit", "");
-                        TwitchChat.Instance.SendMessage(channel, clipUrl);
+                        TwitchChat.Instance.SendMessage(channel, $"{Settings.ChatMessage} {clipUrl}");
+                        return true;
                     }
                 }
             }
@@ -142,6 +153,7 @@ namespace ChatPager.Actions
             {
                 Logger.Instance.LogMessage(TracingLevel.ERROR, $"Could not create Twitch Clip: {ex}");
             }
+            return false;
         }
 
         protected override Task SaveSettings()
