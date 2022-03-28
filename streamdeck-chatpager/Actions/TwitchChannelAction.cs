@@ -1,4 +1,5 @@
 ﻿using BarRaider.SdTools;
+using ChatPager.Backend;
 using ChatPager.Twitch;
 using ChatPager.Wrappers;
 using Newtonsoft.Json;
@@ -242,31 +243,6 @@ namespace ChatPager.Actions
             return Connection.SetSettingsAsync(JObject.FromObject(Settings));
         }
 
-        private Bitmap FetchImage(string imageUrl)
-        {
-            try
-            {
-                if (String.IsNullOrEmpty(imageUrl))
-                {
-                    return null;
-                }
-
-                using (WebClient client = new WebClient())
-                {
-                    using (Stream stream = client.OpenRead(imageUrl))
-                    {
-                        Bitmap image = new Bitmap(stream);
-                        return image;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"Failed to fetch image: {imageUrl} {ex}");
-            }
-            return null;
-        }
-
         private async Task DrawKey()
         {
             if (String.IsNullOrEmpty(Settings.ChannelName) || thumbnailImage == null)
@@ -373,7 +349,7 @@ namespace ChatPager.Actions
                         var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(Settings.ChannelName);
                         if (userInfo != null)
                         {
-                            thumbnailImage = FetchImage(userInfo.ProfileImageUrl.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString()));
+                            thumbnailImage = HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(userInfo.ProfileImageUrl));
                             lastImageUpdate = DateTime.Now;
 
                             // Make the image grayscale
@@ -389,7 +365,7 @@ namespace ChatPager.Actions
                     // Only switch to stream preview if channelInfo is not null AND user wants the stream preview
                     if (channelInfo != null && Settings.LiveStreamPreview)
                     {
-                        thumbnailImage = FetchImage(channelInfo.ThumbnailURL.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString()));
+                        thumbnailImage = HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(channelInfo.ThumbnailURL));
                         lastImageUpdate = DateTime.Now;
                     }
                     else if (channelInfo != null && Settings.LiveGameIcon) // User wants to see the game icon
@@ -399,7 +375,7 @@ namespace ChatPager.Actions
                             var gameInfo = await TwitchChannelInfoManager.Instance.GetGameInfo(channelInfo.GameId);
                             if (gameInfo != null)
                             {
-                                thumbnailImage = FetchImage(gameInfo.ImageUrl.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString()));
+                                thumbnailImage = gameInfo.GameImage;
                                 lastImageUpdate = DateTime.Now;
                             }
                         }
@@ -410,7 +386,7 @@ namespace ChatPager.Actions
                         var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(Settings.ChannelName);
                         if (userInfo != null)
                         {
-                            thumbnailImage = FetchImage(userInfo.ProfileImageUrl.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString()));
+                            thumbnailImage = HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(userInfo.ProfileImageUrl));
                             lastImageUpdate = DateTime.Now;
                         }
                     }
