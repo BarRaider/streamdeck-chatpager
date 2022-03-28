@@ -11,6 +11,7 @@ using System.Linq;
 using System.IO;
 using ChatPager.Wrappers;
 using ChatPager.Backend;
+using System.ServiceModel.Channels;
 
 namespace ChatPager.Actions
 {
@@ -67,7 +68,8 @@ namespace ChatPager.Actions
                     PlaybackDevices = null,
                     PlaySoundFile = String.Empty,
                     SoundCooldown = DEFAULT_SOUND_COOLDOWN_SECONDS.ToString(),
-                    MutedUsers = String.Empty
+                    MutedUsers = String.Empty,
+                    ShowUsername = false
                 };
                 return instance;
             }
@@ -90,7 +92,7 @@ namespace ChatPager.Actions
             [JsonProperty(PropertyName = "twoLettersPerKey")]
             public bool TwoLettersPerKey { get; set; }
 
-            [JsonProperty(PropertyName = "alertColor")] 
+            [JsonProperty(PropertyName = "alertColor")]
             public string AlertColor { get; set; }
 
             [JsonProperty(PropertyName = "saveToFile")]
@@ -189,7 +191,10 @@ namespace ChatPager.Actions
 
             [JsonProperty(PropertyName = "mutedUsers")]
             public string MutedUsers { get; set; }
-            
+
+            [JsonProperty(PropertyName = "showUsername")]
+            public bool ShowUsername { get; set; }
+
         }
 
         protected PluginSettings Settings
@@ -231,11 +236,12 @@ namespace ChatPager.Actions
         private const string RAID_FLASH_DEFAULT_MESSAGE = "{DISPLAYNAME} raiding with {VIEWERS} viewers";
 
         protected const int DEFAULT_CLEAR_FILE_SECONDS = 5;
-        private const int DEFAULT_AUTO_STOP_SECONDS = 0;
+        private const int DEFAULT_AUTO_STOP_SECONDS = 5;
         private const int DEFAULT_SOUND_COOLDOWN_SECONDS = 10;
 
         private bool isPaging = false;
         private readonly System.Timers.Timer tmrPage = new System.Timers.Timer();
+        private readonly System.Timers.Timer tmrResetChat = new System.Timers.Timer();
         private int alertStage = 0;
         private TwitchChannelInfo streamInfo;
         private string pageMessage = null;
@@ -272,9 +278,13 @@ namespace ChatPager.Actions
             AlertManager.Instance.Initialize(Connection);
             ResetChat();
             InitializeStreamInfo();
-           
+
             tmrPage.Interval = 200;
             tmrPage.Elapsed += TmrPage_Elapsed;
+
+            tmrResetChat.Interval = 5000;
+            tmrResetChat.Elapsed += TmrResetChat_Elapsed;
+
             SaveSettings();
             Connection.GetGlobalSettingsAsync();
         }
@@ -283,6 +293,14 @@ namespace ChatPager.Actions
         {
             if (Settings.PlaySoundOnChat)
             {
+                // Check if channel is live
+                var channelInfo = await TwitchChannelInfoManager.Instance.GetChannelInfo(e.Channel);
+                if (channelInfo != null && !channelInfo.IsLive)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.INFO, $"Not playing sound because channel {e.Channel} isn't live");
+                    return;
+                }
+
                 await HandleSoundPlay(e.Author);
             }
         }
@@ -391,6 +409,8 @@ namespace ChatPager.Actions
                 Settings.PlaySoundFile = global.PlaySoundFile;
                 Settings.SoundCooldown = global.SoundCooldown.ToString();
                 Settings.MutedUsers = global.MutedUsers;
+                Settings.ShowUsername = global.ShowUsername;
+
                 previousViewersCount = global.PreviousViewersCount;
                 if (!String.IsNullOrEmpty(global.ViewersBrush))
                 {
@@ -430,7 +450,10 @@ namespace ChatPager.Actions
             // Populate new values
             Tools.AutoPopulateSettings(Settings, payload.Settings);
             InitializeSettings();
-            ResetChat();
+
+            // Cause 5 sec delay after changes before resetting chat (prevents too frequent changes)
+            tmrResetChat.Stop();
+            tmrResetChat.Start();
 
             if (previousPubsubNotifications != Settings.PubsubNotifications && Settings.PubsubNotifications) // Enabled checkbox
             {
@@ -494,6 +517,15 @@ namespace ChatPager.Actions
             global.PreviousViewersCount = previousViewersCount;
             global.SoundCooldown = soundCooldown;
             global.MutedUsers = Settings.MutedUsers;
+            global.ShowUsername = Settings.ShowUsername;
+
+            if (!Int32.TryParse(global.AutoStopPage, out _))
+            {
+                global.AutoStopPage = DEFAULT_AUTO_STOP_SECONDS.ToString();
+                Settings.AutoStopPage = DEFAULT_AUTO_STOP_SECONDS.ToString();
+                SaveSettings();
+            }
+
             Connection.SetGlobalSettingsAsync(JObject.FromObject(global));
 
             return true;
@@ -548,6 +580,13 @@ namespace ChatPager.Actions
                 graphics.Dispose();
             }
         }
+
+        private void TmrResetChat_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            tmrResetChat.Stop();
+            ResetChat();
+        }
+
 
         private async void DrawStreamData()
         {
@@ -621,6 +660,12 @@ namespace ChatPager.Actions
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"Received a page! Message: {e.Message?? String.Empty}");
             pageMessage = e.Message;
+
+            if (Settings.ShowUsername)
+            {
+                pageMessage = $"{e.Author}: {pageMessage}";
+            }
+
             isPaging = true;
             if (Settings.PlaySoundOnNotification)
             {
@@ -768,9 +813,6 @@ namespace ChatPager.Actions
                 Logger.Instance.LogMessage(TracingLevel.INFO, $"HandleSoundPlay in cooldown");
                 return;
             }
-
-            
-
 
             Logger.Instance.LogMessage(TracingLevel.INFO, $"HandleSoundPlay called. Playing {Settings.PlaySoundFile} on device: {Settings.PlaybackDevice}");
             lastSoundPlay = DateTime.Now;
