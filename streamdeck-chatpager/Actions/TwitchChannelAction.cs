@@ -349,7 +349,7 @@ namespace ChatPager.Actions
                         var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(Settings.ChannelName);
                         if (userInfo != null)
                         {
-                            thumbnailImage = HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(userInfo.ProfileImageUrl));
+                            thumbnailImage = await HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(userInfo.ProfileImageUrl));
                             lastImageUpdate = DateTime.Now;
 
                             // Make the image grayscale
@@ -365,7 +365,7 @@ namespace ChatPager.Actions
                     // Only switch to stream preview if channelInfo is not null AND user wants the stream preview
                     if (channelInfo != null && Settings.LiveStreamPreview)
                     {
-                        thumbnailImage = HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(channelInfo.ThumbnailURL));
+                        thumbnailImage = await HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(channelInfo.ThumbnailURL));
                         lastImageUpdate = DateTime.Now;
                     }
                     else if (channelInfo != null && Settings.LiveGameIcon) // User wants to see the game icon
@@ -386,7 +386,7 @@ namespace ChatPager.Actions
                         var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(Settings.ChannelName);
                         if (userInfo != null)
                         {
-                            thumbnailImage = HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(userInfo.ProfileImageUrl));
+                            thumbnailImage = await HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(userInfo.ProfileImageUrl));
                             lastImageUpdate = DateTime.Now;
                         }
                     }

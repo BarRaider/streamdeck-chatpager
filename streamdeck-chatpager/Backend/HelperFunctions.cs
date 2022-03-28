@@ -17,29 +17,34 @@ namespace ChatPager.Backend
         private const string PREVIEW_IMAGE_WIDTH_TOKEN = "{width}";
         private const string PREVIEW_IMAGE_HEIGHT_TOKEN = "{height}";
 
-        public static Bitmap FetchImage(string imageUrl)
+        public static Task<Bitmap> FetchImage(string imageUrl)
         {
-            try
+            return Task.Run(() =>
             {
-                if (String.IsNullOrEmpty(imageUrl))
-                {
-                    return null;
-                }
 
-                using (WebClient client = new WebClient())
+
+                try
                 {
-                    using (Stream stream = client.OpenRead(imageUrl))
+                    if (String.IsNullOrEmpty(imageUrl))
                     {
-                        Bitmap image = new Bitmap(stream);
-                        return image;
+                        return null;
+                    }
+
+                    using (WebClient client = new WebClient())
+                    {
+                        using (Stream stream = client.OpenRead(imageUrl))
+                        {
+                            Bitmap image = new Bitmap(stream);
+                            return image;
+                        }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"Failed to fetch image: {imageUrl} {ex}");
-            }
-            return null;
+                catch (Exception ex)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"Failed to fetch image: {imageUrl} {ex}");
+                }
+                return null;
+            });
         }
 
         public static string GenerateUrlFromGenericImageUrl(string genericImageUrl)

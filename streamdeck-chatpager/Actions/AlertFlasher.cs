@@ -219,7 +219,7 @@ namespace ChatPager
                 switch (e.DisplaySettings.DisplayImage)
                 {
                     case ChannelDisplayImage.StreamPreview:
-                        using (Image image = HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(streamerInfo.ThumbnailURL)))
+                        using (Image image = await HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(streamerInfo.ThumbnailURL)))
                         {
                             await DrawStreamerImage(streamerInfo, image);
                         }
@@ -228,9 +228,35 @@ namespace ChatPager
                         var gameInfo = await TwitchChannelInfoManager.Instance.GetGameInfo(streamerInfo.GameId);
                         if (gameInfo != null)
                         {
-                            await DrawStreamerImage(streamerInfo, gameInfo.GameImage);
-
+                            if (gameInfo.GameImage == null)
+                            {
+                                Logger.Instance.LogMessage(TracingLevel.WARN, $"{this.GetType()} ActiveStreamers - Game Image is null for {streamerInfo.UserDisplayName} {streamerInfo.GameName}");
+                            }
+                            using (Image gameImage = (Image) gameInfo.GameImage.Clone())
+                            {
+                                await DrawStreamerImage(streamerInfo, gameImage);
+                            }
                         }
+                        else
+                        {
+                            Logger.Instance.LogMessage(TracingLevel.WARN, $"{this.GetType()} ActiveStreamers - Game Info is empty for {streamerInfo.UserDisplayName} {streamerInfo.GameName}");
+                        }
+                        break;
+                    case ChannelDisplayImage.UserIcon:
+                        var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(streamerInfo.UserName);
+                        if (userInfo != null)
+                        {
+                            using (Image thumbnailImage = await HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(userInfo.ProfileImageUrl)))
+                            {
+                                await DrawStreamerImage(streamerInfo, thumbnailImage);
+                            }
+                        }
+                        else
+                        {
+                            Logger.Instance.LogMessage(TracingLevel.WARN, $"{this.GetType()} ActiveStreamers - User Info is empty for {streamerInfo.UserName}");
+                        }
+                        break;
+                }
                 channelName = streamerInfo?.UserName;
             }
         }
@@ -298,7 +324,7 @@ namespace ChatPager
                     userImageURL = HelperFunctions.GenerateUrlFromGenericImageUrl(userInfo.KeyImageURL);
                 }
 
-                using (Image image = HelperFunctions.FetchImage(userImageURL))
+                using (Image image = await HelperFunctions.FetchImage(userImageURL))
                 {
                     await DrawChatMessageImage(userInfo, image);
                 }

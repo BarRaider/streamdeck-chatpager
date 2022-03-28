@@ -189,7 +189,7 @@ namespace ChatPager.Twitch
                     Logger.Instance.LogMessage(TracingLevel.WARN, $"GetGameInfo returned null for GameId: {gameId}");
                 }
 
-                gameInfo.GameImage = HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(gameInfo.ImageUrl));
+                gameInfo.GameImage = await HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(gameInfo.ImageUrl));
 
                 dicGameInfo[gameId] = gameInfo;
                 return gameInfo;
@@ -238,7 +238,7 @@ namespace ChatPager.Twitch
                     return null;
                 }
 
-                gameInfo.GameImage = HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(gameInfo.ImageUrl));
+                gameInfo.GameImage = await HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(gameInfo.ImageUrl));
 
                 dicGameInfo[gameId] = gameInfo;
                 return gameId;
