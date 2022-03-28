@@ -7,20 +7,19 @@ using System.Threading.Tasks;
 
 namespace ChatPager.Wrappers
 {
-    public class ActiveStreamersEventArgs : EventArgs
+    public class TwitchLiveStreamersEventArgs : EventArgs
     {
-        public TwitchChannelInfo[] ActiveStreamers { get; private set; }
+        public TwitchLiveStreamersDisplaySettings DisplaySettings { get; private set; }
         public int NumberOfKeys { get; private set; }
         public int CurrentPage { get; set; }
 
         public TwitchLiveStreamersLongPressAction LongPressAction { get; private set; }
 
-        public ActiveStreamersEventArgs(TwitchChannelInfo[] activeStreamers, TwitchLiveStreamersLongPressAction longPressAction, int numberOfKeys, int currentPage)
+        public TwitchLiveStreamersEventArgs(TwitchLiveStreamersDisplaySettings settings, int numberOfKeys, int currentPage)
         {
-            ActiveStreamers = activeStreamers;
+            DisplaySettings = settings;
             NumberOfKeys = numberOfKeys;
             CurrentPage = currentPage;
-            LongPressAction = longPressAction;
         }
     }
 }
