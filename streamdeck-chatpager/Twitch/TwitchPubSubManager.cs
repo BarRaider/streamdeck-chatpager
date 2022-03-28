@@ -52,7 +52,7 @@ namespace ChatPager.Twitch
 
                 if (!string.IsNullOrEmpty(message) || exception != null)
                 {
-                    BarRaider.SdTools.Logger.Instance.LogMessage(TracingLevel.INFO, $"Pubsub internal log: {message} {exception}");
+                    BarRaider.SdTools.Logger.Instance.LogMessage(TracingLevel.INFO, $"Pubsub internal log: {message.Replace("\r\n","")} {exception}");
                 }
             }
         }
@@ -245,7 +245,12 @@ namespace ChatPager.Twitch
         {
             if (payload?.Settings != null)
             {
+                bool wasEnabled = global?.PubsubNotifications ?? false;
                 global = payload.Settings.ToObject<TwitchGlobalSettings>();
+
+                {
+                    Initialize();
+                }
             }
         }
 
@@ -394,13 +399,19 @@ namespace ChatPager.Twitch
 
         private async void Instance_OnRaidReceived(object sender, TwitchLib.Client.Events.OnRaidNotificationArgs e)
         {
-            Logger.Instance.LogMessage(TracingLevel.INFO, $"{e.RaidNotification.DisplayName} raided with {e.RaidNotification.MsgParamViewerCount} viewers");
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"{e.RaidNotification.DisplayName} raided channel {e.RaidNotification.RoomId} with {e.RaidNotification.MsgParamViewerCount} viewers");
 
             // Check if channel is live
             var channelInfo = await TwitchChannelInfoManager.Instance.GetChannelInfo(channelName);
             if (channelInfo != null && !channelInfo.IsLive)
             {
                 Logger.Instance.LogMessage(TracingLevel.INFO, $"Not raising Raid event because channel isn't live");
+                return;
+            }
+
+            if (!global.PubsubNotifications)
+            {
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"Not raising Raid event because pubsub notifications are disabled");
                 return;
             }
 
