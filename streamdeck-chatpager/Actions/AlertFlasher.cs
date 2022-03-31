@@ -9,6 +9,7 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.Remoting;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -35,10 +36,6 @@ namespace ChatPager
         #region Private Members
         private const int NUMBER_OF_SPECIAL_KEYS = 3; // Exit, Prev, Next
 
-        private const int PREVIEW_IMAGE_HEIGHT_PIXELS = 144;
-        private const int PREVIEW_IMAGE_WIDTH_PIXELS = 144;
-        private const string PREVIEW_IMAGE_WIDTH_TOKEN = "{width}";
-        private const string PREVIEW_IMAGE_HEIGHT_TOKEN = "{height}";
         private const int LONG_KEYPRESS_LENGTH_MS = 600;
         private const string RAID_COMMAND = "/raid ";
         private const string HOST_COMMAND = "/host ";
@@ -202,19 +199,79 @@ namespace ChatPager
             _ = FlashImage(e.FlashMessage, e.FlashColor);
         }
 
-        private async void Instance_ActiveStreamersChanged(object sender, ActiveStreamersEventArgs e)
+        private async void Instance_ActiveStreamersChanged(object sender, TwitchLiveStreamersEventArgs e)
         {
             flashMode = FlashMode.ActiveStreamers;
             pagedSequentialKey = e.CurrentPage * (e.NumberOfKeys - NUMBER_OF_SPECIAL_KEYS) + sequentialKey; // -3 for the Exit, Back, Next buttons
             channelName = String.Empty;
             liveStreamersLongPressAction = e.LongPressAction;
+            
+            if (await HandleActiveStreamersNavigationKeys(e))
+            {
+                return;
+            }
+
+            if (e.DisplaySettings != null && e.DisplaySettings.Streamers != null && e.DisplaySettings.Streamers.Length >= pagedSequentialKey) // >= because we're doing -1 as we're starting on the second key
+            {
+                await Connection.SetTitleAsync(null);
+                var streamerInfo = e.DisplaySettings.Streamers[pagedSequentialKey - 1];
+
+                switch (e.DisplaySettings.DisplayImage)
+                {
+                    case ChannelDisplayImage.StreamPreview:
+                        using (Image image = await HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(streamerInfo.ThumbnailURL)))
+                        {
+                            await DrawStreamerImage(streamerInfo, image);
+                        }
+                        break;
+                    case ChannelDisplayImage.GameIcon:
+                        var gameInfo = await TwitchChannelInfoManager.Instance.GetGameInfo(streamerInfo.GameId);
+                        if (gameInfo != null)
+                        {
+                            if (gameInfo.GameImage == null)
+                            {
+                                Logger.Instance.LogMessage(TracingLevel.WARN, $"{this.GetType()} ActiveStreamers - Game Image is null for {streamerInfo.UserDisplayName} {streamerInfo.GameName}");
+                            }
+                            using (Image gameImage = (Image) gameInfo.GameImage.Clone())
+                            {
+                                await DrawStreamerImage(streamerInfo, gameImage);
+                            }
+                        }
+                        else
+                        {
+                            Logger.Instance.LogMessage(TracingLevel.WARN, $"{this.GetType()} ActiveStreamers - Game Info is empty for {streamerInfo.UserDisplayName} {streamerInfo.GameName}");
+                        }
+                        break;
+                    case ChannelDisplayImage.UserIcon:
+                        var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(streamerInfo.UserName);
+                        if (userInfo != null)
+                        {
+                            using (Image thumbnailImage = await HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(userInfo.ProfileImageUrl)))
+                            {
+                                await DrawStreamerImage(streamerInfo, thumbnailImage);
+                            }
+                        }
+                        else
+                        {
+                            Logger.Instance.LogMessage(TracingLevel.WARN, $"{this.GetType()} ActiveStreamers - User Info is empty for {streamerInfo.UserName}");
+                        }
+                        break;
+                }
+                channelName = streamerInfo?.UserName;
+            }
+        }
+
+        private async Task<bool> HandleActiveStreamersNavigationKeys(TwitchLiveStreamersEventArgs e)
+        {
             if (sequentialKey == 0)
             {
                 await Connection.SetTitleAsync("Exit");
+                return true;
             }
-            else if (e.ActiveStreamers != null && sequentialKey == e.NumberOfKeys - 1 && e.ActiveStreamers.Length > e.NumberOfKeys - 3) // Last (Next) key, and there is more than one page *overall*
+            
+            if (e.DisplaySettings != null && e.DisplaySettings.Streamers != null && sequentialKey == e.NumberOfKeys - 1 && e.DisplaySettings.Streamers.Length > e.NumberOfKeys - 3) // Last (Next) key, and there is more than one page *overall*
             {
-                if (e.ActiveStreamers.Length + NUMBER_OF_SPECIAL_KEYS < pagedSequentialKey) // We are on last page
+                if (e.DisplaySettings.Streamers.Length + NUMBER_OF_SPECIAL_KEYS < pagedSequentialKey) // We are on last page
                 {
                     await Connection.SetTitleAsync(null);
                 }
@@ -222,10 +279,12 @@ namespace ChatPager
                 {
                     await Connection.SetTitleAsync(">>");
                 }
-                numberOfElements = e.ActiveStreamers.Length;
+                numberOfElements = e.DisplaySettings.Streamers.Length;
                 numberOfKeys = e.NumberOfKeys;
+                return true;
             }
-            else if (e.ActiveStreamers != null && sequentialKey == e.NumberOfKeys - 2 && e.ActiveStreamers.Length > e.NumberOfKeys - 3) // Prev key, and there is more than one page *overall*
+            
+            if (e.DisplaySettings != null && e.DisplaySettings.Streamers != null && sequentialKey == e.NumberOfKeys - 2 && e.DisplaySettings.Streamers.Length > e.NumberOfKeys - 3) // Prev key, and there is more than one page *overall*
             {
                 if (sequentialKey == pagedSequentialKey) // We are on the first page
                 {
@@ -235,19 +294,12 @@ namespace ChatPager
                 {
                     await Connection.SetTitleAsync("<<");
                 }
-                numberOfElements = e.ActiveStreamers.Length;
+                numberOfElements = e.DisplaySettings.Streamers.Length;
                 numberOfKeys = e.NumberOfKeys;
+                return true;
             }
-            else if (e.ActiveStreamers != null && e.ActiveStreamers.Length >= pagedSequentialKey) // >= because we're doing -1 as we're starting on the second key
-            {
-                await Connection.SetTitleAsync(null);
-                var streamerInfo = e.ActiveStreamers[pagedSequentialKey - 1];
-                using (Image image = FetchImage(streamerInfo.ThumbnailURL.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString())))
-                {
-                    await DrawStreamerImage(streamerInfo, image);
-                }
-                channelName = streamerInfo?.UserName;
-            }
+
+            return false;
         }
 
         private async void Instance_ChatMessageListChanged(object sender, ChatMessageListEventArgs e)
@@ -255,11 +307,40 @@ namespace ChatPager
             flashMode = FlashMode.ChatMessage;
             channelName = e.Channel;
             pagedSequentialKey = e.CurrentPage * (e.NumberOfKeys - NUMBER_OF_SPECIAL_KEYS) + sequentialKey; // -3 for the Exit, Back, Next buttons
+
+            if (await HandleChatMessageListNavigationKeys(e))
+            {
+                return;
+            }
+           
+            if (e.ChatMessageKeys != null && e.ChatMessageKeys.Length >= pagedSequentialKey) // >= because we're doing -1 as we're starting on the second key
+            // +1 because starting on second key
+            {
+                await Connection.SetTitleAsync(null);
+                var userInfo = e.ChatMessageKeys[pagedSequentialKey - 1];
+                string userImageURL = null;
+                if (!String.IsNullOrEmpty(userInfo?.KeyImageURL))
+                {
+                    userImageURL = HelperFunctions.GenerateUrlFromGenericImageUrl(userInfo.KeyImageURL);
+                }
+
+                using (Image image = await HelperFunctions.FetchImage(userImageURL))
+                {
+                    await DrawChatMessageImage(userInfo, image);
+                }
+                chatMessage = userInfo.ChatMessage;
+            }
+        }
+
+        private async Task<bool> HandleChatMessageListNavigationKeys(ChatMessageListEventArgs e)
+        {
             if (sequentialKey == 0)
             {
                 await Connection.SetTitleAsync("Exit");
+                return true;
             }
-            else if (e.ChatMessageKeys != null && sequentialKey == e.NumberOfKeys - 1 && e.ChatMessageKeys.Length > e.NumberOfKeys - 3) // Next key, and there is more than one page *overall*
+            
+            if (e.ChatMessageKeys != null && sequentialKey == e.NumberOfKeys - 1 && e.ChatMessageKeys.Length > e.NumberOfKeys - 3) // Next key, and there is more than one page *overall*
             {
                 if (e.ChatMessageKeys.Length + NUMBER_OF_SPECIAL_KEYS < pagedSequentialKey) // We are on last page
                 {
@@ -271,8 +352,10 @@ namespace ChatPager
                 }
                 numberOfElements = e.ChatMessageKeys.Length;
                 numberOfKeys = e.NumberOfKeys;
+                return true;
             }
-            else if (e.ChatMessageKeys != null && sequentialKey == e.NumberOfKeys - 2 && e.ChatMessageKeys.Length > e.NumberOfKeys - 3) // Prev key, and there is more than one page *overall*
+            
+            if (e.ChatMessageKeys != null && sequentialKey == e.NumberOfKeys - 2 && e.ChatMessageKeys.Length > e.NumberOfKeys - 3) // Prev key, and there is more than one page *overall*
             {
                 if (sequentialKey == pagedSequentialKey) // We are on the first page
                 {
@@ -284,51 +367,11 @@ namespace ChatPager
                 }
                 numberOfElements = e.ChatMessageKeys.Length;
                 numberOfKeys = e.NumberOfKeys;
+                return true;
             }
-            else if (e.ChatMessageKeys != null && e.ChatMessageKeys.Length >= pagedSequentialKey) // >= because we're doing -1 as we're starting on the second key
-            // +1 because starting on second key
-            {
-                await Connection.SetTitleAsync(null);
-                var userInfo = e.ChatMessageKeys[pagedSequentialKey - 1];
-                string userImageURL = null;
-                if (!String.IsNullOrEmpty(userInfo?.KeyImageURL))
-                {
-                    userImageURL = userInfo.KeyImageURL.Replace(PREVIEW_IMAGE_WIDTH_TOKEN, PREVIEW_IMAGE_WIDTH_PIXELS.ToString()).Replace(PREVIEW_IMAGE_HEIGHT_TOKEN, PREVIEW_IMAGE_HEIGHT_PIXELS.ToString());
-                }
 
-                using (Image image = FetchImage(userImageURL))
-                {
-                    await DrawChatMessageImage(userInfo, image);
-                }
-                chatMessage = userInfo.ChatMessage;
-            }
+            return false;
         }
-
-        private Image FetchImage(string imageUrl)
-        {
-            try
-            {
-                if (String.IsNullOrEmpty(imageUrl))
-                {
-                    return null;
-                }
-
-                using (WebClient client = new WebClient())
-                {
-                    using (Stream stream = client.OpenRead(imageUrl))
-                    {
-                        Bitmap image = new Bitmap(stream);
-                        return image;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"Failed to fetch image: {imageUrl} {ex}");
-            }
-            return null;
-        }
-
         private async Task DrawChatMessageImage(ChatMessageKey keyInfo, Image background)
         {
             using (Bitmap bmp = Tools.GenerateGenericKeyImage(out Graphics graphics))

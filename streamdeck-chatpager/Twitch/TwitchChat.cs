@@ -130,6 +130,7 @@ namespace ChatPager.Twitch
                     this.monitoredStreamers = monitoredStreamers.Select(x => x.ToLowerInvariant()).ToList();
                 }
                 this.pageCooldown = pageCooldown;
+                Disconnect();
                 Initialize();
             }
             catch (Exception ex)
@@ -272,7 +273,7 @@ namespace ChatPager.Twitch
 
         private void HandleReceivedMessage(ChatMessage msg)
         {
-            OnChatMessageReceived?.Invoke(this, new ChatMessageReceivedEventArgs(msg.Message, msg.Username));
+            OnChatMessageReceived?.Invoke(this, new ChatMessageReceivedEventArgs(msg.Channel, msg.Message, msg.Username));
             string userName = msg.Username.ToLowerInvariant();
             dictUserMessages[userName] = DateTime.Now;
         }
@@ -352,8 +353,7 @@ namespace ChatPager.Twitch
                 client.OnRaidNotification -= Client_OnRaidNotification;
                 client.OnBeingHosted -= Client_OnBeingHosted;
                 client.OnNewSubscriber -= Client_OnNewSubscriber;
-                //client.OnUserJoined -= Client_OnUserJoined;
-                //client.OnUserLeft -= Client_OnUserLeft;
+                client.OnPrimePaidSubscriber -= Client_OnPrimePaidSubscriber;
                 client.OnConnectionError -= Client_OnConnectionError;
                 client.OnError -= Client_OnError;
 
@@ -367,8 +367,7 @@ namespace ChatPager.Twitch
             client.OnRaidNotification += Client_OnRaidNotification;
             client.OnBeingHosted += Client_OnBeingHosted;
             client.OnNewSubscriber += Client_OnNewSubscriber;
-            //client.OnUserJoined += Client_OnUserJoined;
-            //client.OnUserLeft += Client_OnUserLeft;
+            client.OnPrimePaidSubscriber += Client_OnPrimePaidSubscriber;
             client.OnConnectionError += Client_OnConnectionError;
             client.OnError += Client_OnError;
 
@@ -380,6 +379,11 @@ namespace ChatPager.Twitch
             client.OnUserStateChanged += Client_OnUserStateChanged;
             client.OnWhisperReceived += Client_OnWhisperReceived;
             */
+        }
+
+        private void Client_OnPrimePaidSubscriber(object sender, TwitchLib.Client.Events.OnPrimePaidSubscriberArgs e)
+        {
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***NewSubscriber: {e.PrimePaidSubscriber.DisplayName}, {e.PrimePaidSubscriber.Channel}, {e.PrimePaidSubscriber.RoomId}, {e.PrimePaidSubscriber.UserId}, {e.PrimePaidSubscriber.Login}");
         }
 
         private void Client_OnBeingHosted(object sender, TwitchLib.Client.Events.OnBeingHostedArgs e)
@@ -404,9 +408,15 @@ namespace ChatPager.Twitch
 
         private void Client_OnRaidNotification(object sender, TwitchLib.Client.Events.OnRaidNotificationArgs e)
         {
-            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***Raid: {e.RaidNotification.DisplayName} {e.RaidNotification.MsgParamViewerCount}");
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"*** Chat Raid: {e.RaidNotification.DisplayName}, {e.RaidNotification.RoomId}, {e.RaidNotification.UserId}, {e.RaidNotification.Login}");
             string userName = e.RaidNotification.DisplayName.ToLowerInvariant();
             dictUserMessages[userName] = DateTime.Now;
+
+            if (e.RaidNotification.RoomId != TwitchTokenManager.Instance.User.UserId)
+            {
+                Logger.Instance.LogMessage(TracingLevel.DEBUG, $"Not sending Raid notification becuase RoomId {e.RaidNotification.RoomId} is different from UserId");
+                return;
+            }
 
             OnRaidReceived?.Invoke(this, e);
         }
