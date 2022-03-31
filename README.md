@@ -4,6 +4,14 @@
 
 **Author's website and contact information:** [https://barraider.com](https://barraider.com)
 
+# New in v3.0
+- `Chat Pager` can now show the username of the user paging
+- By default `Chat Pager` will now auto stop the alert after 5 seconds of flashing (but can be customized)
+- `Clip To Chat` now supports a customized chat message
+- `Live Streamers` now supports choosing a Stream Preview/Game Icon/Username Avatar on the images
+- `Live Streamers` now allows to filter out users
+- Multiple bug fixes
+
 # New in v2.8
 - :new: `Ban/Timeout` action to quickly ban/timeout/untimeout users directly from the Stream Deck
 - `Create Stream Marker` now allows creating markers on others' channels (As long as they set you as an Editor)
