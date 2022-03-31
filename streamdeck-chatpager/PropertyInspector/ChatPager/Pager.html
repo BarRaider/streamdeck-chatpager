@@ -33,6 +33,13 @@
                 <div class="sdpi-item-label">Alert Color</div>
                 <input type="color" class="sdpi-item-value sdProperty" value="#FF0000" id="alertColor" oninput="setSettings()">
             </div>
+            <div type="checkbox" class="sdpi-item" id="dvFullScreenAlert">
+                <div class="sdpi-item-label">Username</div>
+                <div class="sdpi-item-value">
+                    <input id="showUsername" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
+                    <label for="showUsername" class="sdpi-item-label"><span></span>Append name of paging user</label>
+                </div>
+            </div>
             <div class="sdpi-item" id="dvAutoStopPage">
                 <div class="sdpi-item-label">Auto Stop (seconds)</div>
                 <input class="sdpi-item-value sdProperty" placeholder="10" id="autoStopPage" oninput="setSettings()">
@@ -104,7 +111,7 @@
                 <div class="sdpi-item-label">Notifications</div>
                 <div class="sdpi-item-value">
                     <input id="pubsubNotifications" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
-                    <label for="pubsubNotifications" class="sdpi-item-label"><span></span>Cheers/Follows/Subs/Points</label>
+                    <label for="pubsubNotifications" class="sdpi-item-label"><span></span>Cheers/Follows/Points/Raids/Subs</label>
                 </div>
             </div>
             <div id="dvPubsubNotifications">

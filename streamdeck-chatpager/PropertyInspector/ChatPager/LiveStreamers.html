@@ -17,12 +17,36 @@
             <summary>For feedback/suggestions contact me at <span class="linkspan" onclick="openWebsite()">https://BarRaider.com</span> </summary>
         </details>
         <div id="sdWrapper" style="display:none;">
+            <div type="radio" class="sdpi-item" id="rdLiveImage">
+                <div class="sdpi-item-label">Live Image</div>
+                <div class="sdpi-item-value ">
+                    <div class="sdpi-item-child">
+                        <input id="liveStreamPreview" class="sdProperty sdCheckbox" type="radio" name="rdLiveImage" checked oninput="setSettings()">
+                        <label for="liveStreamPreview" class="sdpi-item-label"><span></span>Stream Preview</label>
+                    </div>
+                    <div class="sdpi-item-child">
+                        <input id="liveGameIcon" class="sdProperty sdCheckbox" type="radio" name="rdLiveImage" oninput="setSettings()">
+                        <label for="liveGameIcon" class="sdpi-item-label"><span></span>Game Icon</label>
+                    </div>
+                    <div class="sdpi-item-child">
+                        <input id="liveUserIcon" class="sdProperty sdCheckbox" type="radio" name="rdLiveImage" oninput="setSettings()">
+                        <label for="liveUserIcon" class="sdpi-item-label"><span></span>User Icon</label>
+                    </div>
+                </div>
+            </div>
+
             <div class="sdpi-item" id="select_single">
                 <div class="sdpi-item-label">Long Press</div>
                 <select class="sdpi-item-value select sdProperty" id="longPressAction" oninput="setSettings()">
                     <option value="0" selected>Raids Streamer</option>
                     <option value="1">Hosts Streamer</option>
                 </select>
+            </div>
+            <div type="textarea" class="sdpi-item" id="dvFilteredUsers">
+                <div class="sdpi-item-label">Filtered Users</div>
+                <span class="sdpi-item-value textarea">
+                    <textarea type="textarea" oninput="setSettings()" class="sdProperty" id="filteredUsers" placeholder="One username per line"></textarea>
+                </span>
             </div>
             <hr />
             <div class="sdpi-item" id="dvReset">

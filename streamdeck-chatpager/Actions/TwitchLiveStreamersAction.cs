@@ -30,13 +30,29 @@ namespace ChatPager.Actions
                 PluginSettings instance = new PluginSettings
                 {
                     TokenExists = false,
-                    LongPressAction = TwitchLiveStreamersLongPressAction.Raid
+                    LongPressAction = TwitchLiveStreamersLongPressAction.Raid,
+                    FilteredUsers = String.Empty,
+                    LiveStreamPreview = true,
+                    LiveGameIcon = false,
+                    LiveUserIcon = false,
                 };
                 return instance;
             }
 
             [JsonProperty(PropertyName = "longPressAction")]
             public TwitchLiveStreamersLongPressAction LongPressAction { get; set; }
+
+            [JsonProperty(PropertyName = "filteredUsers")]
+            public string FilteredUsers { get; set; }
+
+            [JsonProperty(PropertyName = "liveStreamPreview")]
+            public bool LiveStreamPreview { get; set; }
+
+            [JsonProperty(PropertyName = "liveGameIcon")]
+            public bool LiveGameIcon { get; set; }
+
+            [JsonProperty(PropertyName = "liveUserIcon")]
+            public bool LiveUserIcon { get; set; }
         }
 
         protected PluginSettings Settings
@@ -75,7 +91,7 @@ namespace ChatPager.Actions
 
             Settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
             TwitchChat.Instance.Initialize();
-            SaveSettings();
+            InitializeSettings();
         }
 
         public override void Dispose() { }
@@ -86,8 +102,16 @@ namespace ChatPager.Actions
             var streamers = await TwitchChannelInfoManager.Instance.GetActiveStreamers();
             if (streamers != null)
             {
+                if (!String.IsNullOrWhiteSpace(Settings.FilteredUsers))
+                {
+                    var filteredUsers = Settings.FilteredUsers?.Replace("\r\n", "\n").ToLowerInvariant().Split('\n').ToList();
+                    streamers = streamers.Where(s => !filteredUsers.Contains(s.UserName.ToLowerInvariant())).ToArray();
+                }
                 AlertManager.Instance.Initialize(Connection);
-                AlertManager.Instance.ShowActiveStreamers(streamers.Reverse().ToArray(), Settings.LongPressAction);
+
+
+                ChannelDisplayImage cdi = ChannelDisplayExtensionMethods.FromSettings(Settings.LiveStreamPreview, Settings.LiveGameIcon, Settings.LiveUserIcon);
+                AlertManager.Instance.ShowActiveStreamers(new TwitchLiveStreamersDisplaySettings(streamers.Reverse().ToArray(), Settings.LongPressAction, cdi));
             }
             else
             {
@@ -120,7 +144,7 @@ namespace ChatPager.Actions
         public override void ReceivedSettings(ReceivedSettingsPayload payload) 
         {
             Tools.AutoPopulateSettings(Settings, payload.Settings);
-            SaveSettings();
+            InitializeSettings();
         }
 
         #endregion
@@ -130,6 +154,17 @@ namespace ChatPager.Actions
         protected override Task SaveSettings()
         {
             return Connection.SetSettingsAsync(JObject.FromObject(Settings));
+        }
+
+        private void InitializeSettings()
+        {
+            // Backwards competability
+            if (!Settings.LiveStreamPreview && !Settings.LiveGameIcon && !Settings.LiveUserIcon)
+            {
+                Settings.LiveStreamPreview = true;
+            }
+
+            SaveSettings();
         }
 
         #endregion

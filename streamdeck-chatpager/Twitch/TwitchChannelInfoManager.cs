@@ -1,4 +1,5 @@
 ﻿using BarRaider.SdTools;
+using ChatPager.Backend;
 using ChatPager.Wrappers;
 using System;
 using System.Collections.Generic;
@@ -188,6 +189,8 @@ namespace ChatPager.Twitch
                     Logger.Instance.LogMessage(TracingLevel.WARN, $"GetGameInfo returned null for GameId: {gameId}");
                 }
 
+                gameInfo.GameImage = await HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(gameInfo.ImageUrl));
+
                 dicGameInfo[gameId] = gameInfo;
                 return gameInfo;
             }
@@ -234,6 +237,8 @@ namespace ChatPager.Twitch
                     Logger.Instance.LogMessage(TracingLevel.WARN, $"GetGameInfo returned invalid GameId for Game: {gameName} ({gameInfo?.GameId})");
                     return null;
                 }
+
+                gameInfo.GameImage = await HelperFunctions.FetchImage(HelperFunctions.GenerateUrlFromGenericImageUrl(gameInfo.ImageUrl));
 
                 dicGameInfo[gameId] = gameInfo;
                 return gameId;

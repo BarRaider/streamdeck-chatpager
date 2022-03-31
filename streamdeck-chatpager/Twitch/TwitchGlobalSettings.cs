@@ -116,5 +116,8 @@ namespace ChatPager.Twitch
 
         [JsonProperty(PropertyName = "mutedUsers")]
         public string MutedUsers { get; set; }
+
+        [JsonProperty(PropertyName = "showUsername")]
+        public bool ShowUsername { get; set; }
     }
 }

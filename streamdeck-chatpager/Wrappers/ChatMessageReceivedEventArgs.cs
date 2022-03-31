@@ -11,8 +11,11 @@ namespace ChatPager.Wrappers
         public string Message { get; private set; }
         public string Author { get; private set; }
 
-        public ChatMessageReceivedEventArgs(string message, string author)
+        public string Channel { get; private set; }
+
+        public ChatMessageReceivedEventArgs(string channel, string message, string author)
         {
+            Channel = channel;
             Message = message;
             Author = author;
         }
