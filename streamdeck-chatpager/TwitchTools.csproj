@@ -47,14 +47,14 @@
     <PackageReference Include="TwitchLib.Client" Version="3.2.4" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\DotNet\StreamDeck\AudioUtils\AudioUtils.csproj" />
+    <ProjectReference Include="..\AudioUtils\AudioUtils.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="AudioUtils">
-      <HintPath>..\..\..\DotNet\StreamDeck\AudioUtils\bin\Release\AudioUtils.dll</HintPath>
+      <HintPath>..\AudioUtils\bin\Release\AudioUtils.dll</HintPath>
     </Reference>
     <Reference Include="PickersUtil">
-      <HintPath>..\..\PickersUtil\PickersUtil\bin\Release\PickersUtil.dll</HintPath>
+      <HintPath>..\PickersUtil\bin\Release\PickersUtil.dll</HintPath>
     </Reference>
     <Reference Include="System">
       <HintPath>System</HintPath>
