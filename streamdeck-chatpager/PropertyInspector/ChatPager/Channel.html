@@ -67,7 +67,7 @@
                 </div>
                 <div class="sdpi-item" id="dvSoundFile">
                     <div class="sdpi-item-label">Sound File</div>
-                    <div class="sdpi-item-group file" id="filepickergroup">
+                    <div class="sdpi-item-group file" id="soundfilepickergroup">
                         <input class="sdpi-item-value sdProperty sdFile" type="file" id="playSoundOnLiveFile" accept=".wav, .mp3, .ogg, .wma, .aac, .mp4" oninput="setSettings()">
                         <label class="sdpi-file-info " for="playSoundOnLiveFile" id="playSoundOnLiveFileFilename">No file...</label>
                         <label class="sdpi-file-label" for="playSoundOnLiveFile">Choose file...</label>
@@ -106,6 +106,38 @@
                     <div class="sdpi-item-child">
                         <input id="keypressCreator" class="sdProperty sdCheckbox" type="radio" name="rdKeyPress" oninput="setSettings()">
                         <label for="keypressCreator" class="sdpi-item-label"><span></span>Open Creator Dashboard</label>
+                    </div>
+                </div>
+            </div>
+            <div type="checkbox" class="sdpi-item" id="dvCustomBrowser">
+                <div class="sdpi-item-label">Custom Browser</div>
+                <div class="sdpi-item-value">
+                    <input id="customBrowser" type="checkbox" value="" class="sdProperty sdCheckbox" oninput="setSettings()">
+                    <label for="customBrowser" class="sdpi-item-label"><span></span>Use a custom browser configuration</label>
+                </div>
+            </div>
+            <div id="dvKeypressSettings">
+                <div class="sdpi-item" id="dvBrowserExecutable">
+                    <div class="sdpi-item-label">Browser Executable</div>
+                    <div class="sdpi-item-group file" id="browserexecutablepickergroup">
+                        <input class="sdpi-item-value sdProperty sdFile" type="file" id="browserExecutableFile" accept=".exe" oninput="setSettings()">
+                        <label class="sdpi-file-info " for="browserExecutableFile" id="browserExecutableFileFilename">No file...</label>
+                        <label class="sdpi-file-label" for="browserExecutableFile">Choose file...</label>
+                    </div>
+                </div>
+
+                <div type="checkbox" class="sdpi-item" id="dvKeypressNewWindow">
+                    <div class="sdpi-item-label">New Window</div>
+                    <div class="sdpi-item-value">
+                        <input id="keypressNewWindow" type="checkbox" value="" class="sdProperty sdCheckbox" oninput="setSettings()">
+                        <label for="keypressNewWindow" class="sdpi-item-label"><span></span>Open in a new window (chrome and firefox)</label>
+                    </div>
+                </div>
+                <div type="checkbox" class="sdpi-item" id="dvKeypressAppMode">
+                    <div class="sdpi-item-label">App Mode</div>
+                    <div class="sdpi-item-value">
+                        <input id="keypressAppMode" type="checkbox" value="" class="sdProperty sdCheckbox" oninput="setSettings()">
+                        <label for="keypressAppMode" class="sdpi-item-label"><span></span>Open window in App Mode (chrome only)</label>
                     </div>
                 </div>
             </div>
