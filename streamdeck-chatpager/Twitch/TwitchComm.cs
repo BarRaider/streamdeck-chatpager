@@ -403,7 +403,7 @@ namespace ChatPager.Twitch
             return null;
         }
 
-        public async Task<bool> CreateMarker(string channel)
+        public async Task<bool> CreateMarker(string channel, string description)
         {
             (string broadcasterId, string moderatorId) = await GetBroadcasterAndModeratorIds(channel);
 
@@ -413,10 +413,15 @@ namespace ChatPager.Twitch
                 return false;
             }
 
+            if (String.IsNullOrEmpty(description))
+            {
+                description = "Created by BarRaider's Twitch Tools";
+            }
+
             JObject req = new JObject
             {
                 { "user_id", broadcasterId },
-                { "description", "Created by BarRaider's Twitch Tools"}
+                { "description", description}
             };
 
             HttpResponseMessage response = await TwitchHelixQuery(TWITCH_CREATE_MARKER_URI, SendMethod.POST, null, req);
