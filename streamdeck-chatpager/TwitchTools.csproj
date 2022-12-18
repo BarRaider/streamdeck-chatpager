@@ -248,6 +248,9 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+    <None Update="PropertyInspector\BanTimeout.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="PropertyInspector\ChannelViewers.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

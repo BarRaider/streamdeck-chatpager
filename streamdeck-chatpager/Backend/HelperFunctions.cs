@@ -21,8 +21,6 @@ namespace ChatPager.Backend
         {
             return Task.Run(() =>
             {
-
-
                 try
                 {
                     if (String.IsNullOrEmpty(imageUrl))
