@@ -23,14 +23,9 @@ namespace ChatPager.Actions
     //---------------------------------------------------
 
     [PluginActionId("com.barraider.twitchtools.shoutout")]
-    public class TwitchShoutoutAction : ActionBase
+    public class TwitchShoutoutAction : UserSelectionActionBase
     {
-        public enum UsersDisplay
-        {
-            ActiveChatters,
-            AllViewers
-        }
-        protected class PluginSettings : PluginSettingsBase
+        protected class PluginSettings : UserSelectionPluginSettings
         {
             public static PluginSettings CreateDefaultSettings()
             {
@@ -41,25 +36,12 @@ namespace ChatPager.Actions
                     Channel = String.Empty,
                     UsersDisplay = UsersDisplay.ActiveChatters,
                     DontLoadImages = false,
-                    Suffix = String.Empty
                 };
                 return instance;
             }
 
             [JsonProperty(PropertyName = "chatMessage")]
             public string ChatMessage { get; set; }
-
-            [JsonProperty(PropertyName = "channel")]
-            public string Channel { get; set; }
-
-            [JsonProperty(PropertyName = "usersDisplay")]
-            public UsersDisplay UsersDisplay { get; set; }
-
-            [JsonProperty(PropertyName = "dontLoadImages")]
-            public bool DontLoadImages { get; set; }
-
-            [JsonProperty(PropertyName = "suffix")]
-            public string Suffix { get; set; }
         }
 
         protected PluginSettings Settings
@@ -69,7 +51,7 @@ namespace ChatPager.Actions
                 var result = settings as PluginSettings;
                 if (result == null)
                 {
-                    Logger.Instance.LogMessage(TracingLevel.ERROR, "Cannot convert PluginSettingsBase to PluginSettings");
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} Cannot convert PluginSettingsBase to PluginSettings");
                 }
                 return result;
             }
@@ -99,11 +81,8 @@ namespace ChatPager.Actions
             }
 
             Settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
-            TwitchChat.Instance.Initialize();
             InitializeSettings();
         }
-
-        public override void Dispose() { }
 
         public override async void KeyPressed(KeyPayload payload)
         {
@@ -122,40 +101,15 @@ namespace ChatPager.Actions
                 return;
             }
 
-            string[] userNames;
-            if (Settings.UsersDisplay == UsersDisplay.ActiveChatters)
+            string[] userNames = await GetUsersList();
+            if (userNames == null)
             {
-                var chatters = TwitchChat.Instance.GetLastChatters();
-                if (chatters == null)
-                {
-                    Logger.Instance.LogMessage(TracingLevel.ERROR, "GetLastChatters returned null");
-                    await Connection.ShowAlert();
-                    return;
-                }
-
-                Logger.Instance.LogMessage(TracingLevel.INFO, "Shoutout loading active chatters");
-                userNames = chatters.ToArray();
+                await Connection.ShowAlert();
+                return;
             }
-            else // Show all viewers
-            {
-                string channel = Settings.Channel;
-                if (String.IsNullOrEmpty(channel))
-                {
-                    channel = TwitchTokenManager.Instance.User.UserName;
-                }
-                var viewers = await TwitchChannelInfoManager.Instance.GetChannelViewers(channel);
-                if (viewers == null)
-                {
-                    Logger.Instance.LogMessage(TracingLevel.ERROR, "GetChannelViewers returned null");
-                    await Connection.ShowAlert();
-                    return;
-                }
-                Logger.Instance.LogMessage(TracingLevel.INFO, "Shoutout loading all viewers");
-                userNames = viewers.AllViewers.OrderBy(u => u.ToLowerInvariant()).ToArray();
-            }           
 
             // We have a list of usernames, get some more details on them so we can display their image on the StreamDeck
-            List<ChatMessageKey> chatMessages = new List<ChatMessageKey>();
+            List<UserSelectionEventSettings> chatSettings = new List<UserSelectionEventSettings>();
             foreach (string username in userNames)
             {
                 TwitchUserInfo userInfo = null;
@@ -163,23 +117,21 @@ namespace ChatPager.Actions
                 {
                     userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(username);
                 }
-                chatMessages.Add(new ChatMessageKey(userInfo?.Name ?? username, userInfo?.ProfileImageUrl, Settings.ChatMessage.Replace("{USERNAME}", $"{userInfo?.Name ?? username}").Replace("{SUFFIX}", Settings.Suffix)));
+                chatSettings.Add(new UserSelectionEventSettings(UserSelectionEventType.ChatMessage, userInfo?.Name ?? username, userInfo?.ProfileImageUrl, userInfo?.UserId ?? null, Settings.ChatMessage.Replace("{USERNAME}", $"{userInfo?.Name ?? username}")));
             }
-            Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {chatMessages?.Count} chat messages");
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {chatSettings?.Count} users");
 
             // Show the active chatters on the StreamDeck
-            if (chatMessages != null && chatMessages.Count > 0)
+            if (chatSettings != null && chatSettings.Count > 0)
             {
                 AlertManager.Instance.Initialize(Connection);
-                AlertManager.Instance.ShowChatMessages(chatMessages.ToArray(), Settings.Channel);
+                AlertManager.Instance.ShowUserSelectionEvent(chatSettings.ToArray(), Settings.Channel);
             }
             else
             {
                 await Connection.ShowOk();
             }
         }
-
-        public override void KeyReleased(KeyPayload payload) { }
 
         public override void OnTick()
         {
@@ -190,8 +142,9 @@ namespace ChatPager.Actions
             {
                 return;
             }
-
         }
+
+        public override void KeyReleased(KeyPayload payload) { }
 
         public override void ReceivedGlobalSettings(ReceivedGlobalSettingsPayload payload) { }
 
@@ -199,6 +152,7 @@ namespace ChatPager.Actions
         {
             Tools.AutoPopulateSettings(Settings, payload.Settings);
             InitializeSettings();
+            SaveSettings();
         }
 
         #endregion
