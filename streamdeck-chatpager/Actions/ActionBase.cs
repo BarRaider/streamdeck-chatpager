@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace ChatPager.Actions
 {
-    public abstract class ActionBase : PluginBase
+    public abstract class ActionBase : KeypadBase
     {
         protected class PluginSettingsBase
         {

@@ -29,13 +29,17 @@ namespace ChatPager.Actions
                 PluginSettings instance = new PluginSettings
                 {
                     TokenExists = false,
-                    Channel = String.Empty
+                    Channel = String.Empty,
+                    Description = String.Empty
                 };
                 return instance;
             }
 
             [JsonProperty(PropertyName = "channel")]
             public string Channel { get; set; }
+
+            [JsonProperty(PropertyName = "description")]
+            public string Description { get; set; }
         };
 
         protected PluginSettings Settings
@@ -96,7 +100,7 @@ namespace ChatPager.Actions
                     channel = Settings.Channel;
                 }
 
-                if (await comm.CreateMarker(channel))
+                if (await comm.CreateMarker(channel, Settings.Description))
                 {
                     await Connection.ShowOk();
                 }

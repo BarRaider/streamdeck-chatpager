@@ -23,7 +23,7 @@ namespace ChatPager
     //---------------------------------------------------
 
     [PluginActionId("com.barraider.alertflasher")]
-    class AlertFlasher : PluginBase
+    class AlertFlasher : KeypadBase
     {
         private enum FlashMode
         {
