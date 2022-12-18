@@ -374,21 +374,6 @@ namespace ChatPager.Actions
 
         private void InitializeSettings()
         {
-            CheckBackwardCompatibility();
-        }
-
-        [Obsolete("Remove in next major release")]
-        private void CheckBackwardCompatibility()
-        {
-            if (Settings.Version == CURRENT_VERSION)
-            {
-                return;
-            }
-
-            // Version 0
-            Settings.LoadFromFile = true;
-            Settings.Version = 1;
-            SaveSettings();
         }
 
         #endregion

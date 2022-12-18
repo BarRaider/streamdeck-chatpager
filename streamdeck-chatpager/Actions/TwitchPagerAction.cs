@@ -301,7 +301,11 @@ namespace ChatPager.Actions
                     return;
                 }
 
-                await HandleSoundPlay(e.Author);
+                if (!await HandleSoundPlay(e.Author))
+                {
+                    Settings.PlaySoundOnChat = false;
+                    await SaveSettings();
+                }
             }
         }
 
@@ -570,7 +574,7 @@ namespace ChatPager.Actions
                         else // Move to multi line
                         {
                             stringHeight = 0;
-                            pageMessage = Tools.SplitStringToFit(pageMessage, new BarRaider.SdTools.Wrappers.TitleParameters(font.FontFamily, font.Style, font.Size, Color.White, true, BarRaider.SdTools.Wrappers.TitleVerticalAlignment.Top), imageWidthPixels: width);
+                            pageMessage = pageMessage.SplitToFitKey(new BarRaider.SdTools.Wrappers.TitleParameters(font.FontFamily, font.Style, font.Size, Color.White, true, BarRaider.SdTools.Wrappers.TitleVerticalAlignment.Top), imageWidthPixels: width);
                         }
                         graphics.DrawString(pageMessage, font, fgBrush, new PointF(stringPos, stringHeight));
                         Connection.SetImageAsync(img);
@@ -669,7 +673,11 @@ namespace ChatPager.Actions
             isPaging = true;
             if (Settings.PlaySoundOnNotification)
             {
-                await HandleSoundPlay(e.Author);
+                if (!await HandleSoundPlay(e.Author))
+                {
+                    Settings.PlaySoundOnNotification = false;
+                    await SaveSettings();
+                }
             }
         }
 
@@ -788,35 +796,41 @@ namespace ChatPager.Actions
             }
         }
 
-        private async Task HandleSoundPlay(string triggeredUser)
+        /// <summary>
+        /// Return value is used to determine if it's a user error and thus disabling this feature
+        /// </summary>
+        /// <param name="triggeredUser"></param>
+        /// <returns></returns>
+        private async Task<bool> HandleSoundPlay(string triggeredUser)
         {
             if (String.IsNullOrEmpty(Settings.PlaySoundFile) || string.IsNullOrEmpty(Settings.PlaybackDevice))
             {
                 Logger.Instance.LogMessage(TracingLevel.WARN, $"HandleSoundPlay called but File or Playback device are empty. File: {Settings.PlaySoundFile} Device: {Settings.PlaybackDevice}");
-                return;
+                return false;
             }
 
             if (!File.Exists(Settings.PlaySoundFile))
             {
                 Logger.Instance.LogMessage(TracingLevel.WARN, $"HandleSoundPlay called but file does not exist: {Settings.PlaySoundFile}");
-                return;
+                return false;
             }
 
             if (mutedUsers != null && mutedUsers.Contains(triggeredUser.ToLowerInvariant()))
             {
                 Logger.Instance.LogMessage(TracingLevel.WARN, $"HandleSoundPlay called but {triggeredUser} is muted");
-                return;
+                return true;
             }
 
             if ((DateTime.Now - lastSoundPlay).TotalSeconds < soundCooldown)
             {
                 Logger.Instance.LogMessage(TracingLevel.INFO, $"HandleSoundPlay in cooldown");
-                return;
+                return true;
             }
 
             Logger.Instance.LogMessage(TracingLevel.INFO, $"HandleSoundPlay called. Playing {Settings.PlaySoundFile} on device: {Settings.PlaybackDevice}");
             lastSoundPlay = DateTime.Now;
             await AudioUtils.Common.PlaySound(Settings.PlaySoundFile, Settings.PlaybackDevice);
+            return true;
         }
 
         #endregion

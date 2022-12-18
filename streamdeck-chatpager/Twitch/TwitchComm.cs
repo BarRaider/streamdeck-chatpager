@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using TwitchLib.Api.Helix.Models.Search;
 
 namespace ChatPager.Twitch
 {
@@ -346,7 +347,7 @@ namespace ChatPager.Twitch
 
             if (string.IsNullOrEmpty(broadcasterId))
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"CreateClip failed tp get broadcaster id");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"CreateClip failed to get broadcaster id");
                 return null;
             }
 
@@ -378,7 +379,7 @@ namespace ChatPager.Twitch
 
             if (string.IsNullOrEmpty(broadcasterId))
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"CreateMarker failed tp get broadcaster ids");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"CreateMarker failed to get broadcaster ids");
                 return false;
             }
 
@@ -461,7 +462,7 @@ namespace ChatPager.Twitch
 
             if (string.IsNullOrEmpty(broadcasterId) || string.IsNullOrEmpty(moderatorId))
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"IsShieldEnabled failed tp get broadcaster/moderator ids");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"IsShieldEnabled failed to get broadcaster/moderator ids");
                 return null;
             }
 
@@ -502,7 +503,7 @@ namespace ChatPager.Twitch
 
             if (string.IsNullOrEmpty(broadcasterId) || string.IsNullOrEmpty(moderatorId))
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"SetShieldStatus failed tp get broadcaster/moderator ids");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"SetShieldStatus failed to get broadcaster/moderator ids");
                 return false;
             }
 
@@ -628,6 +629,79 @@ namespace ChatPager.Twitch
 
             HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_RAIDS, SendMethod.POST_QUERY_PARAMS, kvp, null);
             return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool?> IsShieldEnabled(string channel)
+        {
+            (string broadcasterId, string moderatorId) = await GetBroadcasterAndModeratorIds(channel);
+
+            if (string.IsNullOrEmpty(broadcasterId) || string.IsNullOrEmpty(moderatorId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"IsShieldEnabled failed to get broadcaster/moderator ids");
+                return null;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("moderator_id", moderatorId),
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_SHIELD_MODE, SendMethod.GET, kvp, null);
+            if (response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    string body = await response.Content.ReadAsStringAsync();
+                    JObject json = JObject.Parse(body);
+                    if (json["data"].HasValues)
+                    {
+                        return json["data"][0]["is_active"].Value<bool>();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"IsShieldEnabled Exception: {ex}");
+                }
+            }
+            else
+            {
+                string res = await response.Content.ReadAsStringAsync();
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"IsShieldEnabled Fetch Failed. Error {res}");
+            }
+            return null;
+        }
+
+        public async Task<bool> SetShieldStatus(string channel, bool isEnabled)
+        {
+            (string broadcasterId, string moderatorId) = await GetBroadcasterAndModeratorIds(channel);
+
+            if (string.IsNullOrEmpty(broadcasterId) || string.IsNullOrEmpty(moderatorId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"SetShieldStatus failed to get broadcaster/moderator ids");
+                return false;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("moderator_id", moderatorId),
+            };
+
+            JObject req = new JObject
+            {
+                { "is_active", isEnabled },
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_SHIELD_MODE, SendMethod.PUT, kvp, req);
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+
+            string res = await response.Content.ReadAsStringAsync();
+            Logger.Instance.LogMessage(TracingLevel.WARN, $"SetShieldStatus Failed. Error {res}");
+            return false;
         }
 
         #endregion

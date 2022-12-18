@@ -352,16 +352,16 @@ namespace ChatPager.Backend
             string profileName = String.Empty;
             switch (connection.DeviceInfo().Type)
             {
-                case StreamDeckDeviceType.StreamDeckClassic:
+                case DeviceType.StreamDeckClassic:
                     profileName = "FullScreenAlert";
                     break;
-                case StreamDeckDeviceType.StreamDeckMini:
+                case DeviceType.StreamDeckMini:
                     profileName = "FullScreenAlertMini";
                     break;
-                case StreamDeckDeviceType.StreamDeckXL:
+                case DeviceType.StreamDeckXL:
                     profileName = "FullScreenAlertXL";
                     break;
-                case StreamDeckDeviceType.StreamDeckMobile:
+                case DeviceType.StreamDeckMobile:
                     profileName = "FullScreenAlertMobile";
                     break;
                 default:
