@@ -98,7 +98,7 @@ namespace ChatPager.Actions
             }
 
             // We have a list of usernames, get some more details on them so we can display their image on the StreamDeck
-            List<ChatMessageKey> chatMessages = new List<ChatMessageKey>();
+            List<UserSelectionEventSettings> chatSettings = new List<UserSelectionEventSettings>();
             foreach (string username in viewers?.AllViewers)
             {
                 TwitchUserInfo userInfo = null;
@@ -106,15 +106,15 @@ namespace ChatPager.Actions
                 {
                     userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(username);
                 }
-                chatMessages.Add(new ChatMessageKey(userInfo?.Name ?? username, userInfo?.ProfileImageUrl, null));
+                chatSettings.Add(new UserSelectionEventSettings(UserSelectionEventType.ChatMessage, userInfo?.Name ?? username, userInfo?.ProfileImageUrl));
             }
-            Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {chatMessages?.Count} viewers");
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {chatSettings?.Count} viewers");
 
             // Show the active chatters on the StreamDeck
-            if (chatMessages != null && chatMessages.Count > 0)
+            if (chatSettings != null && chatSettings.Count > 0)
             {
                 AlertManager.Instance.Initialize(Connection);
-                AlertManager.Instance.ShowChatMessages(chatMessages.OrderBy(c => c.KeyTitle.ToLowerInvariant()).ToArray(), null);
+                AlertManager.Instance.ShowUserSelectionEvent(chatSettings.OrderBy(c => c.KeyTitle.ToLowerInvariant()).ToArray(), null);
             }
             else
             {
