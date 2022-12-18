@@ -9,6 +9,6 @@ namespace ChatPager.Wrappers
     public enum TwitchLiveStreamersLongPressAction
     {
         Raid = 0,
-        Host = 1
+        NO_LONGER_USED
     }
 }
