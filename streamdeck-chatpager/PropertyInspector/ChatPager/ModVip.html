@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css">
     <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
     <script src="../setup.js"></script>
-    <script src="../BanTimeout.js"></script>
 </head>
 <body>
     <div class="sdpi-wrapper">
@@ -21,23 +20,12 @@
                 <div class="sdpi-item-label">Action</div>
                 <select class="sdpi-item-value select sdProperty" id="command" oninput="setSettings()">
                     <option value="" selected>- CHOOSE ACTION -</option>
-                    <option value="0">Ban User</option>
-                    <option value="1">Unban User</option>
-                    <option value="2">Timeout User</option>
-                    <option value="3">Remove Timeout</option>
+                    <option value="0">Mod User</option>
+                    <option value="1">Unmod User</option>
+                    <option value="2">Vip User</option>
+                    <option value="3">UnVip User</option>
                 </select>
             </div>
-            <div class="sdpi-item" id="dvDuration">
-                <div class="sdpi-item-label">Timeout Duration (seconds)</div>
-                <input class="sdpi-item-value sdProperty" id="timeoutLength" inputmode="numeric" pattern="[0-9]*" type="number" placeholder="600" value="600" oninput="setSettings()">
-            </div>
-            <div class="sdpi-item" id="dvChannel">
-                <div class="sdpi-item-label">Channel (optional)</div>
-                <input class="sdpi-item-value sdProperty" placeholder="barraider" id="channel" oninput="setSettings()">
-            </div>
-            <details class="message">
-                <summary>Empty 'Channel' performs action on your own channel. NOTE: Active Chatter option will only work if 'Channel' is left empty.</summary>
-            </details>
             <div class="sdpi-item" id="dvUsersDisplay">
                 <div class="sdpi-item-label">Choose from</div>
                 <select class="sdpi-item-value select sdProperty" id="usersDisplay" oninput="setSettings()" value="0">

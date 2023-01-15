@@ -139,9 +139,10 @@ namespace ChatPager.Actions
 
             // Added as booleans otherwise it will short circuit the second call
             bool statusResult = await UpdateStatus();
-            bool tagsResult = await UpdateTags();
+            //bool tagsResult = await UpdateTags();
 
-            if (statusResult || tagsResult)
+            //if (statusResult || tagsResult)
+            if (statusResult)
             {
                 await Connection.ShowOk();
             }

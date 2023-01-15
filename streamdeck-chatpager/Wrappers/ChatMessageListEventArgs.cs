@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace ChatPager.Wrappers
 {
-    public class ChatMessageListEventArgs : EventArgs
+    internal class UserSelectionEventArgs : EventArgs
     {
-        public ChatMessageKey[] ChatMessageKeys { get; private set; }
+        public UserSelectionEventSettings[] KeysDetails { get; private set; }
         public int CurrentPage { get; set; }
 
         public int NumberOfKeys { get; private set; }
@@ -17,9 +17,9 @@ namespace ChatPager.Wrappers
         public string Channel { get; private set; }
 
 
-        public ChatMessageListEventArgs(ChatMessageKey[] chatMessageKeys, string channel, int numberOfKeys, int currentPage)
+        public UserSelectionEventArgs(UserSelectionEventSettings[] keysDetails, string channel, int numberOfKeys, int currentPage)
         {
-            ChatMessageKeys = chatMessageKeys;
+            KeysDetails = keysDetails;
             NumberOfKeys = numberOfKeys;
             CurrentPage = currentPage;
             Channel = channel;

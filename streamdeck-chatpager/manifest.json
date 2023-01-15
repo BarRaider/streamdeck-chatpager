@@ -12,12 +12,12 @@
       ],
       "SupportedInMultiActions": false,
       "Tooltip": "Shows list of viewers you can ban/timeout.",
-      "UUID": "com.barraider.twitchtools.bantimeout",
+      "UUID": "com.barraider.twitchtools.bantimeoutcmd",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/BanTimeout.html"
     },
     {
       "Icon": "Images/streamTitleIcon",
-      "Name": "Change Stream Title/Game/Tags",
+      "Name": "Change Title/Game",
       "States": [
         {
           "Image": "Images/streamTitleAction",
@@ -46,6 +46,21 @@
       "Tooltip": "Shows you when your favorite streamer is live.",
       "UUID": "com.barraider.twitchtools.channel",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/Channel.html"
+    },
+    {
+      "Icon": "Images/clearChatIcon",
+      "Name": "Clear Chat",
+      "States": [
+        {
+          "Image": "Images/clearChatAction",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": true,
+      "Tooltip": "Clear all messages in chat.",
+      "UUID": "com.barraider.twitchtools.clearchat",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/ClearChat.html"
     },
     {
       "Icon": "Images/clipIcon",
@@ -107,6 +122,21 @@
       "Tooltip": "Shows you which of the streamers you follow are currently live.",
       "UUID": "com.barraider.twitchtools.livestreamers",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/LiveStreamers.html"
+    },
+    {
+      "Icon": "Images/modIcon",
+      "Name": "Mods / VIPs",
+      "States": [
+        {
+          "Image": "Images/modAction",
+          "TitleAlignment": "middle",
+          "FontSize": "12"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Shows list of viewers you can grant or remove moderation or VIP status.",
+      "UUID": "com.barraider.twitchtools.modvipcmd",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/ModVip.html"
     },
     {
       "Icon": "Images/adIcon",
@@ -226,7 +256,7 @@
   "Name": "Twitch Tools",
   "Icon": "Images/pluginIcon",
   "URL": "https://BarRaider.com/",
-  "Version": "3.0.1",
+  "Version": "3.1",
   "DefaultWindowSize": [ 620, 750 ],
   "CodePath": "com.barraider.twitchtools",
   "Category": "Twitch Tools [BarRaider]",

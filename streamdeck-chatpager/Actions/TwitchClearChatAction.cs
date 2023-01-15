@@ -1,7 +1,5 @@
 ﻿using BarRaider.SdTools;
-using ChatPager.Backend;
 using ChatPager.Twitch;
-using ChatPager.Wrappers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -16,15 +14,8 @@ using System.Threading.Tasks;
 
 namespace ChatPager.Actions
 {
-
-    //---------------------------------------------------
-    //          BarRaider's Hall Of Fame
-    // Subscriber: KreatureOfHaviQ
-    // Quote of the day: "Bots have feelings too..." 1/29 - BarRaider
-    //---------------------------------------------------
-
-    [PluginActionId("com.barraider.twitchtools.channelviewers")]
-    public class TwitchChannelViewersAction : ActionBase
+    [PluginActionId("com.barraider.twitchtools.clearchat")]
+    public class TwitchClearChatAction : ActionBase
     {
         protected class PluginSettings : PluginSettingsBase
         {
@@ -33,17 +24,13 @@ namespace ChatPager.Actions
                 PluginSettings instance = new PluginSettings
                 {
                     TokenExists = false,
-                    ChannelName = string.Empty,
-                    DontLoadImages = false
+                    Channel = String.Empty,
                 };
                 return instance;
             }
 
-            [JsonProperty(PropertyName = "channelName")]
-            public string ChannelName { get; set; }
-
-            [JsonProperty(PropertyName = "dontLoadImages")]
-            public bool DontLoadImages { get; set; }
+            [JsonProperty(PropertyName = "channel")]
+            public string Channel { get; set; }
         }
 
         protected PluginSettings Settings
@@ -69,7 +56,7 @@ namespace ChatPager.Actions
 
         #region Public Methods
 
-        public TwitchChannelViewersAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
+        public TwitchClearChatAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
         {
             if (payload.Settings == null || payload.Settings.Count == 0)
             {
@@ -81,6 +68,7 @@ namespace ChatPager.Actions
             }
 
             Settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
+            TwitchChat.Instance.Initialize();
             SaveSettings();
         }
 
@@ -89,42 +77,26 @@ namespace ChatPager.Actions
         public override async void KeyPressed(KeyPayload payload)
         {
             Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPressed");
-            var viewers = await TwitchChannelInfoManager.Instance.GetChannelViewers(Settings.ChannelName);
-            if (viewers == null)
+            if (!TwitchTokenManager.Instance.TokenExists)
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} GetChannelViewers returned null!");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} called without a valid token");
                 await Connection.ShowAlert();
                 return;
             }
 
-            // We have a list of usernames, get some more details on them so we can display their image on the StreamDeck
-            List<UserSelectionEventSettings> chatSettings = new List<UserSelectionEventSettings>();
-            foreach (string username in viewers?.AllViewers)
+            if (await ClearChat())
             {
-                TwitchUserInfo userInfo = null;
-                if (!Settings.DontLoadImages)
-                {
-                    userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(username);
-                }
-                chatSettings.Add(new UserSelectionEventSettings(UserSelectionEventType.ChatMessage, userInfo?.Name ?? username, userInfo?.ProfileImageUrl));
-            }
-            Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {chatSettings?.Count} viewers");
-
-            // Show the active chatters on the StreamDeck
-            if (chatSettings != null && chatSettings.Count > 0)
-            {
-                AlertManager.Instance.Initialize(Connection);
-                AlertManager.Instance.ShowUserSelectionEvent(chatSettings.OrderBy(c => c.KeyTitle.ToLowerInvariant()).ToArray(), null);
+                await Connection.ShowOk();
             }
             else
             {
-                await Connection.ShowOk();
+                await Connection.ShowAlert();
             }
         }
 
         public override void KeyReleased(KeyPayload payload) { }
 
-        public async override void OnTick()
+        public override void OnTick()
         {
             baseHandledOnTick = false;
             base.OnTick();
@@ -132,12 +104,6 @@ namespace ChatPager.Actions
             if (baseHandledOnTick)
             {
                 return;
-            }
-
-            if (TwitchTokenManager.Instance.TokenExists && !String.IsNullOrEmpty(Settings.ChannelName))
-            {
-                var viewers = await TwitchChannelInfoManager.Instance.GetChannelViewers(Settings.ChannelName);
-                await Connection.SetTitleAsync($"👀 {viewers?.TotalViewers}");
             }
         }
 
@@ -152,6 +118,28 @@ namespace ChatPager.Actions
         #endregion
 
         #region Private Methods
+
+        public async Task<bool> ClearChat()
+        {
+            try
+            {
+                using (TwitchComm tc = new TwitchComm())
+                {
+                    string channel = TwitchTokenManager.Instance.User?.UserName;
+                    if (!String.IsNullOrEmpty(Settings.Channel))
+                    {
+                        channel = Settings.Channel;
+                    }
+
+                    return await tc.ClearChat(channel);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"Could not create Twitch Clip: {ex}");
+            }
+            return false;
+        }
 
         protected override Task SaveSettings()
         {
