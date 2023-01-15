@@ -11,10 +11,11 @@ namespace ChatPager.Wrappers
         None = 0,
         BanTimeout,
         UnbanUntimeout,
-        Raid,
-        Vip,
         Announcement,
-
-
+        Raid,
+        Mod,
+        Unmod,
+        Vip,
+        Unvip,
     }
 }

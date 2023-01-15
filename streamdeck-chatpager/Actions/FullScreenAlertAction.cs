@@ -682,6 +682,14 @@ namespace ChatPager
                     return await tc.BanUser(details.ChannelName, details.UserId, timeoutLength);
                 case ApiCommandType.UnbanUntimeout:
                     return await tc.UnbanUser(details.ChannelName, details.UserId);
+                case ApiCommandType.Mod:
+                    return await tc.ModUser(details.UserId);
+                case ApiCommandType.Unmod:
+                    return await tc.UnmodUser(details.UserId);
+                case ApiCommandType.Vip: 
+                    return await tc.VipUser (details.UserId);
+                case ApiCommandType.Unvip:
+                    return await tc.UnvipUser(details.UserId);
 
                 case ApiCommandType.None:
                 default:

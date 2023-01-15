@@ -76,7 +76,7 @@ function openTwitchAuth() {
         const json = {
             'event': 'openUrl',
             'payload': {
-                'url': 'https://id.twitch.tv/oauth2/authorize?client_id=o02y5mq522n0qaphd6yasbhyfplye3&redirect_uri=https://barraider.com/twitchredir&response_type=token&scope=chat:read%20chat:edit%20whispers:read%20whispers:edit%20clips:edit%20channel:moderate%20channel:manage:videos%20user:read:follows%20user:edit:broadcast%20bits:read%20channel:read:subscriptions%20channel:read:redemptions%20channel:manage:broadcast%20channel:edit:commercial%20moderator:manage:shield_mode%20channel:manage:raids%20moderator:manage:banned_users%20channel:manage:moderators%20channel:manage:vips'
+                'url': 'https://id.twitch.tv/oauth2/authorize?client_id=o02y5mq522n0qaphd6yasbhyfplye3&redirect_uri=https://barraider.com/twitchredir&response_type=token&scope=chat:read%20chat:edit%20whispers:read%20whispers:edit%20clips:edit%20channel:moderate%20channel:manage:videos%20user:read:follows%20user:edit:broadcast%20bits:read%20channel:read:subscriptions%20channel:read:redemptions%20channel:manage:broadcast%20channel:edit:commercial%20moderator:manage:shield_mode%20channel:manage:raids%20moderator:manage:banned_users%20channel:manage:moderators%20channel:manage:vips%20moderator:manage:announcements%20moderator:manage:chat_messages%20moderator:read:chatters'
             }
         };
         websocket.send(JSON.stringify(json));

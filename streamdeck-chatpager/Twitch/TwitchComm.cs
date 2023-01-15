@@ -9,6 +9,8 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using TwitchLib.Api.Helix.Models.Moderation.GetModerators;
+using TwitchLib.Api.Helix;
 using TwitchLib.Api.Helix.Models.Search;
 
 namespace ChatPager.Twitch
@@ -42,6 +44,10 @@ namespace ChatPager.Twitch
         private const string TWITCH_URI_SHIELD_MODE = "/moderation/shield_mode";
         private const string TWITCH_URI_RAIDS = "/raids";
         private const string TWITCH_URI_BANS = "/moderation/bans";
+        private const string TWITCH_URI_MOD = "/moderation/moderators";
+        private const string TWITCH_URI_VIP = "/channels/vips";
+        private const string TWITCH_URI_ANNOUNCEMENT = "/chat/announcements";
+        private const string TWITCH_URI_CHAT = "/moderation/chat";
 
         private readonly int[] VALID_AD_LENGTHS = new int[] { 30, 60, 90, 120, 150, 180 };
 
@@ -343,7 +349,7 @@ namespace ChatPager.Twitch
 
         public async Task<ClipDetails> CreateClip(string userName)
         {
-            (string broadcasterId, string moderatorId) = await GetBroadcasterAndModeratorIds(userName);
+            (string broadcasterId, string _) = await GetBroadcasterAndModeratorIds(userName);
 
             if (string.IsNullOrEmpty(broadcasterId))
             {
@@ -519,14 +525,7 @@ namespace ChatPager.Twitch
             };
 
             HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_SHIELD_MODE, SendMethod.PUT, kvp, req);
-            if (response.IsSuccessStatusCode)
-            {
-                return true;
-            }
-
-            string res = await response.Content.ReadAsStringAsync();
-            Logger.Instance.LogMessage(TracingLevel.WARN, $"SetShieldStatus Failed. Error {res}");
-            return false;
+            return response.IsSuccessStatusCode;
         }
 
         #endregion
@@ -603,6 +602,114 @@ namespace ChatPager.Twitch
 
         #endregion
 
+        #region Mod/Vip
+
+        public async Task<bool> ModUser(string userId)
+        {
+            (string broadcasterId, string _) = await GetBroadcasterAndModeratorIds(null);
+
+            if (string.IsNullOrEmpty(broadcasterId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"ModUser failed to get broadcaster id");
+                return false;
+            }
+
+            if (!Int32.TryParse(userId, out _))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"ModUser invalid user id: {userId}");
+                return false;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("user_id", userId),
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_MOD, SendMethod.POST_QUERY_PARAMS, kvp, null);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> UnmodUser(string userId)
+        {
+            (string broadcasterId, string _) = await GetBroadcasterAndModeratorIds(null);
+
+            if (string.IsNullOrEmpty(broadcasterId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UnmodUser failed to get broadcaster id");
+                return false;
+            }
+
+            if (!Int32.TryParse(userId, out _))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UnmodUser invalid user id: {userId}");
+                return false;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("user_id", userId),
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_MOD, SendMethod.DELETE, kvp, null);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> VipUser(string userId)
+        {
+            (string broadcasterId, string _) = await GetBroadcasterAndModeratorIds(null);
+
+            if (string.IsNullOrEmpty(broadcasterId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"VipUser failed to get broadcaster id");
+                return false;
+            }
+
+            if (!Int32.TryParse(userId, out _))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"VipUser invalid user id: {userId}");
+                return false;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("user_id", userId),
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_VIP, SendMethod.POST_QUERY_PARAMS, kvp, null);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> UnvipUser(string userId)
+        {
+            (string broadcasterId, string _) = await GetBroadcasterAndModeratorIds(null);
+
+            if (string.IsNullOrEmpty(broadcasterId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UnvipUser failed to get broadcaster id");
+                return false;
+            }
+
+            if (!Int32.TryParse(userId, out _))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UnvipUser invalid user id: {userId}");
+                return false;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("user_id", userId),
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_VIP, SendMethod.DELETE, kvp, null);
+            return response.IsSuccessStatusCode;
+        }
+
+        #endregion
+
         #region Raids
 
         public async Task<bool> RaidChannel(string channelToRaid)
@@ -630,7 +737,62 @@ namespace ChatPager.Twitch
             HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_RAIDS, SendMethod.POST_QUERY_PARAMS, kvp, null);
             return response.IsSuccessStatusCode;
         }
-     
+
+        #endregion
+
+        #region Announcement
+
+        public async Task<bool> SendAnnouncement(string channel, string message)
+        {
+            (string broadcasterId, string moderatorId) = await GetBroadcasterAndModeratorIds(channel);
+
+            if (string.IsNullOrEmpty(broadcasterId) || string.IsNullOrEmpty(moderatorId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"IsShieldEnabled failed to get broadcaster/moderator ids");
+                return false;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("moderator_id", moderatorId),
+            };
+
+
+            JObject req = new JObject
+            {
+                { "message", message },
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_ANNOUNCEMENT, SendMethod.POST_QUERY_PARAMS, kvp, req);
+            return response.IsSuccessStatusCode;
+        }
+
+        #endregion
+
+        #region Chat
+
+        public async Task<bool> ClearChat(string channel)
+        {
+            (string broadcasterId, string moderatorId) = await GetBroadcasterAndModeratorIds(channel);
+
+            if (string.IsNullOrEmpty(broadcasterId) || string.IsNullOrEmpty(moderatorId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"ClearChat failed to get broadcaster/moderator ids");
+                return false;
+            }
+
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("moderator_id", moderatorId),
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_CHAT, SendMethod.DELETE, kvp, null);
+            return response.IsSuccessStatusCode;
+        }
+
         #endregion
 
         #region Private Methods
