@@ -21,6 +21,9 @@
                 <div class="sdpi-item-label">Channel</div>
                 <input class="sdpi-item-value sdProperty" placeholder="barraider" id="channel" oninput="setSettings()">
             </div>
+            <details class="message">
+                <summary>Empty 'Channel' performs action on your own channel.</summary>
+            </details>
             <div type="checkbox" class="sdpi-item" id="dvLoadFromFile">
                 <div class="sdpi-item-label">Message</div>
                 <div class="sdpi-item-value">
@@ -43,6 +46,13 @@
                 <div class="sdpi-item-value textarea">
                     <textarea type="textarea" class="sdProperty" maxlength="500" id="chatMessage" placeholder="Hello world" oninput="setSettings()"></textarea>
                     <label for="chatMessage" id="chatMessage_counter">0/500</label>
+                </div>
+            </div>
+            <div type="checkbox" class="sdpi-item" id="dvAnnouncement">
+                <div class="sdpi-item-label">📢</div>
+                <div class="sdpi-item-value">
+                    <input id="announcement" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
+                    <label for="announcement" class="sdpi-item-label"><span></span>Send as channel announcement</label>
                 </div>
             </div>
             <hr />
