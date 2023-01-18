@@ -212,7 +212,7 @@ namespace ChatPager.Twitch
                     Logger.Instance.LogMessage(TracingLevel.INFO, "TwitchTokenManager saving token to global");
                 }
 
-                GlobalSettingsManager.Instance.SetGlobalSettings(JObject.FromObject(global));
+                _ = GlobalSettingsManager.Instance.SetGlobalSettings(JObject.FromObject(global));
                 Logger.Instance.LogMessage(TracingLevel.INFO, $"New token saved. Last refresh date was: {token?.TokenLastRefresh} Token Size: {token?.Token?.Length}");
             }
             catch (Exception ex)
