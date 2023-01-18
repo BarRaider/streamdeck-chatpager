@@ -364,6 +364,9 @@ namespace ChatPager.Backend
                 case DeviceType.StreamDeckMobile:
                     profileName = "FullScreenAlertMobile";
                     break;
+                case DeviceType.StreamDeckPlus:
+                    profileName = "FullScreenAlertPlus";
+                    break;
                 default:
                     Logger.Instance.LogMessage(TracingLevel.WARN, $"SwitchToFullScreen: Unsupported device type: {connection.DeviceInfo().Type}");
                     break;
