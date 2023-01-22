@@ -51,7 +51,7 @@
                         <label class="sdpi-file-label" for="gameFile">Choose file...</label>
                     </div>
                 </div>
-                <div class="sdpi-item" id="dvTagsFile">
+                <div class="sdpi-item" id="dvTagsFile" style="display:none;">
                     <div class="sdpi-item-label">Tags File</div>
                     <div class="sdpi-item-group file" id="filepickergroup">
                         <input class="sdpi-item-value sdProperty sdFile" type="file" id="tagsFile" accept=".txt" oninput="setSettings()">
@@ -79,7 +79,7 @@
                     <div class="sdpi-item-label">Category</div>
                     <input class="sdpi-item-value sdProperty" placeholder="Fortnite" id="game" oninput="setSettings()">
                 </div>
-                <div type="textarea" class="sdpi-item" id="dvTags">
+                <div type="textarea" class="sdpi-item" id="dvTags" style="display:none;">
                     <div class="sdpi-item-label up20">Tags</div>
                     <div class="sdpi-item-value textarea">
                         <textarea type="textarea" class="sdProperty" id="tags" placeholder="One tag per line" oninput="setSettings()"></textarea>
@@ -89,6 +89,11 @@
                     <div class="sdpi-item-label">Language</div>
                     <input class="sdpi-item-value sdProperty" placeholder="en" id="language" oninput="setSettings()">
                 </div>
+            </div>
+            <div class="sdpi-item">
+                <details class="message info">
+                    <summary>* Twitch has disabled the ability to set Tags from the API.</summary>
+                </details>
             </div>
             <hr />
             <div class="sdpi-item" id="dvReset">

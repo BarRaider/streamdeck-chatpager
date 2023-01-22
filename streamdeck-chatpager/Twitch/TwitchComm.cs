@@ -9,6 +9,9 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using TwitchLib.Api.Helix.Models.Moderation.GetModerators;
+using TwitchLib.Api.Helix;
+using TwitchLib.Api.Helix.Models.Search;
 
 namespace ChatPager.Twitch
 {
@@ -38,6 +41,13 @@ namespace ChatPager.Twitch
         private const string TWITCH_URI_RUN_COMMERCIAL = "/channels/commercial";
         private const string TWITCH_CHANNEL_VIEWERS = "https://tmi.twitch.tv/group/user/{0}/chatters";
         private const string TWITCH_URL_MODIFY_TAGS = "/streams/tags?broadcaster_id={0}";
+        private const string TWITCH_URI_SHIELD_MODE = "/moderation/shield_mode";
+        private const string TWITCH_URI_RAIDS = "/raids";
+        private const string TWITCH_URI_BANS = "/moderation/bans";
+        private const string TWITCH_URI_MOD = "/moderation/moderators";
+        private const string TWITCH_URI_VIP = "/channels/vips";
+        private const string TWITCH_URI_ANNOUNCEMENT = "/chat/announcements";
+        private const string TWITCH_URI_CHAT = "/moderation/chat";
 
         private readonly int[] VALID_AD_LENGTHS = new int[] { 30, 60, 90, 120, 150, 180 };
 
@@ -45,7 +55,7 @@ namespace ChatPager.Twitch
 
         #endregion
 
-        #region Public Methods
+        #region Constructor/Destructor
 
         public TwitchComm()
         {
@@ -57,6 +67,10 @@ namespace ChatPager.Twitch
         {
             TwitchTokenManager.Instance.TokensChanged -= Instance_TokensChanged;
         }
+
+        #endregion
+
+        #region User/Channel Info
 
         public async Task<TwitchChannelInfo> GetChannelInfo(string channelName)
         {
@@ -121,6 +135,153 @@ namespace ChatPager.Twitch
             return null;
         }
 
+        public async Task<TwitchChannelInfo> GetMyStreamInfo()
+        {
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("user_id", TwitchTokenManager.Instance.User.UserId)
+            };
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_CHANNEL_INFO, SendMethod.GET, kvp, null);
+            if (response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    string body = await response.Content.ReadAsStringAsync();
+                    JObject json = JObject.Parse(body);
+                    if (json["data"].HasValues)
+                    {
+                        return json["data"].ToObject<TwitchChannelInfo[]>().FirstOrDefault();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetMyStreamInfo Exception: {ex}");
+                }
+            }
+            else
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"GetMyStreamInfo Fetch Failed. Status: {response.StatusCode} Reason: {response.ReasonPhrase}");
+            }
+            return null;
+        }
+
+        public async Task<bool> UpdateChannelStatus(string statusMessage, int? gameId, string language)
+        {
+            string uri = String.Format(TWITCH_URI_MODIFY_CHANNEL_STATUS, TwitchTokenManager.Instance.User.UserId);
+            if (string.IsNullOrEmpty(statusMessage) && string.IsNullOrEmpty(language) && !gameId.HasValue)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateChannelStatus called with empty status, game and language");
+                return false;
+            }
+
+            JObject body = new JObject();
+            if (!String.IsNullOrEmpty(statusMessage))
+            {
+                body.Add("title", statusMessage);
+            }
+
+            if (gameId.HasValue)
+            {
+                body.Add("game_id", gameId.Value);
+            }
+
+            if (!String.IsNullOrWhiteSpace(language))
+            {
+                body.Add("broadcaster_language", language);
+            }
+
+            HttpResponseMessage response = await TwitchHelixQuery(uri, SendMethod.PATCH, null, body);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> UpdateChannelTags(string[] tagIds)
+        {
+            string uri = String.Format(TWITCH_URL_MODIFY_TAGS, TwitchTokenManager.Instance.User.UserId);
+            if (tagIds == null || tagIds.Length < 1)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateChannelTags called with empty tagIds");
+                return false;
+            }
+
+            JObject body = new JObject
+            {
+                { "tag_ids", JToken.FromObject(tagIds) }
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(uri, SendMethod.PUT, null, body);
+
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} UpdateChannelTags return Forbidden - Check if an invalid tag (such as 'Language' tag) was used");
+            }
+            return response.IsSuccessStatusCode;
+        }
+
+
+        #endregion
+
+        #region Game Info
+
+        public async Task<TwitchGameInfo> GetGameInfo(string gameName)
+        {
+            if (Int32.TryParse(gameName, out int gameId)) // Actually a GameId
+            {
+                return await GetGameInfo(gameId);
+            }
+            else
+            {
+                var kvp = new List<KeyValuePair<string, string>>
+                {
+                    new KeyValuePair<string, string>("name", gameName)
+                };
+
+                return await InternalGetGameInfo(kvp);
+            }
+
+        }
+
+        public async Task<TwitchGameInfo> GetGameInfo(int gameId)
+        {
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("id", gameId.ToString())
+            };
+
+            return await InternalGetGameInfo(kvp);
+        }
+
+        private async Task<TwitchGameInfo> InternalGetGameInfo(List<KeyValuePair<string, string>> kvp)
+        {
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URL_GAME_INFO, SendMethod.GET, kvp, null);
+            if (response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    string body = await response.Content.ReadAsStringAsync();
+                    JObject json = JObject.Parse(body);
+                    if (json["data"].HasValues)
+                    {
+                        return json["data"][0].ToObject<TwitchGameInfo>();
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetGameInfo Exception: {ex}");
+                }
+            }
+            else
+            {
+                string res = await response.Content.ReadAsStringAsync();
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"GetGameInfo Fetch Failed. Response: {response.StatusCode} Reason: {response.ReasonPhrase} Error: {res}");
+            }
+            return null;
+        }
+
+        #endregion
+
+        #region Active Viewers/Streamers
+
         public async Task<TwitchChannelViewers> GetChannelViewers(string channel)
         {
             if (string.IsNullOrEmpty(channel))
@@ -182,58 +343,21 @@ namespace ChatPager.Twitch
             return null;
         }
 
-        public async Task<TwitchChannelInfo> GetMyStreamInfo()
-        {
-            var kvp = new List<KeyValuePair<string, string>>
-            {
-                new KeyValuePair<string, string>("user_id", TwitchTokenManager.Instance.User.UserId)
-            };
-            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_CHANNEL_INFO, SendMethod.GET, kvp, null);
-            if (response.IsSuccessStatusCode)
-            {
-                try
-                {
-                    string body = await response.Content.ReadAsStringAsync();
-                    JObject json = JObject.Parse(body);
-                    if (json["data"].HasValues)
-                    {
-                        return json["data"].ToObject<TwitchChannelInfo[]>().FirstOrDefault();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetMyStreamInfo Exception: {ex}");
-                }
-            }
-            else
-            {
-                Logger.Instance.LogMessage(TracingLevel.WARN, $"GetMyStreamInfo Fetch Failed. Status: {response.StatusCode} Reason: {response.ReasonPhrase}");
-            }
-            return null;
-        }
+        #endregion
+
+        #region Create Clip/Marker
 
         public async Task<ClipDetails> CreateClip(string userName)
         {
-            if (TwitchTokenManager.Instance.User == null)
+            (string broadcasterId, string _) = await GetBroadcasterAndModeratorIds(userName);
+
+            if (string.IsNullOrEmpty(broadcasterId))
             {
-                Logger.Instance.LogMessage(TracingLevel.WARN, "Cannot create Twitch clip, User object is null");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"CreateClip failed to get broadcaster id");
                 return null;
             }
 
-            string userId = TwitchTokenManager.Instance.User?.UserId;
-            if (userName != TwitchTokenManager.Instance.User.UserName)
-            {
-                // Different user, get the UserId
-                var userInfo = await GetUserInfo(userName);
-                if (userInfo == null)
-                {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"Cannot create Twitch clip, Could not retreive info on {userName}");
-                    return null;
-                }
-                userId = userInfo.UserId;
-            }
-
-            string uri = TWITCH_CREATE_CLIP_URI + userId;
+            string uri = TWITCH_CREATE_CLIP_URI + broadcasterId;
             HttpResponseMessage response = await TwitchHelixQuery(uri, SendMethod.POST, null, null);
             if (response.IsSuccessStatusCode)
             {
@@ -255,113 +379,35 @@ namespace ChatPager.Twitch
             return null;
         }
 
-        public async Task<bool> UpdateChannelStatus(string statusMessage, int? gameId, string language)
+        public async Task<bool> CreateMarker(string channel, string description)
         {
-            string uri = String.Format(TWITCH_URI_MODIFY_CHANNEL_STATUS, TwitchTokenManager.Instance.User.UserId);
-            if (string.IsNullOrEmpty(statusMessage) && string.IsNullOrEmpty(language) && !gameId.HasValue)
+            (string broadcasterId, string moderatorId) = await GetBroadcasterAndModeratorIds(channel);
+
+            if (string.IsNullOrEmpty(broadcasterId))
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateChannelStatus called with empty status, game and language");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"CreateMarker failed to get broadcaster ids");
                 return false;
             }
 
-            JObject body = new JObject();
-            if (!String.IsNullOrEmpty(statusMessage))
+            if (String.IsNullOrEmpty(description))
             {
-                body.Add("title", statusMessage);
+                description = "Created by BarRaider's Twitch Tools";
             }
 
-            if (gameId.HasValue)
+            JObject req = new JObject
             {
-                body.Add("game_id", gameId.Value);
-            }
+                { "user_id", broadcasterId },
+                { "description", description}
+            };
 
-            if (!String.IsNullOrWhiteSpace(language))
-            {
-                body.Add("broadcaster_language", language);
-            }
-
-            HttpResponseMessage response = await TwitchHelixQuery(uri, SendMethod.PATCH, null, body);
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_CREATE_MARKER_URI, SendMethod.POST, null, req);
             return response.IsSuccessStatusCode;
         }
 
-        public async Task<bool> UpdateChannelTags(string[] tagIds)
-        {
-            string uri = String.Format(TWITCH_URL_MODIFY_TAGS, TwitchTokenManager.Instance.User.UserId);
-            if (tagIds == null || tagIds.Length < 1)
-            {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UpdateChannelTags called with empty tagIds");
-                return false;
-            }
 
-            JObject body = new JObject
-            {
-                { "tag_ids", JToken.FromObject(tagIds) }
-            };
+        #endregion
 
-            HttpResponseMessage response = await TwitchHelixQuery(uri, SendMethod.PUT, null, body);
-
-            if (response.StatusCode == HttpStatusCode.Forbidden)
-            {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} UpdateChannelTags return Forbidden - Check if an invalid tag (such as 'Language' tag) was used");
-            }
-            return response.IsSuccessStatusCode;
-        }
-
-        public async Task<TwitchGameInfo> GetGameInfo(string gameName)
-        {
-            if (Int32.TryParse(gameName, out int gameId)) // Actually a GameId
-            {
-                return await GetGameInfo(gameId);
-            }
-            else
-            {
-                var kvp = new List<KeyValuePair<string, string>>
-                {
-                    new KeyValuePair<string, string>("name", gameName)
-                };
-
-                return await InternalGetGameInfo(kvp);
-            }
-
-        }
-
-        public async Task<TwitchGameInfo> GetGameInfo(int gameId)
-        {
-            var kvp = new List<KeyValuePair<string, string>>
-            {
-                new KeyValuePair<string, string>("id", gameId.ToString())
-            };
-
-            return await InternalGetGameInfo(kvp);
-        }
-
-        private async Task<TwitchGameInfo> InternalGetGameInfo(List<KeyValuePair<string, string>> kvp)
-        {
-            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URL_GAME_INFO, SendMethod.GET, kvp, null);
-            if (response.IsSuccessStatusCode)
-            {
-                try
-                {
-                    string body = await response.Content.ReadAsStringAsync();
-                    JObject json = JObject.Parse(body);
-                    if (json["data"].HasValues)
-                    {
-                        return json["data"][0].ToObject<TwitchGameInfo>();
-                    }
-
-                }
-                catch (Exception ex)
-                {
-                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetGameInfo Exception: {ex}");
-                }
-            }
-            else
-            {
-                string res = await response.Content.ReadAsStringAsync();
-                Logger.Instance.LogMessage(TracingLevel.WARN, $"GetGameInfo Fetch Failed. Response: {response.StatusCode} Reason: {response.ReasonPhrase} Error: {res}");
-            }
-            return null;
-        }
+        #region Ads
 
         public async Task<AdDetails> RunAd(int adLength)
         {
@@ -412,34 +458,338 @@ namespace ChatPager.Twitch
             return null;
         }
 
-        public async Task<bool> CreateMarker(string channel)
+        #endregion
+
+        #region Twitch Shield
+
+        public async Task<bool?> IsShieldEnabled(string channel)
         {
-            if (TwitchTokenManager.Instance.User == null)
+            (string broadcasterId, string moderatorId) = await GetBroadcasterAndModeratorIds(channel);
+
+            if (string.IsNullOrEmpty(broadcasterId) || string.IsNullOrEmpty(moderatorId))
             {
-                Logger.Instance.LogMessage(TracingLevel.WARN, "Cannot create marker, User object is null");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"IsShieldEnabled failed to get broadcaster/moderator ids");
+                return null;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("moderator_id", moderatorId),
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_SHIELD_MODE, SendMethod.GET, kvp, null);
+            if (response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    string body = await response.Content.ReadAsStringAsync();
+                    JObject json = JObject.Parse(body);
+                    if (json["data"].HasValues)
+                    {
+                        return json["data"][0]["is_active"].Value<bool>();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"IsShieldEnabled Exception: {ex}");
+                }
+            }
+            else
+            {
+                string res = await response.Content.ReadAsStringAsync();
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"IsShieldEnabled Fetch Failed. Error {res}");
+            }
+            return null;
+        }
+
+        public async Task<bool> SetShieldStatus(string channel, bool isEnabled)
+        {
+            (string broadcasterId, string moderatorId) = await GetBroadcasterAndModeratorIds(channel);
+
+            if (string.IsNullOrEmpty(broadcasterId) || string.IsNullOrEmpty(moderatorId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"SetShieldStatus failed to get broadcaster/moderator ids");
                 return false;
             }
 
-            string userId = TwitchTokenManager.Instance.User?.UserId;
-            if (channel != TwitchTokenManager.Instance.User.UserName)
+            var kvp = new List<KeyValuePair<string, string>>
             {
-                // Different user, get the UserId
-                var userInfo = await GetUserInfo(channel);
-                if (userInfo == null)
-                {
-                    Logger.Instance.LogMessage(TracingLevel.WARN, $"Cannot create marker, Could not retreive info on {channel}");
-                    return false;
-                }
-                userId = userInfo.UserId;
-            }
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("moderator_id", moderatorId),
+            };
 
             JObject req = new JObject
             {
-                { "user_id", userId },
-                { "description", "Marker created from BarRaider's Twitch Tools"}
+                { "is_active", isEnabled },
             };
 
-            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_CREATE_MARKER_URI, SendMethod.POST, null, req);
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_SHIELD_MODE, SendMethod.PUT, kvp, req);
+            return response.IsSuccessStatusCode;
+        }
+
+        #endregion
+
+        #region Ban/Timeout
+
+        public async Task<bool> BanUser(string channel, string banUserId, int timeoutLength = -1)
+        {
+            (string broadcasterId, string moderatorId) = await GetBroadcasterAndModeratorIds(channel);
+
+            if (string.IsNullOrEmpty(broadcasterId) || string.IsNullOrEmpty(moderatorId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"BanUser failed to get broadcaster/moderator ids");
+                return false;
+            }
+
+            if (!Int32.TryParse(banUserId, out int bannedId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"BanUser invalid ban user id: {banUserId}");
+                return false;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("moderator_id", moderatorId),
+            };
+
+            JObject req = new JObject
+            {
+                { "user_id", banUserId },
+            };
+
+            if (timeoutLength > 0)
+            {
+                req.Add("duration", timeoutLength);
+            }
+
+            JObject data = new JObject
+            {
+                {"data", req}
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_BANS, SendMethod.POST_QUERY_PARAMS, kvp, data);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> UnbanUser(string channel, string unbanUserId)
+        {
+            (string broadcasterId, string moderatorId) = await GetBroadcasterAndModeratorIds(channel);
+
+            if (string.IsNullOrEmpty(broadcasterId) || string.IsNullOrEmpty(moderatorId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UnbanUser failed to get broadcaster/moderator ids");
+                return false;
+            }
+
+            if (!Int32.TryParse(unbanUserId, out _))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UnbanUser invalid ban user id: {unbanUserId}");
+                return false;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("moderator_id", moderatorId),
+                new KeyValuePair<string, string>("user_id", unbanUserId),
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_BANS, SendMethod.DELETE, kvp, null);
+            return response.IsSuccessStatusCode;
+        }
+
+        #endregion
+
+        #region Mod/Vip
+
+        public async Task<bool> ModUser(string userId)
+        {
+            (string broadcasterId, string _) = await GetBroadcasterAndModeratorIds(null);
+
+            if (string.IsNullOrEmpty(broadcasterId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"ModUser failed to get broadcaster id");
+                return false;
+            }
+
+            if (!Int32.TryParse(userId, out _))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"ModUser invalid user id: {userId}");
+                return false;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("user_id", userId),
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_MOD, SendMethod.POST_QUERY_PARAMS, kvp, null);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> UnmodUser(string userId)
+        {
+            (string broadcasterId, string _) = await GetBroadcasterAndModeratorIds(null);
+
+            if (string.IsNullOrEmpty(broadcasterId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UnmodUser failed to get broadcaster id");
+                return false;
+            }
+
+            if (!Int32.TryParse(userId, out _))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UnmodUser invalid user id: {userId}");
+                return false;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("user_id", userId),
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_MOD, SendMethod.DELETE, kvp, null);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> VipUser(string userId)
+        {
+            (string broadcasterId, string _) = await GetBroadcasterAndModeratorIds(null);
+
+            if (string.IsNullOrEmpty(broadcasterId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"VipUser failed to get broadcaster id");
+                return false;
+            }
+
+            if (!Int32.TryParse(userId, out _))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"VipUser invalid user id: {userId}");
+                return false;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("user_id", userId),
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_VIP, SendMethod.POST_QUERY_PARAMS, kvp, null);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> UnvipUser(string userId)
+        {
+            (string broadcasterId, string _) = await GetBroadcasterAndModeratorIds(null);
+
+            if (string.IsNullOrEmpty(broadcasterId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UnvipUser failed to get broadcaster id");
+                return false;
+            }
+
+            if (!Int32.TryParse(userId, out _))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"UnvipUser invalid user id: {userId}");
+                return false;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("user_id", userId),
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_VIP, SendMethod.DELETE, kvp, null);
+            return response.IsSuccessStatusCode;
+        }
+
+        #endregion
+
+        #region Raids
+
+        public async Task<bool> RaidChannel(string channelToRaid)
+        {
+            if (TwitchTokenManager.Instance.User == null)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, "RaidChannel failed - User object is null");
+                return false;
+            }
+
+            string broadcasterId = TwitchTokenManager.Instance.User?.UserId;
+            var raidChannel = await GetChannelInfo(channelToRaid);
+            if (raidChannel == null)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"RaidChannel failed - Couldn't get channel info for {channelToRaid}");
+                return false;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("from_broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("to_broadcaster_id", raidChannel.UserId),
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_RAIDS, SendMethod.POST_QUERY_PARAMS, kvp, null);
+            return response.IsSuccessStatusCode;
+        }
+
+        #endregion
+
+        #region Announcement
+
+        public async Task<bool> SendAnnouncement(string channel, string message)
+        {
+            (string broadcasterId, string moderatorId) = await GetBroadcasterAndModeratorIds(channel);
+
+            if (string.IsNullOrEmpty(broadcasterId) || string.IsNullOrEmpty(moderatorId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"IsShieldEnabled failed to get broadcaster/moderator ids");
+                return false;
+            }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("moderator_id", moderatorId),
+            };
+
+
+            JObject req = new JObject
+            {
+                { "message", message },
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_ANNOUNCEMENT, SendMethod.POST_QUERY_PARAMS, kvp, req);
+            return response.IsSuccessStatusCode;
+        }
+
+        #endregion
+
+        #region Chat
+
+        public async Task<bool> ClearChat(string channel)
+        {
+            (string broadcasterId, string moderatorId) = await GetBroadcasterAndModeratorIds(channel);
+
+            if (string.IsNullOrEmpty(broadcasterId) || string.IsNullOrEmpty(moderatorId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"ClearChat failed to get broadcaster/moderator ids");
+                return false;
+            }
+
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("moderator_id", moderatorId),
+            };
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_URI_CHAT, SendMethod.DELETE, kvp, null);
             return response.IsSuccessStatusCode;
         }
 
@@ -472,6 +822,30 @@ namespace ChatPager.Twitch
                 Logger.Instance.LogMessage(TracingLevel.WARN, $"GetUserDetails Fetch Failed. Error {res}");
             }
             return null;
+        }
+
+        internal async Task<(string broadcasterId, string moderatorId)> GetBroadcasterAndModeratorIds(string channel)
+        {
+            if (TwitchTokenManager.Instance.User == null)
+            {
+                Logger.Instance.LogMessage(TracingLevel.WARN, "GetBroadcasterAndModeratorIds failed - User object is null");
+                return (null, null);
+            }
+
+            string broadcasterId = TwitchTokenManager.Instance.User?.UserId;
+            if (!String.IsNullOrEmpty(channel) && channel != TwitchTokenManager.Instance.User.UserName)
+            {
+                // Different user, get the UserId
+                var userInfo = await GetUserInfo(channel);
+                if (userInfo == null)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"GetBroadcasterAndModeratorIds failed - Could not retreive info on {channel}");
+                    return (null, null);
+                }
+                broadcasterId = userInfo.UserId;
+            }
+
+            return (broadcasterId, TwitchTokenManager.Instance.User?.UserId);
         }
 
         #region Twitch New (Helix) API
@@ -533,6 +907,11 @@ namespace ChatPager.Twitch
                 case SendMethod.POST:
                 case SendMethod.POST_QUERY_PARAMS:
 
+                    if (body != null)
+                    {
+                        content = new StringContent(body.ToString(), Encoding.UTF8, "application/json");
+                    }
+
                     if (optionalContent != null && sendMethod == SendMethod.POST)
                     {
                         content = new FormUrlEncodedContent(optionalContent);
@@ -541,14 +920,12 @@ namespace ChatPager.Twitch
                     {
                         queryParams = "?" + CreateQueryString(optionalContent);
                     }
-                    else if (body != null)
-                    {
-                        content = new StringContent(body.ToString(), Encoding.UTF8, "application/json");
-                    }
+
                     return await client.PostAsync($"{TWITCH_HELIX_URI_PREFIX}{uriPath}{queryParams}", content);
                 case SendMethod.PUT:
                 case SendMethod.GET:
                 case SendMethod.PATCH:
+                case SendMethod.DELETE:
                     if (optionalContent != null)
                     {
                         queryParams = "?" + CreateQueryString(optionalContent);
@@ -557,6 +934,10 @@ namespace ChatPager.Twitch
                     if (sendMethod == SendMethod.GET)
                     {
                         return await client.GetAsync($"{TWITCH_HELIX_URI_PREFIX}{uriPath}{queryParams}");
+                    }
+                    else if (sendMethod == SendMethod.DELETE)
+                    {
+                        return await client.DeleteAsync($"{TWITCH_HELIX_URI_PREFIX}{uriPath}{queryParams}");
                     }
 
                     if (body != null)
@@ -568,10 +949,11 @@ namespace ChatPager.Twitch
                     {
                         return await client.PatchAsync($"{TWITCH_HELIX_URI_PREFIX}{uriPath}{queryParams}", content);
                     }
-                    else
+                    else //(sendMethod == SendMethod.PUT)
                     {
                         return await client.PutAsync($"{TWITCH_HELIX_URI_PREFIX}{uriPath}{queryParams}", content);
                     }
+
             }
             return null;
         }

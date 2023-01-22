@@ -139,9 +139,10 @@ namespace ChatPager.Actions
 
             // Added as booleans otherwise it will short circuit the second call
             bool statusResult = await UpdateStatus();
-            bool tagsResult = await UpdateTags();
+            //bool tagsResult = await UpdateTags();
 
-            if (statusResult || tagsResult)
+            //if (statusResult || tagsResult)
+            if (statusResult)
             {
                 await Connection.ShowOk();
             }
@@ -374,21 +375,6 @@ namespace ChatPager.Actions
 
         private void InitializeSettings()
         {
-            CheckBackwardCompatibility();
-        }
-
-        [Obsolete("Remove in next major release")]
-        private void CheckBackwardCompatibility()
-        {
-            if (Settings.Version == CURRENT_VERSION)
-            {
-                return;
-            }
-
-            // Version 0
-            Settings.LoadFromFile = true;
-            Settings.Version = 1;
-            SaveSettings();
         }
 
         #endregion

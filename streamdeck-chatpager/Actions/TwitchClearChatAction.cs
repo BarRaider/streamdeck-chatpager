@@ -14,13 +14,8 @@ using System.Threading.Tasks;
 
 namespace ChatPager.Actions
 {
-    //---------------------------------------------------
-    //          BarRaider's Hall Of Fame
-    // 500 Bits: Nachtmeister666
-    //---------------------------------------------------
-
-    [PluginActionId("com.barraider.twitchtools.marker")]
-    public class TwitchMarkerAction : ActionBase
+    [PluginActionId("com.barraider.twitchtools.clearchat")]
+    public class TwitchClearChatAction : ActionBase
     {
         protected class PluginSettings : PluginSettingsBase
         {
@@ -30,17 +25,13 @@ namespace ChatPager.Actions
                 {
                     TokenExists = false,
                     Channel = String.Empty,
-                    Description = String.Empty
                 };
                 return instance;
             }
 
             [JsonProperty(PropertyName = "channel")]
             public string Channel { get; set; }
-
-            [JsonProperty(PropertyName = "description")]
-            public string Description { get; set; }
-        };
+        }
 
         protected PluginSettings Settings
         {
@@ -65,7 +56,7 @@ namespace ChatPager.Actions
 
         #region Public Methods
 
-        public TwitchMarkerAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
+        public TwitchClearChatAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
         {
             if (payload.Settings == null || payload.Settings.Count == 0)
             {
@@ -77,6 +68,7 @@ namespace ChatPager.Actions
             }
 
             Settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
+            TwitchChat.Instance.Initialize();
             SaveSettings();
         }
 
@@ -87,27 +79,18 @@ namespace ChatPager.Actions
             Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPressed");
             if (!TwitchTokenManager.Instance.TokenExists)
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"Key Pressed called without a valid token");
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} called without a valid token");
                 await Connection.ShowAlert();
                 return;
             }
 
-            using (TwitchComm comm = new TwitchComm())
+            if (await ClearChat())
             {
-                string channel = TwitchTokenManager.Instance.User.UserName;
-                if (!String.IsNullOrEmpty(Settings.Channel))
-                {
-                    channel = Settings.Channel;
-                }
-
-                if (await comm.CreateMarker(channel, Settings.Description))
-                {
-                    await Connection.ShowOk();
-                }
-                else
-                {
-                    await Connection.ShowAlert();
-                }
+                await Connection.ShowOk();
+            }
+            else
+            {
+                await Connection.ShowAlert();
             }
         }
 
@@ -135,6 +118,28 @@ namespace ChatPager.Actions
         #endregion
 
         #region Private Methods
+
+        public async Task<bool> ClearChat()
+        {
+            try
+            {
+                using (TwitchComm tc = new TwitchComm())
+                {
+                    string channel = TwitchTokenManager.Instance.User?.UserName;
+                    if (!String.IsNullOrEmpty(Settings.Channel))
+                    {
+                        channel = Settings.Channel;
+                    }
+
+                    return await tc.ClearChat(channel);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"Could not create Twitch Clip: {ex}");
+            }
+            return false;
+        }
 
         protected override Task SaveSettings()
         {

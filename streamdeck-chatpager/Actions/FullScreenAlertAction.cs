@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
+using System.IO.Packaging;
 using System.Linq;
 using System.Net;
 using System.Runtime.Remoting;
@@ -23,22 +24,19 @@ namespace ChatPager
     //---------------------------------------------------
 
     [PluginActionId("com.barraider.alertflasher")]
-    class AlertFlasher : PluginBase
+    class FullScreenAlertAction : KeypadBase
     {
         private enum FlashMode
         {
             Pager,
             ActiveStreamers,
-            ChatMessage
+            UserSelectionCommand
         }
 
 
         #region Private Members
         private const int NUMBER_OF_SPECIAL_KEYS = 3; // Exit, Prev, Next
-
         private const int LONG_KEYPRESS_LENGTH_MS = 600;
-        private const string RAID_COMMAND = "/raid ";
-        private const string HOST_COMMAND = "/host ";
 
         private int stringMessageIndex;
         private readonly int deviceColumns = 0;
@@ -49,7 +47,8 @@ namespace ChatPager
         private bool twoLettersPerKey;
         private string channelName;
         private TwitchLiveStreamersLongPressAction liveStreamersLongPressAction;
-        private string chatMessage;
+
+        private UserSelectionEventSettings keyDetails;
         private FlashMode flashMode;
         private int numberOfElements = 0;
         private int numberOfKeys = 0;
@@ -61,9 +60,9 @@ namespace ChatPager
 
         #endregion
 
-        public AlertFlasher(SDConnection connection, InitialPayload payload) : base(connection, payload)
+        public FullScreenAlertAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
         {
-            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"[{Thread.CurrentThread.ManagedThreadId}] AlertFlasher loading");
+            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"[{Thread.CurrentThread.ManagedThreadId}] FullScreenAlertAction loading");
             var deviceInfo = payload.DeviceInfo.Devices.Where(d => d.Id == connection.DeviceId).FirstOrDefault();
 
             stringMessageIndex = -1;
@@ -78,16 +77,14 @@ namespace ChatPager
             Connection.GetGlobalSettingsAsync();
             AlertManager.Instance.FlashStatusChanged += Instance_FlashStatusChanged;
             AlertManager.Instance.ActiveStreamersChanged += Instance_ActiveStreamersChanged;
-            AlertManager.Instance.ChatMessageListChanged += Instance_ChatMessageListChanged;
-            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"[{Thread.CurrentThread.ManagedThreadId}] AlertFlasher up: {sequentialKey}");
+            AlertManager.Instance.UserSelectionListChanged += Instance_UserSelectionListChanged;
         }
 
         public override void Dispose()
         {
-            //Logger.Instance.LogMessage(TracingLevel.DEBUG, $"[{Thread.CurrentThread.ManagedThreadId}] AlertFlasher going down: {sequentialKey}");
             AlertManager.Instance.FlashStatusChanged -= Instance_FlashStatusChanged;
             AlertManager.Instance.ActiveStreamersChanged -= Instance_ActiveStreamersChanged;
-            AlertManager.Instance.ChatMessageListChanged -= Instance_ChatMessageListChanged;
+            AlertManager.Instance.UserSelectionListChanged -= Instance_UserSelectionListChanged;
         }
 
         public override void KeyPressed(KeyPayload payload)
@@ -114,60 +111,29 @@ namespace ChatPager
             {
                 AlertManager.Instance.StopFlashAndReset();
                 Connection.SwitchProfileAsync(null);
+                return;
             }
-            else if (flashMode == FlashMode.ChatMessage)
-            {
-                if (sequentialKey == numberOfKeys - 1 && numberOfElements + NUMBER_OF_SPECIAL_KEYS >= pagedSequentialKey) // Next key is pressed
-                {
-                    // Move to next page
-                    AlertManager.Instance.MoveToNextChatPage();
-                }
-                else if (sequentialKey == numberOfKeys - 2 && sequentialKey < pagedSequentialKey) // Prev Key is pressed
-                {
-                    AlertManager.Instance.MoveToPrevChatPage();
-                }
-                else if (!String.IsNullOrEmpty(chatMessage))
-                {
-                    if (!String.IsNullOrEmpty(channelName))
-                    {
-                        TwitchChat.Instance.SendMessage(channelName, chatMessage);
-                        ConfirmCurrentImage();
-                    }
-                    else
-                    {
-                        TwitchChat.Instance.SendMessage(chatMessage);
-                        ConfirmCurrentImage();
-                    }
 
-                }
+            if (flashMode == FlashMode.UserSelectionCommand)
+            {
+                HandleUserSelectionKeyPress();
+                return;
             }
             else if (flashMode == FlashMode.ActiveStreamers)
             {
-                if (sequentialKey == numberOfKeys - 1 && numberOfElements + NUMBER_OF_SPECIAL_KEYS >= pagedSequentialKey) // Next key is pressed
-                {
-                    // Move to next page
-                    AlertManager.Instance.MoveToNextStreamersPage();
-                }
-                else if (sequentialKey == numberOfKeys - 2 && sequentialKey < pagedSequentialKey) // Prev Key is pressed
-                {
-                    AlertManager.Instance.MoveToPrevStreamersPage();
-                }
-                else if (!String.IsNullOrEmpty(channelName)) // Normal key
-                {
-                    System.Diagnostics.Process.Start(String.Format("https://twitch.tv/{0}", channelName));
-                    ConfirmCurrentImage();
-                }
+                HandleActiveStreamersKeyPress();
+                return;
             }
         }
 
-        public override void OnTick()
+        public override async void OnTick()
         {
             if (keyPressed && !longKeyPressed)
             {
                 int timeKeyWasPressed = (int)(DateTime.Now - keyPressStart).TotalMilliseconds;
                 if (timeKeyWasPressed >= LONG_KEYPRESS_LENGTH_MS)
                 {
-                    HandleLongKeyPress();
+                    await HandleLongKeyPress();
                 }
             }
         }
@@ -182,10 +148,7 @@ namespace ChatPager
             }
         }
 
-        public override void ReceivedSettings(ReceivedSettingsPayload payload)
-        {
-
-        }
+        public override void ReceivedSettings(ReceivedSettingsPayload payload) { }
 
         private void CalculateStringIndex()
         {
@@ -205,7 +168,7 @@ namespace ChatPager
             pagedSequentialKey = e.CurrentPage * (e.NumberOfKeys - NUMBER_OF_SPECIAL_KEYS) + sequentialKey; // -3 for the Exit, Back, Next buttons
             channelName = String.Empty;
             liveStreamersLongPressAction = e.LongPressAction;
-            
+
             if (await HandleActiveStreamersNavigationKeys(e))
             {
                 return;
@@ -232,7 +195,7 @@ namespace ChatPager
                             {
                                 Logger.Instance.LogMessage(TracingLevel.WARN, $"{this.GetType()} ActiveStreamers - Game Image is null for {streamerInfo.UserDisplayName} {streamerInfo.GameName}");
                             }
-                            using (Image gameImage = (Image) gameInfo.GameImage.Clone())
+                            using (Image gameImage = (Image)gameInfo.GameImage.Clone())
                             {
                                 await DrawStreamerImage(streamerInfo, gameImage);
                             }
@@ -268,7 +231,7 @@ namespace ChatPager
                 await Connection.SetTitleAsync("Exit");
                 return true;
             }
-            
+
             if (e.DisplaySettings != null && e.DisplaySettings.Streamers != null && sequentialKey == e.NumberOfKeys - 1 && e.DisplaySettings.Streamers.Length > e.NumberOfKeys - 3) // Last (Next) key, and there is more than one page *overall*
             {
                 if (e.DisplaySettings.Streamers.Length + NUMBER_OF_SPECIAL_KEYS < pagedSequentialKey) // We are on last page
@@ -283,7 +246,7 @@ namespace ChatPager
                 numberOfKeys = e.NumberOfKeys;
                 return true;
             }
-            
+
             if (e.DisplaySettings != null && e.DisplaySettings.Streamers != null && sequentialKey == e.NumberOfKeys - 2 && e.DisplaySettings.Streamers.Length > e.NumberOfKeys - 3) // Prev key, and there is more than one page *overall*
             {
                 if (sequentialKey == pagedSequentialKey) // We are on the first page
@@ -302,47 +265,46 @@ namespace ChatPager
             return false;
         }
 
-        private async void Instance_ChatMessageListChanged(object sender, ChatMessageListEventArgs e)
+        private async void Instance_UserSelectionListChanged(object sender, UserSelectionEventArgs e)
         {
-            flashMode = FlashMode.ChatMessage;
+            flashMode = FlashMode.UserSelectionCommand;
             channelName = e.Channel;
             pagedSequentialKey = e.CurrentPage * (e.NumberOfKeys - NUMBER_OF_SPECIAL_KEYS) + sequentialKey; // -3 for the Exit, Back, Next buttons
 
-            if (await HandleChatMessageListNavigationKeys(e))
+            if (await HandleTitleForNavigationKeys(e)) // It's one of the navigation keys
             {
                 return;
             }
-           
-            if (e.ChatMessageKeys != null && e.ChatMessageKeys.Length >= pagedSequentialKey) // >= because we're doing -1 as we're starting on the second key
-            // +1 because starting on second key
+
+            if (e.KeysDetails != null && e.KeysDetails.Length >= pagedSequentialKey) // >= because we're doing -1 as we're starting on the second key
+                                                                                     // +1 because starting on second key
             {
                 await Connection.SetTitleAsync(null);
-                var userInfo = e.ChatMessageKeys[pagedSequentialKey - 1];
+                keyDetails = e.KeysDetails[pagedSequentialKey - 1];
                 string userImageURL = null;
-                if (!String.IsNullOrEmpty(userInfo?.KeyImageURL))
+                if (!String.IsNullOrEmpty(keyDetails?.KeyImageURL))
                 {
-                    userImageURL = HelperFunctions.GenerateUrlFromGenericImageUrl(userInfo.KeyImageURL);
+                    userImageURL = HelperFunctions.GenerateUrlFromGenericImageUrl(keyDetails.KeyImageURL);
                 }
 
                 using (Image image = await HelperFunctions.FetchImage(userImageURL))
                 {
-                    await DrawChatMessageImage(userInfo, image);
+                    await DrawChatMessageImage(keyDetails, image);
                 }
-                chatMessage = userInfo.ChatMessage;
             }
         }
 
-        private async Task<bool> HandleChatMessageListNavigationKeys(ChatMessageListEventArgs e)
+        private async Task<bool> HandleTitleForNavigationKeys(UserSelectionEventArgs e)
         {
             if (sequentialKey == 0)
             {
                 await Connection.SetTitleAsync("Exit");
                 return true;
             }
-            
-            if (e.ChatMessageKeys != null && sequentialKey == e.NumberOfKeys - 1 && e.ChatMessageKeys.Length > e.NumberOfKeys - 3) // Next key, and there is more than one page *overall*
+
+            if (e.KeysDetails != null && sequentialKey == e.NumberOfKeys - 1 && e.KeysDetails.Length > e.NumberOfKeys - 3) // Next key, and there is more than one page *overall*
             {
-                if (e.ChatMessageKeys.Length + NUMBER_OF_SPECIAL_KEYS < pagedSequentialKey) // We are on last page
+                if (e.KeysDetails.Length + NUMBER_OF_SPECIAL_KEYS < pagedSequentialKey) // We are on last page
                 {
                     await Connection.SetTitleAsync(null);
                 }
@@ -350,12 +312,12 @@ namespace ChatPager
                 {
                     await Connection.SetTitleAsync(">>");
                 }
-                numberOfElements = e.ChatMessageKeys.Length;
+                numberOfElements = e.KeysDetails.Length;
                 numberOfKeys = e.NumberOfKeys;
                 return true;
             }
-            
-            if (e.ChatMessageKeys != null && sequentialKey == e.NumberOfKeys - 2 && e.ChatMessageKeys.Length > e.NumberOfKeys - 3) // Prev key, and there is more than one page *overall*
+
+            if (e.KeysDetails != null && sequentialKey == e.NumberOfKeys - 2 && e.KeysDetails.Length > e.NumberOfKeys - 3) // Prev key, and there is more than one page *overall*
             {
                 if (sequentialKey == pagedSequentialKey) // We are on the first page
                 {
@@ -365,14 +327,14 @@ namespace ChatPager
                 {
                     await Connection.SetTitleAsync("<<");
                 }
-                numberOfElements = e.ChatMessageKeys.Length;
+                numberOfElements = e.KeysDetails.Length;
                 numberOfKeys = e.NumberOfKeys;
                 return true;
             }
 
             return false;
         }
-        private async Task DrawChatMessageImage(ChatMessageKey keyInfo, Image background)
+        private async Task DrawChatMessageImage(UserSelectionEventSettings keyInfo, Image background)
         {
             using (Bitmap bmp = Tools.GenerateGenericKeyImage(out Graphics graphics))
             {
@@ -478,7 +440,7 @@ namespace ChatPager
 
             if (img != null)
             {
-                currentDrawnImage = (Image) img.Clone();
+                currentDrawnImage = (Image)img.Clone();
             }
         }
 
@@ -556,7 +518,7 @@ namespace ChatPager
             }
         }
 
-        private void HandleLongKeyPress()
+        private async Task HandleLongKeyPress()
         {
             longKeyPressed = true;
 
@@ -567,20 +529,98 @@ namespace ChatPager
                 {
                     // Move to next page
                     AlertManager.Instance.MoveToNextStreamersPage();
+                    return;
                 }
-                else if (!String.IsNullOrEmpty(channelName)) // Normal key
+
+                if (!String.IsNullOrEmpty(channelName)) // Normal key
                 {
                     if (liveStreamersLongPressAction == TwitchLiveStreamersLongPressAction.Raid)
                     {
-                        TwitchChat.Instance.SendMessage(RAID_COMMAND + channelName);
-                        ConfirmCurrentImage();
-                    }
-                    else
-                    {
-                        TwitchChat.Instance.SendMessage(HOST_COMMAND + channelName);
-                        ConfirmCurrentImage();
+                        if (await HandleAPICommand(new ApiDetails(ApiCommandType.Raid, channelName, channelName)))
+                        {
+                            ConfirmCurrentImage();
+                        }
+                        else
+                        {
+                            WarnCurrentImage();
+                        }
                     }
                 }
+            }
+        }
+
+        private async void HandleUserSelectionKeyPress()
+        {
+            if (sequentialKey == numberOfKeys - 1 && numberOfElements + NUMBER_OF_SPECIAL_KEYS >= pagedSequentialKey) // Next key is pressed
+            {
+                // Move to next page
+                AlertManager.Instance.MoveToNextChatPage();
+                return;
+            }
+
+            if (sequentialKey == numberOfKeys - 2 && sequentialKey < pagedSequentialKey) // Prev Key is pressed
+            {
+                AlertManager.Instance.MoveToPrevChatPage();
+                return;
+            }
+
+            // Check if it's an API call or sending a chat message
+            if (keyDetails.EventType == UserSelectionEventType.ChatMessage)
+            {
+                if (String.IsNullOrEmpty(keyDetails.ChatMessage))
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} ChatMessage key pressed but message is null!");
+                    return;
+                }
+                if (!String.IsNullOrEmpty(channelName))
+                {
+                    TwitchChat.Instance.SendMessage(channelName, keyDetails.ChatMessage);
+                    ConfirmCurrentImage();
+                }
+                else
+                {
+                    TwitchChat.Instance.SendMessage(keyDetails.ChatMessage);
+                    ConfirmCurrentImage();
+                }
+            }
+            else if (keyDetails.EventType == UserSelectionEventType.ApiCommand)
+            {
+                string userId = keyDetails?.UserId;
+                if (String.IsNullOrEmpty(keyDetails?.UserId))
+                {
+                    var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(channelName);
+                    userId = userInfo?.UserId;
+                }
+                if (await HandleAPICommand(new ApiDetails(keyDetails.ApiCommand, channelName, userId, keyDetails.ChatMessage)))
+                {
+                    ConfirmCurrentImage();
+                }
+                else
+                {
+                    WarnCurrentImage();
+                }
+            }
+        }
+
+        private void HandleActiveStreamersKeyPress()
+        {
+            if (sequentialKey == numberOfKeys - 1 && numberOfElements + NUMBER_OF_SPECIAL_KEYS >= pagedSequentialKey) // Next key is pressed
+            {
+                // Move to next page
+                AlertManager.Instance.MoveToNextStreamersPage();
+                return;
+            }
+
+            if (sequentialKey == numberOfKeys - 2 && sequentialKey<pagedSequentialKey) // Prev Key is pressed
+            {
+                AlertManager.Instance.MoveToPrevStreamersPage();
+                return;
+            }
+
+            if (!String.IsNullOrEmpty(channelName)) // Normal key
+            {
+                System.Diagnostics.Process.Start(String.Format("https://twitch.tv/{0}", channelName));
+                ConfirmCurrentImage();
             }
         }
 
@@ -600,6 +640,80 @@ namespace ChatPager
                     g.DrawImage(imgCheckBox, new Rectangle(new Point((currentDrawnImage.Width / 2) - (imgCheckBox.Width / 2), (currentDrawnImage.Height / 2) - (imgCheckBox.Height / 2)), new Size(imgCheckBox.Width, imgCheckBox.Height)));
                 }
                 Connection.SetImageAsync(currentDrawnImage).GetAwaiter().GetResult();
+            }
+        }
+
+        private void WarnCurrentImage()
+        {
+            if (currentDrawnImage == null)
+            {
+
+                Logger.Instance.LogMessage(TracingLevel.WARN, $"{this.GetType()} WarningCurrentImage: Current drawn image is null!");
+                return;
+            }
+
+            using (Graphics g = Graphics.FromImage(currentDrawnImage))
+            {
+                using (Image imgCheckBox = Tools.Base64StringToImage(Properties.Settings.Default.ImageOrangeExclamation))
+                {
+                    g.DrawImage(imgCheckBox, new Rectangle(new Point((currentDrawnImage.Width / 2) - (imgCheckBox.Width / 2), (currentDrawnImage.Height / 2) - (imgCheckBox.Height / 2)), new Size(imgCheckBox.Width, imgCheckBox.Height)));
+                }
+                Connection.SetImageAsync(currentDrawnImage).GetAwaiter().GetResult();
+            }
+        }
+
+        private async Task<bool> HandleAPICommand(ApiDetails details)
+        {
+            TwitchComm tc = new TwitchComm();
+            int timeoutLength = -1;
+            switch (details.CommandType)
+            {
+                case ApiCommandType.Raid:
+                    return await tc.RaidChannel(details.UserId); // In this case UserId is the username (not id) you want to raid
+                case ApiCommandType.BanTimeout:
+                    if (!String.IsNullOrEmpty(details.OptionalData))
+                    {
+                        if (!Int32.TryParse(details.OptionalData, out timeoutLength))
+                        {
+                            Logger.Instance.LogMessage(TracingLevel.WARN, $"{this.GetType()} API Timeout length is invalid: {details.OptionalData}");
+                        }
+                    }
+
+                    return await tc.BanUser(details.ChannelName, details.UserId, timeoutLength);
+                case ApiCommandType.UnbanUntimeout:
+                    return await tc.UnbanUser(details.ChannelName, details.UserId);
+                case ApiCommandType.Mod:
+                    return await tc.ModUser(details.UserId);
+                case ApiCommandType.Unmod:
+                    return await tc.UnmodUser(details.UserId);
+                case ApiCommandType.Vip: 
+                    return await tc.VipUser (details.UserId);
+                case ApiCommandType.Unvip:
+                    return await tc.UnvipUser(details.UserId);
+
+                case ApiCommandType.None:
+                default:
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"{this.GetType()} Invalid API command {details.CommandType}");
+                    return false;
+            }
+        }
+
+        private class ApiDetails
+        {
+            public ApiCommandType CommandType { get; private set; }
+
+            public string ChannelName { get; private set; }
+
+            // User to perform action (Raid, Ban, Vip, etc) on
+            public string UserId { get; private set; }
+            public string OptionalData { get; private set; }
+
+            public ApiDetails(ApiCommandType commandType, string channelName, string userId, string optionalData = null)
+            {
+                CommandType = commandType;
+                ChannelName = channelName;
+                UserId = userId;
+                OptionalData = optionalData;
             }
         }
     }

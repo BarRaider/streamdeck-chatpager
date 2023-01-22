@@ -351,7 +351,6 @@ namespace ChatPager.Twitch
                 client.OnChatCommandReceived -= Client_OnChatCommandReceived;
                 client.OnMessageReceived -= Client_OnMessageReceived;
                 client.OnRaidNotification -= Client_OnRaidNotification;
-                client.OnBeingHosted -= Client_OnBeingHosted;
                 client.OnNewSubscriber -= Client_OnNewSubscriber;
                 client.OnPrimePaidSubscriber -= Client_OnPrimePaidSubscriber;
                 client.OnConnectionError -= Client_OnConnectionError;
@@ -365,7 +364,6 @@ namespace ChatPager.Twitch
             client.OnChatCommandReceived += Client_OnChatCommandReceived;
             client.OnMessageReceived += Client_OnMessageReceived;
             client.OnRaidNotification += Client_OnRaidNotification;
-            client.OnBeingHosted += Client_OnBeingHosted;
             client.OnNewSubscriber += Client_OnNewSubscriber;
             client.OnPrimePaidSubscriber += Client_OnPrimePaidSubscriber;
             client.OnConnectionError += Client_OnConnectionError;
@@ -386,11 +384,7 @@ namespace ChatPager.Twitch
             Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***NewSubscriber: {e.PrimePaidSubscriber.DisplayName}, {e.PrimePaidSubscriber.Channel}, {e.PrimePaidSubscriber.RoomId}, {e.PrimePaidSubscriber.UserId}, {e.PrimePaidSubscriber.Login}");
         }
 
-        private void Client_OnBeingHosted(object sender, TwitchLib.Client.Events.OnBeingHostedArgs e)
-        {
-            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***Being Hosted: {e.BeingHostedNotification.HostedByChannel}");
-        }
-
+      
         private void Client_OnMessageReceived(object sender, TwitchLib.Client.Events.OnMessageReceivedArgs e)
         {
             HandleReceivedMessage(e.ChatMessage);
@@ -426,11 +420,6 @@ namespace ChatPager.Twitch
             Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***NewSubscriber: {e.Subscriber.DisplayName}");
             string userName = e.Subscriber.DisplayName.ToLowerInvariant();
             dictUserMessages[userName] = DateTime.Now;
-        }
-
-        private void Client_OnHostingStarted(object sender, TwitchLib.Client.Events.OnHostingStartedArgs e)
-        {
-            Logger.Instance.LogMessage(TracingLevel.DEBUG, $"***Hosting Started: {e.HostingStarted.HostingChannel}");
         }
 
         private void Client_OnCommunitySubscription(object sender, TwitchLib.Client.Events.OnCommunitySubscriptionArgs e)

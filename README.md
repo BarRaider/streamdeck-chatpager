@@ -4,20 +4,14 @@
 
 **Author's website and contact information:** [https://barraider.com](https://barraider.com)
 
-# New in v3.0
-- `Chat Pager` can now show the username of the user paging
-- By default `Chat Pager` will now auto stop the alert after 5 seconds of flashing (but can be customized)
-- `Clip To Chat` now supports a customized chat message
-- `Live Streamers` now supports choosing a Stream Preview/Game Icon/Username Avatar on the images
-- `Live Streamers` now allows to filter out users
-- Multiple bug fixes
-
-# New in v2.8
-- :new: `Ban/Timeout` action to quickly ban/timeout/untimeout users directly from the Stream Deck
-- `Create Stream Marker` now allows creating markers on others' channels (As long as they set you as an Editor)
-- The `Change Stream Title/Game/Tags` action no longer requires files to set the settings
-- Both `Send Message` and `ShoutOut`  now show max length of message field.
-- Migrated all the code to use Twitch's new APIs
+# New in v3.1
+- :new: `Mod/Vip` action allows you to add/remove VIPs and Moderators
+- :new: `Ban/Timeout` action allows you to Ban/Unban and Timeout/UnTimeout users
+- :new: `Clear Chat` action lets you clear all messages in chat
+- :new: `Shield Mode` action lets you toggle Twitch's Shield Mode as well as see the current status on the key :fire:
+- `Message` action now lets you to send an :loudspeaker: **Anouncement** to the chat
+- `Create Marker` action now supports a custom marker description
+- Removed `Host` option in Live Streamers (since Twitch disabled it). Long pressing a person in `Live Streamers` action will now start a `Raid`
 
 ## Features
 
@@ -35,6 +29,9 @@ Shows you when your favorite streamer is live. Clicking the button will take you
 Allows you to load the Stream's title, game, and tags from a file. Works along with the Text File Tools to dynamically modify what game/title you want shown.
     - Adding multiple lines in the "Title" file will cause the plugin to randomly choose one (allowing you to generate multiple similar titles for the same game).  
 New: No longer requires files - Also supports the same features but straight from the Stream Deck settings section
+
+**Clear Chat**
+Clears the chat for all users
 
 **Clip-To-Chat**  
 Allows you to clip the last few seconds of your stream and automatically post it in your chat.
@@ -56,9 +53,15 @@ Control your Stream giveaways from the Stream Deck.
 **Live Streamers**  
 Pressing this action will use all your Stream Deck keys to shows you which of the streamers you follow are currently live + viewer count. Clicking the button will take you to their stream.
 
+**Mod/Vip**
+Lets you quickly mod/unmod vip/unvip users directly from the Stream Deck
+
 **Send Message**  
 Allows you to send messages to any channel you want (not just your own!).
 - Support for reading the message from a file, allows you to create dynamic messages (like current song played on Spotify)
+
+**Shield Mode**
+- Lets you toggle Twitch's Shield Mode as well as see the current status on the key :fire:
 
 **Shoutout**  
 Shows you a list of the latest people that chatted/raided/subscribed to your channel, allowing you to send them an automated message in chat. 
@@ -102,6 +105,21 @@ Please contact the developer. Contact information is available at https://barrai
 * Uses [Easy-PI](https://github.com/BarRaider/streamdeck-easypi) by BarRaider - Provides seamless integration with the Stream Deck PI (Property Inspector) 
 
 ## Change Log
+# New in v3.0
+- `Chat Pager` can now show the username of the user paging
+- By default `Chat Pager` will now auto stop the alert after 5 seconds of flashing (but can be customized)
+- `Clip To Chat` now supports a customized chat message
+- `Live Streamers` now supports choosing a Stream Preview/Game Icon/Username Avatar on the images
+- `Live Streamers` now allows to filter out users
+- Multiple bug fixes
+
+# New in v2.8
+- :new: `Ban/Timeout` action to quickly ban/timeout/untimeout users directly from the Stream Deck
+- `Create Stream Marker` now allows creating markers on others' channels (As long as they set you as an Editor)
+- The `Change Stream Title/Game/Tags` action no longer requires files to set the settings
+- Both `Send Message` and `ShoutOut`  now show max length of message field.
+- Migrated all the code to use Twitch's new APIs
+
 # New in v2.6
 - New `Run Ad` action allows you to start a Twitch ad, see how much time is left till it ends AND see the cooldown time left until you can run another ad. :pogchamp: 
 - New `Create Stream Marker` allows you to create markers while you're streaming, to easily highlight important parts in your VOD.

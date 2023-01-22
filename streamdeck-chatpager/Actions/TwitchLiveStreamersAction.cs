@@ -164,6 +164,11 @@ namespace ChatPager.Actions
                 Settings.LiveStreamPreview = true;
             }
 
+            if (Settings.LongPressAction != TwitchLiveStreamersLongPressAction.Raid)
+            {
+                Settings.LongPressAction = TwitchLiveStreamersLongPressAction.Raid;
+            }
+
             SaveSettings();
         }
 

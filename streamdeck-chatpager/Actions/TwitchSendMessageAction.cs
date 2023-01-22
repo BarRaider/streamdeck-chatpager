@@ -29,7 +29,8 @@ namespace ChatPager.Actions
                     ChatMessage = String.Empty,
                     Channel = String.Empty,
                     LoadFromFile = false,
-                    MessageFile = String.Empty
+                    MessageFile = String.Empty,
+                    IsAnnouncement = false
                 };
                 return instance;
             }
@@ -45,7 +46,12 @@ namespace ChatPager.Actions
 
             [FilenameProperty]
             [JsonProperty(PropertyName = "messageFile")]
-            public string MessageFile { get; set; }         
+            public string MessageFile { get; set; }
+
+            [JsonProperty(PropertyName = "announcement")]
+            public bool IsAnnouncement { get; set; }
+
+            
         }
 
         protected PluginSettings Settings
@@ -98,12 +104,11 @@ namespace ChatPager.Actions
                 await Connection.ShowAlert();
                 return;
             }
-            
-            if (String.IsNullOrEmpty(Settings.Channel))
+
+            string channel = TwitchTokenManager.Instance.User?.UserName;
+            if (!String.IsNullOrEmpty(Settings.Channel))
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} called but no channel is set");
-                await Connection.ShowAlert();
-                return;
+                channel = Settings.Channel;
             }
 
             string message = Settings.ChatMessage;
@@ -126,7 +131,24 @@ namespace ChatPager.Actions
                 return;
             }
 
-            TwitchChat.Instance.SendMessage(Settings.Channel, message);
+            if (Settings.IsAnnouncement)
+            {
+                using (TwitchComm tc = new TwitchComm())
+                {
+                    if (await tc.SendAnnouncement(channel, message))
+                    {
+                        await Connection.ShowOk();
+                    }
+                    else
+                    {
+                        await Connection.ShowAlert();
+                    }
+                }
+            }
+            else
+            {
+                TwitchChat.Instance.SendMessage(channel, message);
+            }
         }
 
         public override void KeyReleased(KeyPayload payload) { }
