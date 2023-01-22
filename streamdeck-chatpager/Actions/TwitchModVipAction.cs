@@ -6,25 +6,22 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace ChatPager.Actions
 {
-
-    //---------------------------------------------------
-    //          BarRaider's Hall Of Fame
-    // 100 Bits: Vedeksu
-    //---------------------------------------------------
-
-    [PluginActionId("com.barraider.twitchtools.shoutout")]
-    public class TwitchShoutoutAction : UserSelectionActionBase
+    [PluginActionId("com.barraider.twitchtools.modvipcmd")]
+    public class TwitchModVipAction : UserSelectionActionBase
     {
+        public enum ModVipCommand
+        {
+            Mod,
+            Unmod,
+            Vip,
+            Unvip
+        }
         protected class PluginSettings : UserSelectionPluginSettings
         {
             public static PluginSettings CreateDefaultSettings()
@@ -32,16 +29,16 @@ namespace ChatPager.Actions
                 PluginSettings instance = new PluginSettings
                 {
                     TokenExists = false,
-                    ChatMessage = DEFAULT_CHAT_MESSAGE,
                     Channel = String.Empty,
                     UsersDisplay = UsersDisplay.ActiveChatters,
                     DontLoadImages = false,
+                    Command = ModVipCommand.Vip,
                 };
                 return instance;
             }
 
-            [JsonProperty(PropertyName = "chatMessage")]
-            public string ChatMessage { get; set; }
+            [JsonProperty(PropertyName = "command")]
+            public ModVipCommand Command { get; set; }
         }
 
         protected PluginSettings Settings
@@ -63,13 +60,11 @@ namespace ChatPager.Actions
 
         #region Private Members
 
-        private const string DEFAULT_CHAT_MESSAGE = "!so {USERNAME}";
+        private const int DEFAULT_DURATION_SECONDS = 600;
 
         #endregion
 
-        #region Public Methods
-
-        public TwitchShoutoutAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
+        public TwitchModVipAction(SDConnection connection, InitialPayload payload) : base(connection, payload)
         {
             if (payload.Settings == null || payload.Settings.Count == 0)
             {
@@ -82,6 +77,14 @@ namespace ChatPager.Actions
 
             Settings.TokenExists = TwitchTokenManager.Instance.TokenExists;
             InitializeSettings();
+            SaveSettings();
+        }
+
+        #region Public Methods
+
+        public override void Dispose()
+        {
+            base.Dispose();
         }
 
         public override async void KeyPressed(KeyPayload payload)
@@ -93,14 +96,6 @@ namespace ChatPager.Actions
                 await Connection.ShowAlert();
                 return;
             }
-
-            if (String.IsNullOrEmpty(Settings.ChatMessage))
-            {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} called without a valid message/action");
-                await Connection.ShowAlert();
-                return;
-            }
-
             string[] userNames = await GetUsersList();
             if (userNames == null)
             {
@@ -108,8 +103,28 @@ namespace ChatPager.Actions
                 return;
             }
 
+            ApiCommandType apiCommand = ApiCommandType.Unvip;
+            switch (Settings.Command)
+            {
+                case ModVipCommand.Mod:
+                    apiCommand = ApiCommandType.Mod;
+                    break;
+                case ModVipCommand.Unmod:
+                    apiCommand = ApiCommandType.Unmod;
+                    break;
+                case ModVipCommand.Vip:
+                    apiCommand = ApiCommandType.Vip;
+                    break;
+                case ModVipCommand.Unvip:
+                    apiCommand = ApiCommandType.Unvip;
+                    break;
+                default:
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"{this.GetType()} invallid command {Settings.Command}");
+                    return;
+            }
+
             // We have a list of usernames, get some more details on them so we can display their image on the StreamDeck
-            List<UserSelectionEventSettings> chatSettings = new List<UserSelectionEventSettings>();
+            List<UserSelectionEventSettings> userSelectionSettings = new List<UserSelectionEventSettings>();
             foreach (string username in userNames)
             {
                 TwitchUserInfo userInfo = null;
@@ -117,21 +132,22 @@ namespace ChatPager.Actions
                 {
                     userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(username);
                 }
-                chatSettings.Add(new UserSelectionEventSettings(UserSelectionEventType.ChatMessage, userInfo?.Name ?? username, userInfo?.ProfileImageUrl, userInfo?.UserId ?? null, Settings.ChatMessage.Replace("{USERNAME}", $"{userInfo?.Name ?? username}")));
+                userSelectionSettings.Add(new UserSelectionEventSettings(UserSelectionEventType.ApiCommand, userInfo?.Name ?? username, userInfo?.ProfileImageUrl, userInfo?.UserId ?? null, null, apiCommand));
             }
-            Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {chatSettings?.Count} users");
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} KeyPress returned {userSelectionSettings?.Count} users");
 
             // Show the active chatters on the StreamDeck
-            if (chatSettings != null && chatSettings.Count > 0)
+            if (userSelectionSettings != null && userSelectionSettings.Count > 0)
             {
                 AlertManager.Instance.Initialize(Connection);
-                AlertManager.Instance.ShowUserSelectionEvent(chatSettings.ToArray(), Settings.Channel);
+                AlertManager.Instance.ShowUserSelectionEvent(userSelectionSettings.ToArray(), Settings.Channel);
             }
             else
             {
                 await Connection.ShowOk();
             }
         }
+        public override void KeyReleased(KeyPayload payload) { }
 
         public override void OnTick()
         {
@@ -144,11 +160,9 @@ namespace ChatPager.Actions
             }
         }
 
-        public override void KeyReleased(KeyPayload payload) { }
-
         public override void ReceivedGlobalSettings(ReceivedGlobalSettingsPayload payload) { }
 
-        public override void ReceivedSettings(ReceivedSettingsPayload payload) 
+        public override void ReceivedSettings(ReceivedSettingsPayload payload)
         {
             Tools.AutoPopulateSettings(Settings, payload.Settings);
             InitializeSettings();
@@ -157,16 +171,11 @@ namespace ChatPager.Actions
 
         #endregion
 
+
         #region Private Methods
 
-        protected virtual void InitializeSettings()
+        protected void InitializeSettings()
         {
-            if (!string.IsNullOrEmpty(Settings.Channel) && Settings.UsersDisplay == UsersDisplay.ActiveChatters)
-            {
-                Logger.Instance.LogMessage(TracingLevel.WARN, $"Shoutout does not support 'Active Chatters' mode when 'Channel' property is set");
-                Settings.UsersDisplay = UsersDisplay.AllViewers;
-            }
-            SaveSettings();
         }
 
         protected override Task SaveSettings()

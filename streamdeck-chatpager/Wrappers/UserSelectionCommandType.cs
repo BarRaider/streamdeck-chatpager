@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace ChatPager.Wrappers
 {
-    public enum TwitchLiveStreamersLongPressAction
+    internal enum UserSelectionEventType
     {
-        Raid = 0,
-        NO_LONGER_USED
+        ChatMessage = 0,
+        ApiCommand = 1,
     }
 }

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace ChatPager.Backend
 {
-    public class AlertManager
+    internal class AlertManager
     {
 
         #region Private Members
@@ -31,7 +31,7 @@ namespace ChatPager.Backend
         private bool autoClearFile = false;
         private int numberOfKeys;
         private TwitchLiveStreamersEventArgs streamersEventArgs = null;
-        private ChatMessageListEventArgs chatMessageEventArgs = null;
+        private UserSelectionEventArgs userSelectionEventArgs = null;
         private int autoStopSeconds = 0;
 
         #endregion
@@ -74,7 +74,7 @@ namespace ChatPager.Backend
 
         public event EventHandler<FlashStatusEventArgs> FlashStatusChanged;
         public event EventHandler<TwitchLiveStreamersEventArgs> ActiveStreamersChanged;
-        public event EventHandler<ChatMessageListEventArgs> ChatMessageListChanged;
+        public event EventHandler<UserSelectionEventArgs> UserSelectionListChanged;
         public event EventHandler TwitchPagerShown;
 
         public bool IsReady
@@ -151,31 +151,31 @@ namespace ChatPager.Backend
 
         public void MoveToNextChatPage()
         {
-            if (chatMessageEventArgs == null)
+            if (userSelectionEventArgs == null)
             {
                 return;
             }
             StopFlashAndReset();
-            chatMessageEventArgs.CurrentPage++;
-            ChatMessageListChanged?.Invoke(this, chatMessageEventArgs);
+            userSelectionEventArgs.CurrentPage++;
+            UserSelectionListChanged?.Invoke(this, userSelectionEventArgs);
         }
 
         public void MoveToPrevChatPage()
         {
-            if (chatMessageEventArgs == null)
+            if (userSelectionEventArgs == null)
             {
                 return;
             }
 
-            if (chatMessageEventArgs.CurrentPage == 0) // Already on first page
+            if (userSelectionEventArgs.CurrentPage == 0) // Already on first page
             {
                 return;
             }
 
 
             StopFlashAndReset();
-            chatMessageEventArgs.CurrentPage--;
-            ChatMessageListChanged?.Invoke(this, chatMessageEventArgs);
+            userSelectionEventArgs.CurrentPage--;
+            UserSelectionListChanged?.Invoke(this, userSelectionEventArgs);
         }
 
         public void MoveToNextStreamersPage()
@@ -206,10 +206,10 @@ namespace ChatPager.Backend
             ActiveStreamersChanged?.Invoke(this, streamersEventArgs);
         }
 
-        public async void ShowChatMessages(ChatMessageKey[] chatMessageKeys, string channel)
+        public async void ShowUserSelectionEvent(UserSelectionEventSettings[] userSelectionSettings, string channel)
         {
             StopFlashAndReset();
-            Logger.Instance.LogMessage(TracingLevel.INFO, $"ShowChatMessages called");
+            Logger.Instance.LogMessage(TracingLevel.INFO, $"ShowUserSelectionEvent called");
 
             await SwitchToFullScreen();
 
@@ -228,8 +228,8 @@ namespace ChatPager.Backend
             }
             StopFlashAndReset();
 
-            chatMessageEventArgs = new ChatMessageListEventArgs(chatMessageKeys, channel, numberOfKeys, 0);
-            ChatMessageListChanged?.Invoke(this, chatMessageEventArgs);
+            userSelectionEventArgs = new UserSelectionEventArgs(userSelectionSettings, channel, numberOfKeys, 0);
+            UserSelectionListChanged?.Invoke(this, userSelectionEventArgs);
         }
 
 
@@ -352,16 +352,16 @@ namespace ChatPager.Backend
             string profileName = String.Empty;
             switch (connection.DeviceInfo().Type)
             {
-                case StreamDeckDeviceType.StreamDeckClassic:
+                case DeviceType.StreamDeckClassic:
                     profileName = "FullScreenAlert";
                     break;
-                case StreamDeckDeviceType.StreamDeckMini:
+                case DeviceType.StreamDeckMini:
                     profileName = "FullScreenAlertMini";
                     break;
-                case StreamDeckDeviceType.StreamDeckXL:
+                case DeviceType.StreamDeckXL:
                     profileName = "FullScreenAlertXL";
                     break;
-                case StreamDeckDeviceType.StreamDeckMobile:
+                case DeviceType.StreamDeckMobile:
                     profileName = "FullScreenAlertMobile";
                     break;
                 default:

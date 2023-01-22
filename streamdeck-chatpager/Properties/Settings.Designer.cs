@@ -12,7 +12,7 @@ namespace ChatPager.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "16.10.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.4.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -320,6 +320,49 @@ namespace ChatPager.Properties {
         public string ImageGreenCheckbox {
             get {
                 return ((string)(this["ImageGreenCheckbox"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAH10lEQVR4nO2" +
+            "ae4zU1RXHP/c3v5nZ2YEdGHDBhV13ZdfwkkdBw1pS00KMNuofjUaC0hASH0VbmvYPbdI0aWvB/kGwG1B" +
+            "sEa1dX0SrttYHSR+mUVtf7T/QGqxQbQWVhV2W3Z3n7za/M7+dXdh5/ub3G7HwTW5gZ+6ce8655557zrm" +
+            "HcziHsxtKP1Qn+TVgACEgCwRYgcXVwCQM9pLhBfnelO9y8+sAE6tOCrDXUfnxMzS3oUQdNjZh8FsUdwA" +
+            "f1FMBSj9Zn4VEoBQBAvwVWDaRE5kzhMGlZNgvVqL8Z8sk7f8iInxQzP9lMiwrKJgWgaNYvE4/LaREGb7" +
+            "DFE3XQwEpbiTMKhGqmHnnPm9iOg8SYk09LEDpZ/xfRARJ0keaeFmhtDO/gbnAu/nPfILJCb+lF4HuJlC" +
+            "B8Iw790P0ornEZ85Q+gEfqVui4plM4nDVt419E4xwHSM8Lf/3CUo/7h9xMV2LF1Fc6fL3/SjiGP4dApM" +
+            "+nyjbOx5lCVGudO1oA0whzZ0c5568b/AYSj/mPVGBJeNvmCxxvX9KosYMEMdk0A87MGnynqgwmmYtCZb" +
+            "kI0C3dAxMwjxAiLV+xAVKb/eYoi1wREKaATSTPaGpJI5YxiDv5P/2CCZR74gJsrJru8Aj4cnnD88RoVW" +
+            "SJQ+PgtIveEdMkGU+Q+yTk+vVTo06wCibCNHjEVWB0g96REk7d3eQd1AsLb5i7p/79/KXZ98mmc7Cii6" +
+            "MO69hcSxSxiNpcYkxMgx5pVzvAqGsCH8Dk3iiVNDT18/xju9yZDDBvFMYUQw8dQfvf62bpUVN3FbwML2" +
+            "MsE6OggdQ+mmPFKBQJOknS1PRbC8IkZv4VyLNnGJkDvXw0QXTaCmxjp1VLsRgnxe+wCABNY2khKxwkru" +
+            "wigjv4OE/8mYp4W2s2857Za+7YXZy0lm7Rv5NhlwrLwfb9MNMoZG7S0Z8Bux4WVguiTcOMrtk3qDFAla" +
+            "S5AoG2FtrnmAHGe5h73ZGhPs52TL7pmFgpDy7WYuGsvzkFPQwIVpq9QWmmIJbaLmalhPielFEKWjonEn" +
+            "qwJHS05oifAolfAB5KzifIN/jJFtqiTYN0bebERHTt5nZVVGyo+CLXeUtYPZUTlYU8mo5fpsJEqHRpQw" +
+            "NtgWcV5mmCiLNNQyxuNIduOwippabs6CVdEW1g9HgKMY2GrjNpQSY/MfFr7RT3w+xW/6uxPw0LJ9Du+N" +
+            "/i57zyxfSIAqoxAqU3EC3MshWkhyoRoRRGE7aWvnQjufP8kMMple8koLJYaLRMP8uNa37QpqrOs8B4b1" +
+            "XfJCuUhbLtoDZVSw2CotpDPEDN7X7tun0/eO/hb+zo8H5LbRVRTMjlngpU7iaEM9XGxyZDFQxWzla1mz" +
+            "Lv/JUiUVtpIopIBrisGkytyohxoqoOxji+Wp5MjlexeysnN75NLHO1ZOagu5Owk++XvjrWXGOuQ5vTdo" +
+            "Y5lsM0lNNcFTdLaDF5B51/Z5oQXcX8WJfX9xawzuVJbnGNs5jNwEJlCuCId62koEo4HoCtdX4FrbSKtF" +
+            "8AXR3EaypfBbAQHFf/iW6gmHSXwFxywl6wvTUVOMDGkM0RkK8N5Ki8/TvlnYQq7mGqFhHih+T4EAldIx" +
+            "xT9bFB6KEHcBMl6ydwuSMWMFivLVgFjM9KXRoXswHSmWGIa+25UaMuUTZ6MlDqoILmydmhWaAI81NTKu" +
+            "ZflauxTlM5XYJ1szSshmkpOJaeKTzefOvajX98VhywUQv4iRBtWP0qk5yLwkmiQwlZDRLGnWuHH0Vwyz" +
+            "3rGFBQWfzxCR8RqzmysQYcuo1ifNTGri9lNOuJBC6z9MnKQ0t8Ym5QNj0+N3HEMvdSILNQJHQq9QtkJX" +
+            "2pe8Qpd3rJoovzaXj5q/wivCp0KkMrL+cGd6u4uQJKR5hgFXFIlelnyrww9ybXIwUx1D1aFTxEVq2eTV" +
+            "Bfl/IxswJlRzl7D5slzCpTt1avkHJFf4ISWYV2kpzgu+1BW6knSg3+dJC53jpe37Dq8+8hZXJolZ0kf3" +
+            "RdVw8bTJxXxSuaCHJBk6w+/RjoHTvaZNzu/9ngqz0nBkDPurnk85N9I+kuOgURhSDj32Td9esYLmXV+7" +
+            "ouqQZxiJGkMx4uZR+dtzEXEHhq6T5nadve+RoWRbZ8Nc5nLGKVyH2b+HQvHbaPbW+sS7V+zHYOP4oGHI" +
+            "E7PExSGqc4CG/mhS/v4fXSglv49p7KVM3doGx4OgbnKCTTxyZPx0fCSbE/L9NgGbPGSCXUP36zfKZ+qG" +
+            "jtPnWu5hrwd0psuYjwen53Y5gscVz0x+FkkePsleq1gR8a5DMSEFnFVEuA16zPzI45pjDMNvRNPi2uIb" +
+            "Vi8o/jTXH+NC3q3dUtiS9HAV7GFKpj7MAkw2+do4r2LqWS+zCZ6lpezZ53rNyKnI3TAdT2GjnnoZT5Oy" +
+            "pR19uY5DGv2+hT6nCic9P1vDqyk7m+c5Ljv5WLIJ2r3AHw7zvVx9eIXx4jI837OSfbx0kbvuFOc30b17" +
+            "D5KsWsahePIi8EdbbfYJ3ifOr18JnFl6yj8AXzlLhbcyza4LBM4CRzwaKoG0B+89G2QWaD2wL2HUGsPL" +
+            "ZQLHNrgofRLH+c5/3V49fYLInF5oqfoniy8AfPl8yuMI+FDejuMX+sdJ7nBrAWBS4GsViNOc7jQz/DzW" +
+            "hNIqjjr/7EwbHnVLZOZzDWQ3gf5esajLGL9sZAAAAAElFTkSuQmCC")]
+        public string ImageOrangeExclamation {
+            get {
+                return ((string)(this["ImageOrangeExclamation"]));
             }
         }
     }

@@ -5,7 +5,7 @@
     <meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui,viewport-fit=cover">
     <meta name=apple-mobile-web-app-capable content=yes>
     <meta name=apple-mobile-web-app-status-bar-style content=black>
-    <title>Create Stream Marker</title>
+    <title>Twitch Ban/Timeout</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdpi.css">
     <script src="https://cdn.jsdelivr.net/gh/barraider/streamdeck-easypi@latest/src/sdtools.common.js"></script>
     <script src="../setup.js"></script>
@@ -15,23 +15,30 @@
         <details class="message info">
             <summary>For feedback/suggestions contact me at <span class="linkspan" onclick="openWebsite()">https://BarRaider.com</span> </summary>
         </details>
-        <hr />
         <div id="sdWrapper" style="display:none;">
-            <div class="sdpi-item" id="dvChannel">
-                <div class="sdpi-item-label">Channel (optional)</div>
-                <input class="sdpi-item-value sdProperty" placeholder="barraider" id="channel" oninput="setSettings()">
+            <div class="sdpi-item" id="dvAction">
+                <div class="sdpi-item-label">Action</div>
+                <select class="sdpi-item-value select sdProperty" id="command" oninput="setSettings()">
+                    <option value="" selected>- CHOOSE ACTION -</option>
+                    <option value="0">Mod User</option>
+                    <option value="1">Unmod User</option>
+                    <option value="2">Vip User</option>
+                    <option value="3">UnVip User</option>
+                </select>
             </div>
-            <details class="message">
-                <summary>* Empty 'Channel' sets marker on your own channel.</summary>
-            </details>
-            <details class="message">
-                <summary>
-                    * Only works when stream is live and 'Store past broadcasts' is enabled in Twitch settings.
-                </summary>
-            </details>
-            <div class="sdpi-item" id="dvChannel">
-                <div class="sdpi-item-label">Description (optional)</div>
-                <input class="sdpi-item-value sdProperty" placeholder="Created by BarRaider's Twitch Tools" id="description" oninput="setSettings()">
+            <div class="sdpi-item" id="dvUsersDisplay">
+                <div class="sdpi-item-label">Choose from</div>
+                <select class="sdpi-item-value select sdProperty" id="usersDisplay" oninput="setSettings()" value="0">
+                    <option value="0">Active Chatters</option>
+                    <option value="1">All Viewers</option>
+                </select>
+            </div>
+            <div type="checkbox" class="sdpi-item" id="dvDontLoadImages">
+                <div class="sdpi-item-label">User Images</div>
+                <div class="sdpi-item-value">
+                    <input id="dontLoadImages" class="sdProperty sdCheckbox" type="checkbox" value="" oninput="setSettings()">
+                    <label for="dontLoadImages" class="sdpi-item-label"><span></span>Don't load images (loads faster)</label>
+                </div>
             </div>
             <hr />
             <div class="sdpi-item" id="dvReset">
