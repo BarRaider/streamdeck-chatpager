@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.29905.134
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TwitchTools", "streamdeck-chatpager\TwitchTools.csproj", "{D4609600-2469-47DC-A7C0-5D654E708BD3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TwitchLib.PubSub", "..\TwitchLib.PubSub\TwitchLib.PubSub\TwitchLib.PubSub.csproj", "{6F2F830D-E7E0-4592-BB05-6BF56382079F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TwitchLib.PubSub", "TwitchLib.PubSub\TwitchLib.PubSub\TwitchLib.PubSub.csproj", "{6F2F830D-E7E0-4592-BB05-6BF56382079F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -57,7 +57,7 @@
     </Reference>
     <Reference Include="System.Windows.Forms" />
     <Reference Include="TwitchLib.PubSub">
-      <HintPath>..\..\TwitchLib.PubSub\TwitchLib.PubSub\bin\Release\netstandard2.0\TwitchLib.PubSub.dll</HintPath>
+      <HintPath>..\TwitchLib.PubSub\TwitchLib.PubSub\bin\Release\netstandard2.0\TwitchLib.PubSub.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
