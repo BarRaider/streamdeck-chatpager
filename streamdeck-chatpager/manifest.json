@@ -12,12 +12,12 @@
       ],
       "SupportedInMultiActions": false,
       "Tooltip": "Shows list of viewers you can ban/timeout.",
-      "UUID": "com.barraider.twitchtools.bantimeout",
+      "UUID": "com.barraider.twitchtools.bantimeoutcmd",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/BanTimeout.html"
     },
     {
       "Icon": "Images/streamTitleIcon",
-      "Name": "Change Stream Title/Game/Tags",
+      "Name": "Change Title/Game",
       "States": [
         {
           "Image": "Images/streamTitleAction",
@@ -40,10 +40,27 @@
           "FontSize": "12"
         }
       ],
+      "UserTitleEnabled": false,
       "SupportedInMultiActions": false,
+      "DisableCaching": true,
       "Tooltip": "Shows you when your favorite streamer is live.",
       "UUID": "com.barraider.twitchtools.channel",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/Channel.html"
+    },
+    {
+      "Icon": "Images/clearChatIcon",
+      "Name": "Clear Chat",
+      "States": [
+        {
+          "Image": "Images/clearChatAction",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": true,
+      "Tooltip": "Clear all messages in chat.",
+      "UUID": "com.barraider.twitchtools.clearchat",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/ClearChat.html"
     },
     {
       "Icon": "Images/clipIcon",
@@ -101,9 +118,25 @@
         }
       ],
       "SupportedInMultiActions": false,
+      "DisableCaching": true,
       "Tooltip": "Shows you which of the streamers you follow are currently live.",
       "UUID": "com.barraider.twitchtools.livestreamers",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/LiveStreamers.html"
+    },
+    {
+      "Icon": "Images/modIcon",
+      "Name": "Mods / VIPs",
+      "States": [
+        {
+          "Image": "Images/modAction",
+          "TitleAlignment": "middle",
+          "FontSize": "12"
+        }
+      ],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Shows list of viewers you can grant or remove moderation or VIP status.",
+      "UUID": "com.barraider.twitchtools.modvipcmd",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/ModVip.html"
     },
     {
       "Icon": "Images/adIcon",
@@ -115,6 +148,7 @@
           "FontSize": "11"
         }
       ],
+      "UserTitleEnabled": false,
       "SupportedInMultiActions": true,
       "Tooltip": "Run an twitch ad and see both the time left and cooldown till next ad",
       "UUID": "com.barraider.twitchtools.runad",
@@ -134,6 +168,23 @@
       "Tooltip": "Sends a preset message to a channel",
       "UUID": "com.barraider.twitchtools.sendmessage",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/SendMessage.html"
+    },
+    {
+      "Icon": "Images/shieldIcon",
+      "Name": "Shield Mode",
+      "States": [
+        {
+          "Image": "Images/shieldAction",
+          "TitleAlignment": "middle",
+          "FontSize": "12"
+        }
+      ],
+      "UserTitleEnabled": false,
+      "SupportedInMultiActions": true,
+      "DisableCaching": true,
+      "Tooltip": "Toggle Twitch Shield",
+      "UUID": "com.barraider.twitchtools.shield",
+      "PropertyInspectorPath": "PropertyInspector/ChatPager/Shield.html"
     },
     {
       "Icon": "Images/shoutoutIcon",
@@ -160,6 +211,7 @@
           "FontSize": "10"
         }
       ],
+      "UserTitleEnabled": false,
       "SupportedInMultiActions": false,
       "Tooltip": "Listens to your twitch chat and gives you a visual alert if someone uses the !page command.",
       "UUID": "com.barraider.twitchtools.twitchpager",
@@ -175,7 +227,9 @@
           "FontSize": "11"
         }
       ],
+      "UserTitleEnabled": false,
       "SupportedInMultiActions": false,
+      "DisableCaching": true,
       "Tooltip": "Shows you who is currently viewing a channel.",
       "UUID": "com.barraider.twitchtools.channelviewers",
       "PropertyInspectorPath": "PropertyInspector/ChatPager/ChannelViewers.html"
@@ -192,6 +246,7 @@
       ],
       "SupportedInMultiActions": false,
       "VisibleInActionsList": false,
+      "DisableCaching": true,
       "Tooltip": "",
       "UUID": "com.barraider.alertflasher"
     }
@@ -201,7 +256,7 @@
   "Name": "Twitch Tools",
   "Icon": "Images/pluginIcon",
   "URL": "https://BarRaider.com/",
-  "Version": "3.0",
+  "Version": "3.1",
   "DefaultWindowSize": [ 620, 750 ],
   "CodePath": "com.barraider.twitchtools",
   "Category": "Twitch Tools [BarRaider]",
@@ -240,6 +295,6 @@
   ],
   "SDKVersion": 2,
   "Software": {
-    "MinimumVersion": "5.0"
+    "MinimumVersion": "6.0"
   }
 }
