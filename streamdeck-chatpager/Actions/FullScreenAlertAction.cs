@@ -162,13 +162,12 @@ namespace ChatPager
             HandleDialPress();
         }
 
-        public override void DialPress(DialPressPayload payload)
+        public override void DialDown(DialPayload payload)
         {
-            if (payload.IsDialPressed)
-            {
-                HandleDialPress();
-            }
+            HandleDialPress();
         }
+
+        public override void DialUp(DialPayload payload) { }
 
         public override void TouchPress(TouchpadPressPayload payload)
         {
