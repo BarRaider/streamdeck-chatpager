@@ -244,9 +244,14 @@
           "FontSize": "28"
         }
       ],
+      "Controllers": [ "Keypad", "Encoder" ],
+      "Encoder": {
+        "layout": "alertFlasherDialLayout.json"
+      },
       "SupportedInMultiActions": false,
       "VisibleInActionsList": false,
       "DisableCaching": true,
+      "UserTitleEnabled": false,
       "Tooltip": "",
       "UUID": "com.barraider.alertflasher"
     }
@@ -256,7 +261,7 @@
   "Name": "Twitch Tools",
   "Icon": "Images/pluginIcon",
   "URL": "https://BarRaider.com/",
-  "Version": "3.1",
+  "Version": "3.2",
   "DefaultWindowSize": [ 620, 750 ],
   "CodePath": "com.barraider.twitchtools",
   "Category": "Twitch Tools [BarRaider]",
@@ -290,6 +295,12 @@
       "Name": "FullScreenAlertMobile",
       "ReadOnly": true,
       "DeviceType": 3,
+      "DontAutoSwitchWhenInstalled": true
+    },
+    {
+      "Name": "FullScreenAlertPlus",
+      "ReadOnly": false,
+      "DeviceType": 7,
       "DontAutoSwitchWhenInstalled": true
     }
   ],
