@@ -210,7 +210,6 @@ namespace ChatPager.Twitch
             pubsub.ListenToBitsEvents(channelName);
             pubsub.ListenToFollows(channelName);
             pubsub.ListenToSubscriptions(channelName);
-            pubsub.ListenToRewards(channelName);
             pubsub.ListenToRaid(channelName);
             pubsub.SendTopics($"{token.Token}");
 
