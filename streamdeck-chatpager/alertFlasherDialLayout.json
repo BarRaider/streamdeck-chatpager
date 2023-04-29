@@ -1,0 +1,33 @@
+{
+  "id": "alertFlasherDialLayout",
+  "items": [
+    {
+      "key": "title",
+      "type": "text",
+      "value":  "",
+      "enabled": false,
+      "rect": [ 0, 0, 1, 1 ],
+      "font": {
+        "size": 1,
+        "weight": 600
+      },
+      "alignment": "left"
+    },
+    {
+      "key": "icon",
+      "type": "pixmap",
+      "enabled": false,
+      "rect": [ 0, 1, 1, 1 ]
+    },
+    {
+      "key": "message",
+      "type": "text",
+      "rect": [ 0, 40, 200, 32 ],
+      "font": {
+        "size": 24,
+        "weight": 600
+      },
+      "alignment": "left"
+    }
+  ]
+}

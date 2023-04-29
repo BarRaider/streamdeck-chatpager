@@ -7,27 +7,15 @@ using System.Threading.Tasks;
 
 namespace ChatPager.Twitch
 {
-    public class TwitchChannelViewersTypes
+    public class TwitchChannelViewersData
     {
-        [JsonProperty(PropertyName = "broadcaster")]
-        public string[] Broadcaster { get; private set; }
+        [JsonProperty(PropertyName = "user_id")]
+        public string UserId { get; private set; }
 
-        [JsonProperty(PropertyName = "vips")]
-        public string[] VIPs { get; private set; }
+        [JsonProperty(PropertyName = "user_login")]
+        public string Login { get; private set; }
 
-        [JsonProperty(PropertyName = "moderators")]
-        public string[] Moderators { get; private set; }
-
-        [JsonProperty(PropertyName = "staff")]
-        public string[] Staff { get; private set; }
-
-        [JsonProperty(PropertyName = "admins")]
-        public string[] Admin { get; private set; }
-        
-        [JsonProperty(PropertyName = "global_mods")]
-        public string[] GlobalMods { get; private set; }
-
-        [JsonProperty(PropertyName = "viewers")]
-        public string[] Viewers { get; private set; }
+        [JsonProperty(PropertyName = "user_name")]
+        public string DisplayName { get; private set; }
     }
 }

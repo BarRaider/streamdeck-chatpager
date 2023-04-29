@@ -1,7 +1,9 @@
 ﻿using BarRaider.SdTools;
+using BarRaider.SdTools.Payloads;
 using ChatPager.Backend;
 using ChatPager.Twitch;
 using ChatPager.Wrappers;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -14,6 +16,7 @@ using System.Runtime.Remoting;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using static NAudio.Wave.WaveInterop;
 
 namespace ChatPager
 {
@@ -24,7 +27,7 @@ namespace ChatPager
     //---------------------------------------------------
 
     [PluginActionId("com.barraider.alertflasher")]
-    class FullScreenAlertAction : KeypadBase
+    class FullScreenAlertAction : KeyAndEncoderBase
     {
         private enum FlashMode
         {
@@ -38,10 +41,12 @@ namespace ChatPager
         private const int NUMBER_OF_SPECIAL_KEYS = 3; // Exit, Prev, Next
         private const int LONG_KEYPRESS_LENGTH_MS = 600;
 
+        private bool isDial = false;
         private int stringMessageIndex;
         private readonly int deviceColumns = 0;
         private readonly int locationRow = 0;
         private readonly int locationColumn = 0;
+        private readonly DeviceType deviceType;
         private readonly int sequentialKey;
         private int pagedSequentialKey = 0;
         private bool twoLettersPerKey;
@@ -69,10 +74,14 @@ namespace ChatPager
             sequentialKey = 0;
             if (deviceInfo != null && payload?.Coordinates != null)
             {
+                deviceType = deviceInfo.Type;
+                isDial = payload.Controller == "Encoder";
                 deviceColumns = deviceInfo.Size.Cols;
                 locationRow = payload.Coordinates.Row;
                 locationColumn = payload.Coordinates.Column;
                 sequentialKey = (deviceColumns * locationRow) + locationColumn;
+
+                Logger.Instance.LogMessage(TracingLevel.INFO, $"{this.GetType()} Device: {deviceType} Position: {locationColumn},{locationRow} Dial: {isDial}");
             }
             Connection.GetGlobalSettingsAsync();
             AlertManager.Instance.FlashStatusChanged += Instance_FlashStatusChanged;
@@ -107,11 +116,9 @@ namespace ChatPager
             Logger.Instance.LogMessage(TracingLevel.INFO, $"Short Keypress {this.GetType()}");
 
             // Exit the full screen if Exit key or Pager is pressed
-            if (flashMode == FlashMode.Pager || sequentialKey == 0)
+            if (flashMode == FlashMode.Pager || IsExitKey())
             {
-                AlertManager.Instance.StopFlashAndReset();
-                Connection.SwitchProfileAsync(null);
-                return;
+                ExitProfile();
             }
 
             if (flashMode == FlashMode.UserSelectionCommand)
@@ -150,6 +157,23 @@ namespace ChatPager
 
         public override void ReceivedSettings(ReceivedSettingsPayload payload) { }
 
+        public override void DialRotate(DialRotatePayload payload)
+        {
+            HandleDialPress();
+        }
+
+        public override void DialDown(DialPayload payload)
+        {
+            HandleDialPress();
+        }
+
+        public override void DialUp(DialPayload payload) { }
+
+        public override void TouchPress(TouchpadPressPayload payload)
+        {
+            HandleDialPress();
+        }
+
         private void CalculateStringIndex()
         {
             int multiplicationFactor = twoLettersPerKey ? 2 : 1;
@@ -165,13 +189,19 @@ namespace ChatPager
         private async void Instance_ActiveStreamersChanged(object sender, TwitchLiveStreamersEventArgs e)
         {
             flashMode = FlashMode.ActiveStreamers;
-            pagedSequentialKey = e.CurrentPage * (e.NumberOfKeys - NUMBER_OF_SPECIAL_KEYS) + sequentialKey; // -3 for the Exit, Back, Next buttons
+            pagedSequentialKey = e.CurrentPage * (e.NumberOfKeys - GetNumberOfSpecialKeys()) + sequentialKey; // -3 for the Exit, Back, Next buttons
             channelName = String.Empty;
             liveStreamersLongPressAction = e.LongPressAction;
 
             if (await HandleActiveStreamersNavigationKeys(e))
             {
                 return;
+            }
+
+            // Only needed if it's a SD+ since we don't utilize the keypad for navigation
+            if (GetNumberOfSpecialKeys() == 0)
+            {
+                pagedSequentialKey++;
             }
 
             if (e.DisplaySettings != null && e.DisplaySettings.Streamers != null && e.DisplaySettings.Streamers.Length >= pagedSequentialKey) // >= because we're doing -1 as we're starting on the second key
@@ -226,15 +256,32 @@ namespace ChatPager
 
         private async Task<bool> HandleActiveStreamersNavigationKeys(TwitchLiveStreamersEventArgs e)
         {
-            if (sequentialKey == 0)
+            // For SD+ we don't need to add next/prev buttons
+            if (deviceType == DeviceType.StreamDeckPlus)
+            {
+                if (isDial && await HandleTitleForDialKeys())
+                {
+                    return true;
+                }
+
+                if (e.DisplaySettings != null && e.DisplaySettings.Streamers != null)
+                {
+                    numberOfElements = e.DisplaySettings.Streamers.Length;
+                    numberOfKeys = e.NumberOfKeys;
+                }
+                return false;
+            }
+
+            if (IsExitKey())
             {
                 await Connection.SetTitleAsync("Exit");
                 return true;
             }
 
+            // Add Next Button
             if (e.DisplaySettings != null && e.DisplaySettings.Streamers != null && sequentialKey == e.NumberOfKeys - 1 && e.DisplaySettings.Streamers.Length > e.NumberOfKeys - 3) // Last (Next) key, and there is more than one page *overall*
             {
-                if (e.DisplaySettings.Streamers.Length + NUMBER_OF_SPECIAL_KEYS < pagedSequentialKey) // We are on last page
+                if (e.DisplaySettings.Streamers.Length + GetNumberOfSpecialKeys() < pagedSequentialKey) // We are on last page
                 {
                     await Connection.SetTitleAsync(null);
                 }
@@ -247,6 +294,7 @@ namespace ChatPager
                 return true;
             }
 
+            // Add Prev Button
             if (e.DisplaySettings != null && e.DisplaySettings.Streamers != null && sequentialKey == e.NumberOfKeys - 2 && e.DisplaySettings.Streamers.Length > e.NumberOfKeys - 3) // Prev key, and there is more than one page *overall*
             {
                 if (sequentialKey == pagedSequentialKey) // We are on the first page
@@ -269,11 +317,22 @@ namespace ChatPager
         {
             flashMode = FlashMode.UserSelectionCommand;
             channelName = e.Channel;
-            pagedSequentialKey = e.CurrentPage * (e.NumberOfKeys - NUMBER_OF_SPECIAL_KEYS) + sequentialKey; // -3 for the Exit, Back, Next buttons
+            pagedSequentialKey = e.CurrentPage * (e.NumberOfKeys - GetNumberOfSpecialKeys()) + sequentialKey; // -3 for the Exit, Back, Next buttons
 
             if (await HandleTitleForNavigationKeys(e)) // It's one of the navigation keys
             {
                 return;
+            }
+
+            if (isDial && await HandleTitleForDialKeys())
+            {
+                return;
+            }
+
+            // Only needed if it's a SD+ since we don't utilize the keypad for navigation
+            if (GetNumberOfSpecialKeys() == 0)
+            {
+                pagedSequentialKey++;
             }
 
             if (e.KeysDetails != null && e.KeysDetails.Length >= pagedSequentialKey) // >= because we're doing -1 as we're starting on the second key
@@ -296,7 +355,13 @@ namespace ChatPager
 
         private async Task<bool> HandleTitleForNavigationKeys(UserSelectionEventArgs e)
         {
-            if (sequentialKey == 0)
+            // No titles on keys for SD+
+            if (deviceType == DeviceType.StreamDeckPlus)
+            {
+                return false;
+            }
+
+            if (IsExitKey())
             {
                 await Connection.SetTitleAsync("Exit");
                 return true;
@@ -304,7 +369,7 @@ namespace ChatPager
 
             if (e.KeysDetails != null && sequentialKey == e.NumberOfKeys - 1 && e.KeysDetails.Length > e.NumberOfKeys - 3) // Next key, and there is more than one page *overall*
             {
-                if (e.KeysDetails.Length + NUMBER_OF_SPECIAL_KEYS < pagedSequentialKey) // We are on last page
+                if (e.KeysDetails.Length + GetNumberOfSpecialKeys() < pagedSequentialKey) // We are on last page
                 {
                     await Connection.SetTitleAsync(null);
                 }
@@ -334,6 +399,41 @@ namespace ChatPager
 
             return false;
         }
+
+        private async Task<bool> HandleTitleForDialKeys()
+        {
+            if (!isDial)
+            {
+                return false;
+            }
+
+            string message = String.Empty;
+            switch (locationColumn)
+            {
+                case 0: // Prev
+                    message = "<< Prev";
+                    break;
+                case 1:
+                case 2:
+                    message = "EXIT";
+                    break;
+                case 3:
+                    message = "Next >>";
+                    break;
+            }
+
+            JObject keyValuePairs = new JObject()
+            {
+                { "value", message },
+                { "color", "white" },
+                { "alignment", "center" }
+            };
+
+            await Connection.SetFeedbackAsync(new JObject(new JProperty("message", keyValuePairs)));
+            return true;
+        }
+
+
         private async Task DrawChatMessageImage(UserSelectionEventSettings keyInfo, Image background)
         {
             using (Bitmap bmp = Tools.GenerateGenericKeyImage(out Graphics graphics))
@@ -448,6 +548,12 @@ namespace ChatPager
         {
             await Connection.SetTitleAsync(null);
 
+            if (isDial)
+            {
+                HandleTouchPadFlash(pageMessage, flashColor);
+                return;
+            }
+
             if (flashColor == Color.Empty)
             {
                 await Connection.SetImageAsync((string)null);
@@ -471,7 +577,7 @@ namespace ChatPager
                     var bgBrush = new SolidBrush(flashColor);
                     graphics.FillRectangle(bgBrush, 0, 0, width, height);
 
-                    if (String.IsNullOrEmpty(pageMessage) || stringMessageIndex < 0 || stringMessageIndex >= pageMessage?.Length)
+                    if (String.IsNullOrEmpty(pageMessage) || deviceType == DeviceType.StreamDeckPlus || stringMessageIndex < 0 || stringMessageIndex >= pageMessage?.Length)
                     {
                         await Connection.SetImageAsync(img);
                     }
@@ -551,16 +657,22 @@ namespace ChatPager
 
         private async void HandleUserSelectionKeyPress()
         {
-            if (sequentialKey == numberOfKeys - 1 && numberOfElements + NUMBER_OF_SPECIAL_KEYS >= pagedSequentialKey) // Next key is pressed
+            if (IsNextKey()) // Next key is pressed
             {
                 // Move to next page
                 AlertManager.Instance.MoveToNextChatPage();
                 return;
             }
 
-            if (sequentialKey == numberOfKeys - 2 && sequentialKey < pagedSequentialKey) // Prev Key is pressed
+            if (IsPrevKey()) // Prev Key is pressed
             {
                 AlertManager.Instance.MoveToPrevChatPage();
+                return;
+            }
+
+            if (IsExitKey())
+            {
+                ExitProfile();
                 return;
             }
 
@@ -604,16 +716,22 @@ namespace ChatPager
 
         private void HandleActiveStreamersKeyPress()
         {
-            if (sequentialKey == numberOfKeys - 1 && numberOfElements + NUMBER_OF_SPECIAL_KEYS >= pagedSequentialKey) // Next key is pressed
+            if (IsNextKey()) // Next key is pressed
             {
                 // Move to next page
                 AlertManager.Instance.MoveToNextStreamersPage();
                 return;
             }
 
-            if (sequentialKey == numberOfKeys - 2 && sequentialKey<pagedSequentialKey) // Prev Key is pressed
+            if (IsPrevKey()) // Prev Key is pressed
             {
                 AlertManager.Instance.MoveToPrevStreamersPage();
+                return;
+            }
+
+            if (IsExitKey())
+            {
+                ExitProfile();
                 return;
             }
 
@@ -686,8 +804,8 @@ namespace ChatPager
                     return await tc.ModUser(details.UserId);
                 case ApiCommandType.Unmod:
                     return await tc.UnmodUser(details.UserId);
-                case ApiCommandType.Vip: 
-                    return await tc.VipUser (details.UserId);
+                case ApiCommandType.Vip:
+                    return await tc.VipUser(details.UserId);
                 case ApiCommandType.Unvip:
                     return await tc.UnvipUser(details.UserId);
 
@@ -696,6 +814,113 @@ namespace ChatPager
                     Logger.Instance.LogMessage(TracingLevel.WARN, $"{this.GetType()} Invalid API command {details.CommandType}");
                     return false;
             }
+        }
+
+        private void HandleDialPress()
+        {
+            switch (flashMode)
+            {
+                case (FlashMode.Pager):
+                    ExitProfile();
+                    return;
+
+                case (FlashMode.UserSelectionCommand):
+                    HandleUserSelectionKeyPress();
+                    return;
+
+                case (FlashMode.ActiveStreamers):
+                    HandleActiveStreamersKeyPress();
+                    return;
+            }
+        }
+
+        private void HandleTouchPadFlash(string pageMessage, Color flashColor)
+        {
+            string messagePart = String.Empty; ;
+            if (flashColor != Color.Empty)
+            {
+                using (FontFamily font = new FontFamily("Arial"))
+                {
+                    string[] split = pageMessage.SplitToFitKey(new BarRaider.SdTools.Wrappers.TitleParameters(font, FontStyle.Bold, 24, flashColor, true, BarRaider.SdTools.Wrappers.TitleVerticalAlignment.Middle), 3, 3, 240).Split('\n');
+                    messagePart = split[locationColumn];
+                }
+            }
+
+            JObject keyValuePairs = new JObject()
+            {
+                { "value", messagePart },
+                { "color", flashColor.ToHex() },
+                { "alignment", "left" }
+            };
+
+            Connection.SetFeedbackAsync(new JObject(new JProperty("message", keyValuePairs)));
+        }
+
+        private int GetNumberOfSpecialKeys()
+        {
+            if (deviceType == DeviceType.StreamDeckPlus)
+            {
+                return 0;
+            }
+            return NUMBER_OF_SPECIAL_KEYS;
+        }
+
+        private bool IsExitKey()
+        {
+            if (deviceType == DeviceType.StreamDeckPlus)
+            {
+                if (isDial)
+                {
+                    return locationColumn == 1 || locationColumn == 2;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            return (sequentialKey == 0);
+        }
+
+        private bool IsNextKey()
+        {
+            if (deviceType == DeviceType.StreamDeckPlus)
+            {
+                if (isDial)
+                {
+                    return locationColumn == 3;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            return (sequentialKey == numberOfKeys - 1 && numberOfElements + GetNumberOfSpecialKeys() >= pagedSequentialKey);
+        }
+
+        private bool IsPrevKey()
+        {
+            if (deviceType == DeviceType.StreamDeckPlus)
+            {
+                if (isDial)
+                {
+                    return locationColumn == 0;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            return (sequentialKey == numberOfKeys - 2 && sequentialKey < pagedSequentialKey);
+        }
+
+        private void ExitProfile()
+        {
+            AlertManager.Instance.StopFlashAndReset();
+            Connection.SwitchProfileAsync(null);
+            return;
         }
 
         private class ApiDetails

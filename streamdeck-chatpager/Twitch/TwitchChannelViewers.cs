@@ -9,69 +9,25 @@ namespace ChatPager.Twitch
 {
     public class TwitchChannelViewers
     {
-        [JsonProperty(PropertyName = "chatter_count")]
+        [JsonProperty(PropertyName = "total")]
         public int Count { get; private set; }
 
-        [JsonProperty(PropertyName = "chatters")]
-        public TwitchChannelViewersTypes Viewers { get; private set; }
+        [JsonProperty(PropertyName = "data")]
+        public List<TwitchChannelViewersData> Chatters { get; private set; }
 
         [JsonIgnore]
         public DateTime LastUpdated { get; set; }
-
-        public int TotalViewers
-        {
-            get
-            {
-                if (Viewers == null)
-                {
-                    return 0;
-                }
-
-                return AllViewers.Count;
-            }
-        }
 
         public List<string> AllViewers
         {
             get
             {
-                List<String> viewers = new List<string>();
-                if (Viewers == null)
+                if (Chatters == null)
                 {
-                    return viewers;
+                    return new List<string>(); ;
                 }
 
-                foreach (string user in Viewers.Admin)
-                {
-                    viewers.Add(user);
-                }
-
-                foreach (string user in Viewers.GlobalMods)
-                {
-                    viewers.Add(user);
-                }
-
-                foreach (string user in Viewers.Moderators)
-                {
-                    viewers.Add(user);
-                }
-
-                foreach (string user in Viewers.Staff)
-                {
-                    viewers.Add(user);
-                }
-
-                foreach (string user in Viewers.Viewers)
-                {
-                    viewers.Add(user);
-                }
-
-                foreach (string user in Viewers.VIPs)
-                {
-                    viewers.Add(user);
-                }
-
-                return viewers.Distinct().ToList();
+                return Chatters.Select(c => c.Login).Distinct().OrderBy(l => l).ToList();
             }
         }
     }
