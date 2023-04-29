@@ -39,7 +39,7 @@ namespace ChatPager.Twitch
         private const string TWITCH_CREATE_MARKER_URI = "/streams/markers";
         private const string TWITCH_URI_MODIFY_CHANNEL_STATUS = "/channels?broadcaster_id={0}";
         private const string TWITCH_URI_RUN_COMMERCIAL = "/channels/commercial";
-        private const string TWITCH_CHANNEL_VIEWERS = "https://tmi.twitch.tv/group/user/{0}/chatters";
+        private const string TWITCH_CHANNEL_VIEWERS = "/chat/chatters";
         private const string TWITCH_URL_MODIFY_TAGS = "/streams/tags?broadcaster_id={0}";
         private const string TWITCH_URI_SHIELD_MODE = "/moderation/shield_mode";
         private const string TWITCH_URI_RAIDS = "/raids";
@@ -282,7 +282,7 @@ namespace ChatPager.Twitch
 
         #region Active Viewers/Streamers
 
-        public async Task<TwitchChannelViewers> GetChannelViewers(string channel)
+        public async Task<TwitchChannelViewers> GetChannelViewers(string channel, string paginationToken = null)
         {
             if (string.IsNullOrEmpty(channel))
             {
@@ -290,27 +290,65 @@ namespace ChatPager.Twitch
                 return null;
             }
 
-            string url = TWITCH_CHANNEL_VIEWERS.Replace("{0}", channel);
-            using (var client = new HttpClient())
-            {
-                HttpResponseMessage response = await client.GetAsync(url);
-                if (!response.IsSuccessStatusCode)
-                {
-                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetChannelViewers failed - StatusCode: {response.StatusCode} for Channel {channel}");
-                    if (channel != channel.Trim().ToLowerInvariant())
-                    {
-                        return await GetChannelViewers(channel.Trim().ToLowerInvariant());
-                    }
-                    return null;
-                }
+            (string broadcasterId, string moderatorId) = await GetBroadcasterAndModeratorIds(channel);
 
-                string body = await response.Content.ReadAsStringAsync();
-                JObject json = JObject.Parse(body);
-                var viewers = json.ToObject<TwitchChannelViewers>();
-                viewers.LastUpdated = DateTime.Now;
-                return viewers;
+            if (string.IsNullOrEmpty(broadcasterId) || string.IsNullOrEmpty(moderatorId))
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetChannelViewers failed to get broadcaster/moderator ids");
+                return null;
             }
+
+            var kvp = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("broadcaster_id", broadcasterId),
+                new KeyValuePair<string, string>("moderator_id", moderatorId),
+                new KeyValuePair<string, string>("first", "1000")
+            };
+
+            if (paginationToken != null)
+            {
+                kvp.Add(new KeyValuePair<string, string>("after", paginationToken));
+            }
+
+            HttpResponseMessage response = await TwitchHelixQuery(TWITCH_CHANNEL_VIEWERS, SendMethod.GET, kvp, null);
+            if (!response.IsSuccessStatusCode)
+            {
+                Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetChannelViewers failed - StatusCode: {response.StatusCode} for Channel {channel}");
+                if (channel != channel.Trim().ToLowerInvariant())
+                {
+                    return await GetChannelViewers(channel.Trim().ToLowerInvariant(), paginationToken);
+                }
+                return null;
+            }
+
+            string body = await response.Content.ReadAsStringAsync();
+            JObject json = JObject.Parse(body);
+            var viewers = json.ToObject<TwitchChannelViewers>();
+
+            if (json["pagination"].HasValues)
+            {
+                try
+                {
+                    string token = json["pagination"]["cursor"].Value<string>();
+                    if (token != null)
+                    {
+                        var additionalViewers = await GetChannelViewers(channel, token);
+                        if (additionalViewers != null && additionalViewers.AllViewers != null)
+                        {
+                            viewers.AllViewers.AddRange(additionalViewers.AllViewers);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Instance.LogMessage(TracingLevel.ERROR, $"GetChannelViewers Pagination Exception: {ex}");
+                }
+            }
+
+            viewers.LastUpdated = DateTime.Now;
+            return viewers;
         }
+
 
         public async Task<TwitchChannelInfo[]> GetActiveStreamers()
         {

@@ -137,7 +137,7 @@ namespace ChatPager.Actions
             if (TwitchTokenManager.Instance.TokenExists && !String.IsNullOrEmpty(Settings.ChannelName))
             {
                 var viewers = await TwitchChannelInfoManager.Instance.GetChannelViewers(Settings.ChannelName);
-                await Connection.SetTitleAsync($"👀 {viewers?.TotalViewers}");
+                await Connection.SetTitleAsync($"👀 {viewers?.Count}");
             }
         }
 
