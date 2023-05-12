@@ -125,7 +125,10 @@ namespace ChatPager.Twitch
                     (DateTime.Now - dicViewers[channelName].LastUpdated).TotalSeconds >= CHANNEL_VIEWERS_REFRESH_TIME_SEC)
                 {
                     var viewers = await comm.GetChannelViewers(channelName);
-                    dicViewers[channelName] = viewers;
+                    if (viewers != null)
+                    {
+                        dicViewers[channelName] = viewers;
+                    }
                 }
 
                 return dicViewers[channelName];
