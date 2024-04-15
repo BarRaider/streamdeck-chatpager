@@ -6,6 +6,7 @@
     <RootNamespace>ChatPager</RootNamespace>
     <AssemblyName>com.barraider.twitchtools</AssemblyName>
     <Platforms>AnyCPU;x64</Platforms>
+    <LangVersion>9.0</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -33,10 +34,10 @@
     <OutputPath>bin\Release\com.barraider.twitchtools.sdplugin\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.57" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.60" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
     <PackageReference Include="NAudio" Version="2.2.1" />
-    <PackageReference Include="StreamDeck-Tools" Version="6.1.1" />
+    <PackageReference Include="StreamDeck-Tools" Version="6.2.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
     <PackageReference Include="TwitchLib.Api" Version="3.9.0" />
     <PackageReference Include="TwitchLib.Api.Core" Version="3.9.0" />
@@ -55,6 +56,7 @@
     <Reference Include="System">
       <HintPath>System</HintPath>
     </Reference>
+    <Reference Include="System.Management" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="TwitchLib.PubSub">
       <HintPath>..\..\TwitchLib.PubSub\TwitchLib.PubSub\bin\Release\netstandard2.0\TwitchLib.PubSub.dll</HintPath>
