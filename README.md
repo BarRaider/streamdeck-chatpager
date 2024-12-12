@@ -7,6 +7,10 @@
 # New in v3.3
 - Fixed issues where `ShoutOut/Ban/Timeout` actions don't work properly after choosing a user.
 
+# New in v3.2
+- Migrated to new Twitch `Viewers` endpoint
+- Added initial support for Stream Deck Plus
+
 # New in v3.1
 - :new: `Mod/Vip` action allows you to add/remove VIPs and Moderators
 - :new: `Ban/Timeout` action allows you to Ban/Unban and Timeout/UnTimeout users
