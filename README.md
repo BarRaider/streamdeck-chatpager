@@ -4,6 +4,9 @@
 
 **Author's website and contact information:** [https://barraider.com](https://barraider.com)
 
+# New in v3.3
+- Fixed issues where `ShoutOut/Ban/Timeout` actions don't work properly after choosing a user.
+
 # New in v3.1
 - :new: `Mod/Vip` action allows you to add/remove VIPs and Moderators
 - :new: `Ban/Timeout` action allows you to Ban/Unban and Timeout/UnTimeout users
