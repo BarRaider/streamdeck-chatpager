@@ -50,7 +50,11 @@ namespace ChatPager.Actions
                     KeypressDisabled = false,
                     KeypressCreator = false,
                     KeypressMod = false,
-                    KeypressStream = false
+                    KeypressStream = false,
+                    CustomBrowser = false,
+                    KeypressNewWindow = false,
+                    KeypressAppMode = false,
+                    BrowserExecutableFile = String.Empty
                 };
                 return instance;
             }
@@ -104,7 +108,18 @@ namespace ChatPager.Actions
             [JsonProperty(PropertyName = "keypressCreator")]
             public bool KeypressCreator { get; set; }
 
+            [JsonProperty(PropertyName = "customBrowser")]
+            public bool CustomBrowser { get; set; }
 
+            [FilenameProperty]
+            [JsonProperty(PropertyName = "browserExecutableFile")]
+            public string BrowserExecutableFile { get; set; }
+
+            [JsonProperty(PropertyName = "keypressNewWindow")]
+            public bool KeypressNewWindow { get; set; }
+
+            [JsonProperty(PropertyName = "keypressAppMode")]
+            public bool KeypressAppMode { get; set; }
 
         }
 
@@ -196,7 +211,32 @@ namespace ChatPager.Actions
                 return;
             }
 
-            System.Diagnostics.Process.Start(String.Format(url, Settings.ChannelName.ToLowerInvariant()));
+            string startString = String.Format(url, Settings.ChannelName.ToLowerInvariant());
+            string argsString = "";
+
+            if (Settings.CustomBrowser && !String.IsNullOrEmpty(Settings.BrowserExecutableFile))
+            {
+                List<string> args = new List<string>();
+                if (Settings.KeypressNewWindow)
+                {
+                    args.Add("--new-window");
+                }
+
+                if (Settings.KeypressAppMode)
+                {
+                    args.Add(String.Format("--app={0}", startString));
+                }
+                else
+                {
+                    args.Add(startString);
+                }
+
+
+                startString = Settings.BrowserExecutableFile;
+                argsString = String.Join(" ", args);
+            }
+
+            System.Diagnostics.Process.Start(startString, argsString);
 
         }
 
