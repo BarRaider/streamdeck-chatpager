@@ -261,7 +261,7 @@
   "Name": "Twitch Tools",
   "Icon": "Images/pluginIcon",
   "URL": "https://BarRaider.com/",
-  "Version": "3.2.1",
+  "Version": "3.3",
   "DefaultWindowSize": [ 620, 750 ],
   "CodePath": "com.barraider.twitchtools",
   "Category": "Twitch Tools [BarRaider]",
