@@ -5,18 +5,13 @@ using ChatPager.Twitch;
 using ChatPager.Wrappers;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
-using System.IO;
-using System.IO.Packaging;
 using System.Linq;
-using System.Net;
-using System.Runtime.Remoting;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static NAudio.Wave.WaveInterop;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace ChatPager
 {
@@ -698,9 +693,9 @@ namespace ChatPager
             else if (keyDetails.EventType == UserSelectionEventType.ApiCommand)
             {
                 string userId = keyDetails?.UserId;
-                if (String.IsNullOrEmpty(keyDetails?.UserId))
+                if (String.IsNullOrEmpty(keyDetails?.UserId) && !String.IsNullOrEmpty(keyDetails.KeyTitle))
                 {
-                    var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(channelName);
+                    var userInfo = await TwitchUserInfoManager.Instance.GetUserInfo(keyDetails.KeyTitle);
                     userId = userInfo?.UserId;
                 }
                 if (await HandleAPICommand(new ApiDetails(keyDetails.ApiCommand, channelName, userId, keyDetails.ChatMessage)))
@@ -709,6 +704,8 @@ namespace ChatPager
                 }
                 else
                 {
+
+                    Logger.Instance.LogMessage(TracingLevel.WARN, $"{this.GetType()} Failed to run command! Command: {keyDetails.ApiCommand} Channel: {channelName} UserId: {keyDetails?.UserId} Title: {keyDetails?.KeyTitle}");
                     WarnCurrentImage();
                 }
             }
@@ -784,6 +781,7 @@ namespace ChatPager
         {
             TwitchComm tc = new TwitchComm();
             int timeoutLength = -1;
+
             switch (details.CommandType)
             {
                 case ApiCommandType.Raid:
